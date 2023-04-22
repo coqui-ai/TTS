@@ -650,6 +650,26 @@
                     "license": "CC-BY-4.0"
                 }
             }
+        },
+        "bn":{
+            "custom":{
+                "vits-male":{
+                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.13.3_models/tts_models--bn--custom--vits_male.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "description": "Single speaker Bangla male model. For more information -> https://github.com/mobassir94/comprehensive-bangla-tts",
+                    "author": "@mobassir94",
+                    "license": "Apache 2.0"
+                },
+                "vits-female":{
+                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.13.3_models/tts_models--bn--custom--vits_female.zip",
+                    "default_vocoder": null,
+                    "commit": null,
+                    "description": "Single speaker Bangla female model. For more information -> https://github.com/mobassir94/comprehensive-bangla-tts",
+                    "author": "@mobassir94",
+                    "license": "Apache 2.0"
+                }
+            }
         }
     },
     "vocoder_models": {
@@ -797,6 +817,19 @@
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.6.1_models/vocoder_models--tr--common-voice--hifigan.zip",
                     "description": "HifiGAN model using an unknown speaker from the Common-Voice dataset.",
                     "author": "Fatih Akademi",
+                    "license": "MIT",
+                    "commit": null
+                }
+            }
+        }
+    },
+    "voice_conversion_models":{
+        "multilingual":{
+            "vctk":{
+                "freevc24":{
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.13.0_models/voice_conversion_models--multilingual--vctk--freevc24.zip",
+                    "description": "FreeVC model trained on VCTK dataset from https://github.com/OlaWod/FreeVC",
+                    "author": "Jing-Yi Li @OlaWod",
                     "license": "MIT",
                     "commit": null
                 }

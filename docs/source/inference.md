@@ -36,8 +36,8 @@ Run a tts and a vocoder model from the released model list. Note that not every 
 
 ```bash
 tts --text "Text for TTS" \
-    --model_name "<type>/<language>/<dataset>/<model_name>" \
-    --vocoder_name "<type>/<language>/<dataset>/<model_name>" \
+    --model_name "tts_models/<language>/<dataset>/<model_name>" \
+    --vocoder_name "vocoder_models/<language>/<dataset>/<model_name>" \
     --out_path folder/to/save/output.wav
 ```
 
@@ -64,8 +64,17 @@ tts --text "Text for TTS" \
 Run a multi-speaker TTS model from the released models list.
 
 ```bash
-tts --model_name "<type>/<language>/<dataset>/<model_name>"  --list_speaker_idxs  # list the possible speaker IDs.
-tts --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx "<speaker_id>"
+tts --model_name "tts_models/<language>/<dataset>/<model_name>"  --list_speaker_idxs  # list the possible speaker IDs.
+tts --text "Text for TTS." --out_path output/path/speech.wav --model_name "tts_models/<language>/<dataset>/<model_name>"  --speaker_idx "<speaker_id>"
+```
+
+Run a released voice conversion model
+
+```bash
+tts --model_name "voice_conversion/<language>/<dataset>/<model_name>"
+    --source_wav "my/source/speaker/audio.wav"
+    --target_wav "my/target/speaker/audio.wav"
+    --out_path folder/to/save/output.wav
 ```
 
 **Note:** You can use ```./TTS/bin/synthesize.py``` if you prefer running ```tts``` from the TTS project folder.
@@ -100,7 +109,7 @@ tts-server --model_name "<type>/<language>/<dataset>/<model_name>" \
            --vocoder_name "<type>/<language>/<dataset>/<model_name>"
 ```
 
-## Python API
+## Python 🐸TTS API
 
 You can run a multi-speaker and multi-lingual model in Python as
 
@@ -135,4 +144,53 @@ tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_
 tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr", file_path="output.wav")
 tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt", file_path="output.wav")
+```
+
+Example voice conversion converting speaker of the `source_wav` to the speaker of the `target_wav`
+
+```python
+tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=True)
+tts.voice_conversion_to_file(source_wav="my/source.wav", target_wav="my/target.wav", file_path="output.wav")
+```
+
+Example voice cloning by a single speaker TTS model combining with the voice conversion model. This way, you can
+clone voices by using any model in 🐸TTS.
+
+```python
+tts = TTS("tts_models/de/thorsten/tacotron2-DDC")
+tts.tts_with_vc_to_file(
+    "Wie sage ich auf Italienisch, dass ich dich liebe?",
+    speaker_wav="target/speaker.wav",
+    file_path="ouptut.wav"
+)
+
+Example text to speech using [🐸Coqui Studio](https://coqui.ai) models. You can use all of your available speakers in the studio.
+[🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
+You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
+
+```python
+# If you have a valid API token set you will see the studio speakers as separate models in the list.
+# The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
+models = TTS().list_models()
+# Init TTS with the target studio speaker
+tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False, gpu=False)
+# Run TTS
+tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
+# Run TTS with emotion and speed control
+tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
+```
+
+If you just need 🐸 Coqui Studio speakers, you can use `CS_API`. It is a wrapper around the 🐸 Coqui Studio API.
+
+```python
+from TTS.api import CS_API
+
+# Init 🐸 Coqui Studio API
+# you can either set the API token as an environment variable `COQUI_STUDIO_TOKEN` or pass it as an argument.
+api = CS_API(api_token=<token>)
+api.speakers
+api.emotions
+api.list_speakers()
+api.list_voices()
+wav, sample_rate = api.tts(text="This is a test.", speaker=api.speakers[0].name, emotion="Happy", speed=1.5)
 ```

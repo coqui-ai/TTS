@@ -149,7 +149,7 @@ def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
     dtype_device = str(spec.dtype) + "_" + str(spec.device)
     fmax_dtype_device = str(fmax) + "_" + dtype_device
     if fmax_dtype_device not in mel_basis:
-        mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax)
+        mel = librosa_mel_fn(sr=sample_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax)
         mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=spec.dtype, device=spec.device)
     mel = torch.matmul(mel_basis[fmax_dtype_device], spec)
     mel = amp_to_db(mel)
@@ -176,7 +176,7 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
     fmax_dtype_device = str(fmax) + "_" + dtype_device
     wnsize_dtype_device = str(win_length) + "_" + dtype_device
     if fmax_dtype_device not in mel_basis:
-        mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax)
+        mel = librosa_mel_fn(sr=sample_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax)
         mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(dtype=y.dtype, device=y.device)
     if wnsize_dtype_device not in hann_window:
         hann_window[wnsize_dtype_device] = torch.hann_window(win_length).to(dtype=y.dtype, device=y.device)
@@ -1472,7 +1472,6 @@ class Vits(BaseTTS):
 
         if speaker_ids is not None:
             speaker_ids = torch.LongTensor(speaker_ids)
-            batch["speaker_ids"] = speaker_ids
 
         # get d_vectors from audio file names
         if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
