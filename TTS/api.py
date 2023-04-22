@@ -592,6 +592,8 @@ class TTS:
             target_wav (str):`
                 Path to the target wav file.
         """
+        if self.voice_converter is None:
+            self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
         wav = self.voice_converter.voice_conversion(source_wav=source_wav, target_wav=target_wav)
         return wav
 
