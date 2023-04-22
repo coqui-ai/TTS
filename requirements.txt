@@ -45,3 +45,10 @@ g2pkk>=0.1.1
 bangla==0.0.2
 bnnumerizer
 bnunicodenormalizer==0.1.1
+
+#deps for tortoise
+gdown
+k_diffusion
+progressbar
+einops
+transformers

@@ -3,11 +3,13 @@ import functools
 import math
 
 import torch
+
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
-from tortoise.models.xtransformers import ContinuousTransformerWrapper, RelativePositionBias
+from transformers import LogitsWarper
 
+from TTS.tts.layers.tortoise.xtransformers import ContinuousTransformerWrapper, RelativePositionBias
 
 def zero_module(module):
     """
@@ -289,12 +291,15 @@ class AudioMiniEncoder(nn.Module):
         return h[:, :, 0]
 
 
-DEFAULT_MEL_NORM_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../data/mel_norms.pth')
+DEFAULT_MEL_NORM_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../utils/assets/tortoise/mel_norms.pth')
 
 
 class TorchMelSpectrogram(nn.Module):
-    def __init__(self, filter_length=1024, hop_length=256, win_length=1024, n_mel_channels=80, mel_fmin=0, mel_fmax=8000,
-                 sampling_rate=22050, normalize=False, mel_norm_file=DEFAULT_MEL_NORM_FILE):
+    def __init__(self, filter_length=1024, hop_length=256, 
+                 win_length=1024, n_mel_channels=80, 
+                 mel_fmin=0, mel_fmax=8000,
+                 sampling_rate=22050, normalize=False, 
+                 mel_norm_file=DEFAULT_MEL_NORM_FILE):
         super().__init__()
         # These are the default tacotron values for the MEL spectrogram.
         self.filter_length = filter_length
@@ -304,11 +309,16 @@ class TorchMelSpectrogram(nn.Module):
         self.mel_fmin = mel_fmin
         self.mel_fmax = mel_fmax
         self.sampling_rate = sampling_rate
-        self.mel_stft = torchaudio.transforms.MelSpectrogram(n_fft=self.filter_length, hop_length=self.hop_length,
-                                                             win_length=self.win_length, power=2, normalized=normalize,
-                                                             sample_rate=self.sampling_rate, f_min=self.mel_fmin,
-                                                             f_max=self.mel_fmax, n_mels=self.n_mel_channels,
-                                                             norm="slaney")
+        self.mel_stft = torchaudio.transforms.MelSpectrogram(n_fft=self.filter_length,
+                                                            hop_length=self.hop_length,
+                                                            win_length=self.win_length,
+                                                            power=2,
+                                                            normalized=normalize,
+                                                            sample_rate=self.sampling_rate,
+                                                            f_min=self.mel_fmin,
+                                                            f_max=self.mel_fmax,
+                                                            n_mels=self.n_mel_channels,
+                                                            norm="slaney")
         self.mel_norm_file = mel_norm_file
         if self.mel_norm_file is not None:
             self.mel_norms = torch.load(self.mel_norm_file)
@@ -369,3 +379,45 @@ class CheckpointedXTransformerEncoder(nn.Module):
         if self.exit_permute:
             h = h.permute(0,2,1)
         return h
+
+
+class TypicalLogitsWarper(LogitsWarper):
+    def __init__(
+        self,
+        mass: float = 0.9,
+        filter_value: float = -float("Inf"),
+        min_tokens_to_keep: int = 1,
+    ):
+        self.filter_value = filter_value
+        self.mass = mass
+        self.min_tokens_to_keep = min_tokens_to_keep
+
+    def __call__(
+        self, input_ids: torch.LongTensor, scores: torch.FloatTensor
+    ) -> torch.FloatTensor:
+        # calculate entropy
+        normalized = torch.nn.functional.log_softmax(scores, dim=-1)
+        p = torch.exp(normalized)
+        ent = -(normalized * p).nansum(-1, keepdim=True)
+
+        # shift and sort
+        shifted_scores = torch.abs((-normalized) - ent)
+        sorted_scores, sorted_indices = torch.sort(shifted_scores, descending=False)
+        sorted_logits = scores.gather(-1, sorted_indices)
+        cumulative_probs = sorted_logits.softmax(dim=-1).cumsum(dim=-1)
+
+        # Remove tokens with cumulative mass above the threshold
+        last_ind = (cumulative_probs < self.mass).sum(dim=1)
+        last_ind[last_ind < 0] = 0
+        sorted_indices_to_remove = sorted_scores > sorted_scores.gather(
+            1, last_ind.view(-1, 1)
+        )
+        if self.min_tokens_to_keep > 1:
+            # Keep at least min_tokens_to_keep (set to min_tokens_to_keep-1 because we add the first one below)
+            sorted_indices_to_remove[..., : self.min_tokens_to_keep] = 0
+        indices_to_remove = sorted_indices_to_remove.scatter(
+            1, sorted_indices, sorted_indices_to_remove
+        )
+
+        scores = scores.masked_fill(indices_to_remove, self.filter_value)
+        return scores
