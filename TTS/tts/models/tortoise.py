@@ -15,7 +15,6 @@ from TTS.tts.layers.tortoise.audio_utils import denormalize_tacotron_mel, wav_to
 from TTS.tts.layers.tortoise.autoregressive import UnifiedVoice
 from TTS.tts.layers.tortoise.classifier import AudioMiniEncoderWithClassifierHead
 from TTS.tts.layers.tortoise.clvp import CLVP
-from TTS.tts.layers.tortoise.cvvp import CVVP
 from TTS.tts.layers.tortoise.diffusion import SpacedDiffusion, get_named_beta_schedule, space_timesteps
 from TTS.tts.layers.tortoise.diffusion_decoder import DiffusionTts
 from TTS.tts.layers.tortoise.random_latent_generator import RandomLatentConverter
@@ -302,7 +301,6 @@ class TextToSpeech:
         )
         clvp_path = clvp_checkpoint or get_model_path("clvp2.pth", models_dir)
         self.clvp.load_state_dict(torch.load(clvp_path))
-        self.cvvp = None  # CVVP model is only loaded if used.
 
         self.vocoder = vocoder.value.constructor().cpu()
         self.vocoder.load_state_dict(
@@ -334,25 +332,6 @@ class TextToSpeech:
             m = model.to(self.device)
             yield m
             m = model.cpu()
-
-    def load_cvvp(self):
-        """Load CVVP model."""
-        self.cvvp = (
-            CVVP(
-                model_dim=512,
-                transformer_heads=8,
-                dropout=0,
-                mel_codes=8192,
-                conditioning_enc_depth=8,
-                cond_mask_percentage=0,
-                speech_enc_depth=8,
-                speech_mask_percentage=0,
-                latent_multiplier=1,
-            )
-            .cpu()
-            .eval()
-        )
-        self.cvvp.load_state_dict(torch.load(get_model_path("cvvp.pth", self.models_dir)))
 
     def get_conditioning_latents(
         self,
@@ -526,8 +505,6 @@ class TextToSpeech:
         repetition_penalty=2.0,
         top_p=0.8,
         max_mel_tokens=500,
-        # CVVP parameters follow
-        cvvp_amount=0.0,
         # diffusion generation parameters follow
         diffusion_iterations=100,
         cond_free=True,
@@ -564,9 +541,6 @@ class TextToSpeech:
                                  I was interested in the premise, but the results were not as good as I was hoping. This is off by default, but
                                  could use some tuning.
         :param typical_mass: The typical_mass parameter from the typical_sampling algorithm.
-        ~~CLVP-CVVP KNOBS~~
-        :param cvvp_amount: Controls the influence of the CVVP model in selecting the best output from the autoregressive model.
-                            [0,1]. Values closer to 1 mean the CVVP model is more important, 0 disables the CVVP model.
         ~~DIFFUSION KNOBS~~
         :param diffusion_iterations: Number of diffusion steps to perform. [0,4000]. More steps means the network has more chances to iteratively refine
                                      the output, which should theoretically mean a higher quality output. Generally a value above 250 is not noticeably better,
@@ -595,9 +569,8 @@ class TextToSpeech:
             text_tokens.shape[-1] < 400
         ), "Too much text provided. Break the text up into separate segments and re-try inference."
 
-        auto_conds = None
         if voice_samples is not None:
-            (auto_conditioning, diffusion_conditioning, auto_conds, _,) = self.get_conditioning_latents(
+            (auto_conditioning, diffusion_conditioning, _, _,) = self.get_conditioning_latents(
                 voice_samples,
                 return_mels=True,
                 latent_averaging_mode=latent_averaging_mode,
@@ -656,46 +629,19 @@ class TextToSpeech:
             with self.temporary_cuda(self.clvp) as clvp, torch.autocast(
                 device_type="cuda", dtype=torch.float16, enabled=half
             ):
-                if cvvp_amount > 0:
-                    if self.cvvp is None:
-                        self.load_cvvp()
-                    self.cvvp = self.cvvp.to(self.device)
-                if verbose:
-                    if self.cvvp is None:
-                        print("Computing best candidates using CLVP")
-                    else:
-                        print(
-                            f"Computing best candidates using CLVP {((1-cvvp_amount) * 100):2.0f}% and CVVP {(cvvp_amount * 100):2.0f}%"
-                        )
                 for batch in tqdm(samples, disable=not verbose):
                     for i in range(batch.shape[0]):
                         batch[i] = fix_autoregressive_output(batch[i], stop_mel_token)
-                    if cvvp_amount != 1:
-                        clvp_res = clvp(
-                            text_tokens.repeat(batch.shape[0], 1),
-                            batch,
-                            return_loss=False,
-                        )
-                    if auto_conds is not None and cvvp_amount > 0:
-                        cvvp_accumulator = 0
-                        for cl in range(auto_conds.shape[1]):
-                            cvvp_accumulator = cvvp_accumulator + self.cvvp(
-                                auto_conds[:, cl].repeat(batch.shape[0], 1, 1),
-                                batch,
-                                return_loss=False,
-                            )
-                        cvvp = cvvp_accumulator / auto_conds.shape[1]
-                        if cvvp_amount == 1:
-                            clip_results.append(cvvp)
-                        else:
-                            clip_results.append(cvvp * cvvp_amount + clvp_res * (1 - cvvp_amount))
-                    else:
-                        clip_results.append(clvp_res)
+                    clvp_res = clvp(
+                        text_tokens.repeat(batch.shape[0], 1),
+                        batch,
+                        return_loss=False,
+                    )
+                    clip_results.append(clvp_res)
+
                 clip_results = torch.cat(clip_results, dim=0)
                 samples = torch.cat(samples, dim=0)
                 best_results = samples[torch.topk(clip_results, k=k).indices]
-            if self.cvvp is not None:
-                self.cvvp = self.cvvp.cpu()
             del samples
 
             # The diffusion model actually wants the last hidden layer from the autoregressive model as conditioning
