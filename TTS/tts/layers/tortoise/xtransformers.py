@@ -938,7 +938,6 @@ class AttentionLayers(nn.Module):
         past_key_values=None,
         expected_seq_len=None,
     ):
-
         assert not (
             self.cross_attend ^ (exists(context) or exists(full_context))
         ), "context must be passed in if cross_attend is set to True"
