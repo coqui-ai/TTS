@@ -47,8 +47,6 @@ bnnumerizer
 bnunicodenormalizer==0.1.1
 
 #deps for tortoise
-gdown
 k_diffusion
-progressbar
 einops
 transformers
