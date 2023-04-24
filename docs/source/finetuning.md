@@ -19,7 +19,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
     the help of a voice actor.
 
     Fine-tuning comes to the rescue in this case. You can take one of our pre-trained models and fine-tune it on your own
-    speech dataset and achive reasonable results with only a couple of hours of data.
+    speech dataset and achieve reasonable results with only a couple of hours of data.
 
     However, note that, fine-tuning does not ensure great results. The model performance is still depends on the
     {ref}`dataset quality <what_makes_a_good_dataset>` and the hyper-parameters you choose for fine-tuning. Therefore,
@@ -35,7 +35,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
 
 2. Choose the model you want to fine-tune.
 
-    You can list the availabe models in the command line with
+    You can list the available models in the command line with
 
     ```bash
     tts --list_models
