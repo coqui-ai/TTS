@@ -312,7 +312,7 @@ tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", 
 
 #### Multi-speaker Models
 
-- List the available speakers and choose as <speaker_id> among them:
+- List the available speakers and choose a <speaker_id> among them:
 
     ```
     $ tts --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs

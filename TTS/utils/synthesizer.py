@@ -269,8 +269,8 @@ class Synthesizer(object):
 
             elif not speaker_name and not speaker_wav:
                 raise ValueError(
-                    " [!] Look like you use a multi-speaker model. "
-                    "You need to define either a `speaker_name` or a `speaker_wav` to use a multi-speaker model."
+                    " [!] Looks like you are using a multi-speaker model. "
+                    "You need to define either a `speaker_idx` or a `speaker_wav` to use a multi-speaker model."
                 )
             else:
                 speaker_embedding = None
