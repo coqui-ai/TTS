@@ -196,7 +196,7 @@ def ljspeech_custom(root_path, meta_file, **kwargs):  # pylint: disable=unused-a
             wav_file = os.path.join(root_path, "wavs", cols[0] + ".wav")
             text = cols[1] ## in the repo it appears as cols[2] which created a bug
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
-    return 
+    return items
 
 
 def thorsten(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
