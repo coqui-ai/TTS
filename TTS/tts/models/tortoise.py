@@ -1,7 +1,7 @@
 import os
 import random
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from time import time
 
 import torch
@@ -391,11 +391,6 @@ class Tortoise(BaseTTS):
             m = model.to(self.device)
             yield m
             m = model.cpu()
-
-    def speaker_manager(
-        self,
-    ):
-        self.speaker_names = os.listdir()
 
     def get_conditioning_latents(
         self,
@@ -804,17 +799,17 @@ class Tortoise(BaseTTS):
             }
         return return_dict
 
-    def forward():
+    def forward(self):
         raise NotImplementedError("Tortoise Training is not implemented")
 
-    def eval_step():
+    def eval_step(self):
         raise NotImplementedError("Tortoise Training is not implemented")
 
-    def init_from_config():
+    def init_from_config(self):
         raise NotImplementedError("Tortoise Training is not implemented")
 
-    def load_checkpoint():
+    def load_checkpoint(self):
         raise NotImplementedError("Tortoise Training is not implemented")
 
-    def train_step():
+    def train_step(self):
         raise NotImplementedError("Tortoise Training is not implemented")

@@ -306,6 +306,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     encoder_config_path = None
     vc_path = None
     vc_config_path = None
+    model_dir = None
 
     # CASE1 #list : list pre-trained TTS models
     if args.list_models:
@@ -336,6 +337,9 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
 
+        # tortoise model
+        if model_path.split("--")[-1] == "tortoise-v2":
+            model_dir = model_path
         # tts model
         if model_item["model_type"] == "tts_models":
             tts_path = model_path
@@ -379,6 +383,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         encoder_config_path,
         vc_path,
         vc_config_path,
+        model_dir,
         args.use_cuda,
     )
 
