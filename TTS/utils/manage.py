@@ -273,7 +273,7 @@ class ModelManager(object):
             print(f" > Downloading model to {output_path}")
             # download from github release
             if isinstance(model_item["github_rls_url"], list):
-                self._download_parted_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
+                self._download_model_files(model_item["github_rls_url"], output_path, self.progress_bar)
             else:
                 self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
         self.print_model_license(model_item=model_item)
@@ -423,7 +423,7 @@ class ModelManager(object):
         rmtree(os.path.join(output_folder, z.namelist()[0]))
 
     @staticmethod
-    def _download_parted_zip_file(file_urls, output_folder, progress_bar):
+    def _download_model_files(file_urls, output_folder, progress_bar):
         """Download the github releases"""
         for file_url in file_urls:
             # download the file
@@ -431,36 +431,15 @@ class ModelManager(object):
             # extract the file
             bease_filename = file_url.split("/")[-1]
             temp_zip_name = os.path.join(output_folder, bease_filename)
-            file = open(temp_zip_name, "wb")
             total_size_in_bytes = int(r.headers.get("content-length", 0))
             block_size = 1024  # 1 Kibibyte
-            if progress_bar:
-                progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-                for data in r.iter_content(block_size):
-                    if progress_bar:
-                        progress_bar.update(len(data))
-                    file.write(data)
-        print("> Extracting All Models")
-        zip_file_name = os.path.join(output_folder, "tmp.zip")
-        with open(zip_file_name, "wb") as zip_file:
-            for part in file_urls:
-                zip_name = os.path.join(output_folder, part.split("/")[-1])
-                with open(zip_name, "rb") as zip_part:
-                    zip_file.write(zip_part.read())
-        # remove parts
-        for part in file_urls:
-            temp_zip_name = os.path.join(output_folder, part.split("/")[-1])
-            os.remove(temp_zip_name)
-        with zipfile.ZipFile(zip_file_name, "r") as zip_ref:
-            zip_ref.extractall(path=output_folder)
-        os.remove(zip_file_name)
-        # move the files to the outer path
-        print(zip_ref.namelist())
-        for file_path in zip_ref.namelist()[1:]:
-            src_path = os.path.join(output_folder, file_path)
-            dst_path = os.path.join(output_folder, os.path.basename(file_path))
-            if src_path != dst_path:
-                copyfile(src_path, dst_path)
+            with open(temp_zip_name, "wb") as file:
+                if progress_bar:
+                    progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+                    for data in r.iter_content(block_size):
+                        if progress_bar:
+                            progress_bar.update(len(data))
+                        file.write(data)
 
     @staticmethod
     def _check_dict_key(my_dict, key):
