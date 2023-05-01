@@ -1,6 +1,7 @@
 import functools
 import math
 import os
+import fsspec
 
 import torch
 import torch.nn as nn
@@ -292,9 +293,7 @@ class AudioMiniEncoder(nn.Module):
         return h[:, :, 0]
 
 
-DEFAULT_MEL_NORM_FILE = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/mel_norms.pth"
-)
+DEFAULT_MEL_NORM_FILE = "https://coqui.gateway.scarf.sh/v0.14.0_models/mel_norms.pth"
 
 
 class TorchMelSpectrogram(nn.Module):
@@ -333,7 +332,8 @@ class TorchMelSpectrogram(nn.Module):
         )
         self.mel_norm_file = mel_norm_file
         if self.mel_norm_file is not None:
-            self.mel_norms = torch.load(self.mel_norm_file)
+            with fsspec.open(self.mel_norm_file) as f:
+                self.mel_norms = torch.load(f)
         else:
             self.mel_norms = None
 
