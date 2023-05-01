@@ -228,6 +228,7 @@ class Synthesizer(object):
         style_text=None,
         reference_wav=None,
         reference_speaker_name=None,
+        **kwargs,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
 
@@ -328,7 +329,7 @@ class Synthesizer(object):
         if not reference_wav:
             for sen in sens:
                 if self.tts_config.model == "tortoise":
-                    outputs = self.tts_model.synthesis(text=sen, config=self.tts_config)
+                    outputs = self.tts_model.synthesis(text=sen, config=self.tts_config, **kwargs)
                 else:
                     # synthesize voice
                     outputs = synthesis(

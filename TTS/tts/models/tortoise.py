@@ -11,13 +11,7 @@ from coqpit import Coqpit
 from tqdm import tqdm
 
 from TTS.tts.layers.tortoise.arch_utils import TorchMelSpectrogram
-from TTS.tts.layers.tortoise.audio_utils import (
-    denormalize_tacotron_mel,
-    load_audio,
-    load_voice,
-    load_voices,
-    wav_to_univnet_mel,
-)
+from TTS.tts.layers.tortoise.audio_utils import denormalize_tacotron_mel, load_voice, wav_to_univnet_mel
 from TTS.tts.layers.tortoise.autoregressive import UnifiedVoice
 from TTS.tts.layers.tortoise.classifier import AudioMiniEncoderWithClassifierHead
 from TTS.tts.layers.tortoise.clvp import CLVP
@@ -25,7 +19,7 @@ from TTS.tts.layers.tortoise.diffusion import SpacedDiffusion, get_named_beta_sc
 from TTS.tts.layers.tortoise.diffusion_decoder import DiffusionTts
 from TTS.tts.layers.tortoise.random_latent_generator import RandomLatentConverter
 from TTS.tts.layers.tortoise.tokenizer import VoiceBpeTokenizer
-from TTS.tts.layers.tortoise.utils import MODELS_DIR, get_model_path
+from TTS.tts.layers.tortoise.utils import get_model_path
 from TTS.tts.layers.tortoise.vocoder import VocConf
 from TTS.tts.layers.tortoise.wav2vec_alignment import Wav2VecAlignment
 from TTS.tts.models.base_tts import BaseTTS
@@ -498,16 +492,11 @@ class Tortoise(BaseTTS):
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
-    def synthesis(
-        self,
-        text,
-        config,
-        speaker_id="lj",
-    ):
+    def synthesis(self, text, config, speaker_id="lj", **kwargs):
         voice_samples, conditioning_latents = load_voice(speaker_id)
 
         outputs = self.inference_with_config(
-            text, config, voice_samples=voice_samples, conditioning_latents=conditioning_latents
+            text, config, voice_samples=voice_samples, conditioning_latents=conditioning_latents, **kwargs
         )
 
         return_dict = {
@@ -533,10 +522,47 @@ class Tortoise(BaseTTS):
             "top_p": config.top_p,
             "cond_free_k": config.cond_free_k,
             "diffusion_temperature": config.diffusion_temperature,
-            "num_autoregressive_samples": config.num_autoregressive_samples,
-            "diffusion_iterations": config.diffusion_iterations,
             "sampler": config.sampler,
         }
+        # Presets are defined here.
+        presets = {
+            "single_sample": {
+                "num_autoregressive_samples": 8,
+                "diffusion_iterations": 10,
+                "sampler": "ddim",
+            },
+            "ultra_fast": {
+                "num_autoregressive_samples": 16,
+                "diffusion_iterations": 10,
+                "sampler": "ddim",
+            },
+            "ultra_fast_old": {
+                "num_autoregressive_samples": 16,
+                "diffusion_iterations": 30,
+                "cond_free": False,
+            },
+            "very_fast": {
+                "num_autoregressive_samples": 32,
+                "diffusion_iterations": 30,
+                "sampler": "dpm++2m",
+            },
+            "fast": {
+                "num_autoregressive_samples": 5,
+                "diffusion_iterations": 50,
+                "sampler": "ddim",
+            },
+            "fast_old": {"num_autoregressive_samples": 96, "diffusion_iterations": 80},
+            "standard": {
+                "num_autoregressive_samples": 5,
+                "diffusion_iterations": 200,
+            },
+            "high_quality": {
+                "num_autoregressive_samples": 256,
+                "diffusion_iterations": 400,
+            },
+        }
+        settings.update(presets[kwargs["preset"]])
+        kwargs.pop("preset")
         settings.update(kwargs)  # allow overriding of preset settings with kwargs
         return self.inference(text, **settings)
 
@@ -551,7 +577,7 @@ class Tortoise(BaseTTS):
         return_deterministic_state=False,
         latent_averaging_mode=0,
         # autoregressive generation parameters follow
-        num_autoregressive_samples=512,
+        num_autoregressive_samples=16,
         temperature=0.8,
         length_penalty=1,
         repetition_penalty=2.0,

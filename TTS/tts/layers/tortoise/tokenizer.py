@@ -2,8 +2,8 @@ import os
 
 import torch
 from tokenizers import Tokenizer
-from TTS.tts.utils.text.cleaners import english_cleaners
 
+from TTS.tts.utils.text.cleaners import english_cleaners
 
 DEFAULT_VOCAB_FILE = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/tokenizer.json"
