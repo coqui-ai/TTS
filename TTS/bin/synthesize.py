@@ -436,6 +436,8 @@ If you don't specify any models, then it uses LJSpeech based English model.
             source_wav=args.source_wav,
             target_wav=args.target_wav,
         )
+    elif model_dir is not None:
+        wav = synthesizer.tts(args.text)
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))
