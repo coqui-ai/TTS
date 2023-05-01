@@ -198,10 +198,16 @@ def pick_best_batch_size_for_gpu():
     return batch_size
 
 
+def init_from_config(config: "TortoiseConfig"):
+    tts = Tortoise(config)
+    return tts
+
+
 @dataclass
 class TortoiseAudioConfig(Coqpit):
     sample_rate: int = 22050
     diffusion_sample_rate: int = 24000
+    output_sample_rate: int = 24000
 
 
 @dataclass
@@ -265,7 +271,6 @@ class Tortoise(BaseTTS):
     def __init__(
         self,
         config: Coqpit,
-        models_dir=MODELS_DIR,
         vocoder=VocConf.Univnet,
     ):
         """
@@ -288,7 +293,7 @@ class Tortoise(BaseTTS):
         self.config = config
         self.ar_checkpoint = self.args.ar_checkpoint
         self.diff_checkpoint = self.args.diff_checkpoint  # TODO: check if this is even needed
-        self.models_dir = models_dir
+        self.models_dir = config.model_dir
         self.autoregressive_batch_size = (
             pick_best_batch_size_for_gpu()
             if self.args.autoregressive_batch_size is None
@@ -317,11 +322,11 @@ class Tortoise(BaseTTS):
             .cpu()
             .eval()
         )
-        ar_path = self.args.ar_checkpoint or get_model_path("autoregressive.pth", models_dir)
+        ar_path = self.args.ar_checkpoint or get_model_path("autoregressive.pth", self.models_dir)
         self.autoregressive.load_state_dict(torch.load(ar_path))
         self.autoregressive.post_init_gpt2_config(self.args.kv_cache)
 
-        diff_path = self.args.diff_checkpoint or get_model_path("diffusion_decoder.pth", models_dir)
+        diff_path = self.args.diff_checkpoint or get_model_path("diffusion_decoder.pth", self.models_dir)
         self.diffusion = (
             DiffusionTts(
                 model_channels=self.args.diff_model_channels,
@@ -359,14 +364,14 @@ class Tortoise(BaseTTS):
             .cpu()
             .eval()
         )
-        clvp_path = self.args.clvp_checkpoint or get_model_path("clvp2.pth", models_dir)
+        clvp_path = self.args.clvp_checkpoint or get_model_path("clvp2.pth", self.models_dir)
         self.clvp.load_state_dict(torch.load(clvp_path))
 
         self.vocoder = vocoder.value.constructor().cpu()
         self.vocoder.load_state_dict(
             vocoder.value.optionally_index(
                 torch.load(
-                    get_model_path(vocoder.value.model_path, models_dir),
+                    get_model_path(vocoder.value.model_path, self.models_dir),
                     map_location=torch.device("cpu"),
                 )
             )
@@ -392,6 +397,11 @@ class Tortoise(BaseTTS):
             m = model.to(self.device)
             yield m
             m = model.cpu()
+
+    def speaker_manager(
+        self,
+    ):
+        self.speaker_names = os.listdir()
 
     def get_conditioning_latents(
         self,
@@ -490,15 +500,13 @@ class Tortoise(BaseTTS):
 
     def synthesis(
         self,
-        model,
         text,
         config,
-        preset,
         speaker_id="lj",
     ):
         voice_samples, conditioning_latents = load_voice(speaker_id)
 
-        outputs = model.inference_with_config(
+        outputs = self.inference_with_config(
             text, config, voice_samples=voice_samples, conditioning_latents=conditioning_latents
         )
 

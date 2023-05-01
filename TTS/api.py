@@ -342,10 +342,12 @@ class TTS:
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
+        if model_path.split("--")[-1] == "tortoise-v2":
+            return None, None, None, None, model_path
         if model_item.get("default_vocoder") is None:
             return model_path, config_path, None, None
         vocoder_path, vocoder_config_path, _ = self.manager.download_model(model_item["default_vocoder"])
-        return model_path, config_path, vocoder_path, vocoder_config_path
+        return model_path, config_path, vocoder_path, vocoder_config_path, None
 
     def load_vc_model_by_name(self, model_name: str, gpu: bool = False):
         """Load one of the voice conversion models by name.
@@ -355,7 +357,7 @@ class TTS:
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
         self.model_name = model_name
-        model_path, config_path, _, _ = self.download_model_by_name(model_name)
+        model_path, config_path, _, _, _ = self.download_model_by_name(model_name)
         self.voice_converter = Synthesizer(vc_checkpoint=model_path, vc_config=config_path, use_cuda=gpu)
 
     def load_tts_model_by_name(self, model_name: str, gpu: bool = False):
@@ -374,7 +376,9 @@ class TTS:
         if "coqui_studio" in model_name:
             self.csapi = CS_API()
         else:
-            model_path, config_path, vocoder_path, vocoder_config_path = self.download_model_by_name(model_name)
+            model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(
+                model_name
+            )
 
             # init synthesizer
             # None values are fetch from the model
@@ -387,6 +391,7 @@ class TTS:
                 vocoder_config=vocoder_config_path,
                 encoder_checkpoint=None,
                 encoder_config=None,
+                model_dir=model_dir,
                 use_cuda=gpu,
             )
 

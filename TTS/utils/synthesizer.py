@@ -6,7 +6,9 @@ import pysbd
 import torch
 
 from TTS.config import load_config
+from TTS.tts.configs.tortoise_config import TortoiseConfig
 from TTS.tts.models import setup_model as setup_tts_model
+from TTS.tts.models.tortoise import init_from_config
 
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
@@ -31,6 +33,7 @@ class Synthesizer(object):
         encoder_config: str = "",
         vc_checkpoint: str = "",
         vc_config: str = "",
+        model_dir: str = "",
         use_cuda: bool = False,
     ) -> None:
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
@@ -93,6 +96,11 @@ class Synthesizer(object):
         if vc_checkpoint:
             self._load_vc(vc_checkpoint, vc_config, use_cuda)
             self.output_sample_rate = self.vc_config.audio["output_sample_rate"]
+
+        if model_dir:
+            self.tts_model = init_from_config(TortoiseConfig(model_dir=model_dir))
+            self.tts_config = TortoiseConfig(model_dir=model_dir)
+            self.output_sample_rate = self.tts_config.audio["output_sample_rate"]
 
     @staticmethod
     def _get_segmenter(lang: str):
@@ -319,22 +327,25 @@ class Synthesizer(object):
 
         if not reference_wav:
             for sen in sens:
-                # synthesize voice
-                outputs = synthesis(
-                    model=self.tts_model,
-                    text=sen,
-                    CONFIG=self.tts_config,
-                    use_cuda=self.use_cuda,
-                    speaker_id=speaker_id,
-                    style_wav=style_wav,
-                    style_text=style_text,
-                    use_griffin_lim=use_gl,
-                    d_vector=speaker_embedding,
-                    language_id=language_id,
-                )
+                if self.tts_config.model == "tortoise":
+                    outputs = self.tts_model.synthesis(text=sen, config=self.tts_config)
+                else:
+                    # synthesize voice
+                    outputs = synthesis(
+                        model=self.tts_model,
+                        text=sen,
+                        CONFIG=self.tts_config,
+                        use_cuda=self.use_cuda,
+                        speaker_id=speaker_id,
+                        style_wav=style_wav,
+                        style_text=style_text,
+                        use_griffin_lim=use_gl,
+                        d_vector=speaker_embedding,
+                        language_id=language_id,
+                    )
                 waveform = outputs["wav"]
-                mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
                 if not use_gl:
+                    mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
                     # denormalize tts output based on tts audio config
                     mel_postnet_spec = self.tts_model.ap.denormalize(mel_postnet_spec.T).T
                     device_type = "cuda" if self.use_cuda else "cpu"

@@ -31,6 +31,7 @@ class TortoiseConfig(BaseTTSConfig):
     # model specific params
     model_args: TortoiseArgs = field(default_factory=TortoiseArgs)
     audio: TortoiseAudioConfig = TortoiseAudioConfig()
+    model_dir: str = None
 
     # settings
     temperature: int = 0.2

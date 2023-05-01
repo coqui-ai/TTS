@@ -220,6 +220,20 @@
                     "license": "apache 2.0",
                     "contact": "adamfroghyar@gmail.com"
                 }
+                
+            },
+            "multi-dataset":{
+                "tortoise-v2":{
+                    "description": "Tortoise tts model https://github.com/neonbjb/tortoise-tts",
+                    "github_rls_url": ["https://coqui.gateway.scarf.sh/v0.14.0_models/tortoise_models.zip.part-aa",
+                                        "https://coqui.gateway.scarf.sh/v0.14.0_models/tortoise_models.zip.part-ab",
+                                        "https://coqui.gateway.scarf.sh/v0.14.0_models/tortoise_models.zip.part-ac",
+                                        "https://coqui.gateway.scarf.sh/v0.14.0_models/tortoise_models.zip.part-ad"],
+                    "commit": "c1875f6",
+                    "default_vocoder": null,
+                    "author": "neonbjb James Betker",
+                    "license": "apache 2.0"
+                }
             }
         },
         "es": {
