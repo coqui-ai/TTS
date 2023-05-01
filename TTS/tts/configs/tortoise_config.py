@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
 from TTS.tts.models.tortoise import TortoiseArgs, TortoiseAudioConfig

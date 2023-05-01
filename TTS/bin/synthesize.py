@@ -337,9 +337,6 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
 
-        # tortoise model
-        if model_path.split("--")[-1] == "tortoise-v2":
-            model_dir = model_path
         # tts model
         if model_item["model_type"] == "tts_models":
             tts_path = model_path
@@ -351,6 +348,13 @@ If you don't specify any models, then it uses LJSpeech based English model.
         if model_item["model_type"] == "voice_conversion_models":
             vc_path = model_path
             vc_config_path = config_path
+
+        # tortoise model
+        if model_path.split("--")[-1] == "tortoise-v2":
+            model_dir = model_path
+            tts_path = None
+            tts_config_path = None
+            args.vocoder_name = None
 
     # load vocoder
     if args.vocoder_name is not None and not args.vocoder_path:
