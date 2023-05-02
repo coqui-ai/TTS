@@ -36,7 +36,7 @@ pypinyin
 mecab-python3==1.0.5
 unidic-lite==1.0.8
 # gruut+supported langs
-gruut[cs,de,en,es,fr,it,nl,pt,ru,sv,ar,fa,sw]==2.2.3
+gruut[de,es,fr]==2.2.3
 # deps for korean
 jamo
 nltk
