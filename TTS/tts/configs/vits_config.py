@@ -109,7 +109,7 @@ class VitsConfig(BaseTTSConfig):
     model: str = "vits"
     # model specific params
     model_args: VitsArgs = field(default_factory=VitsArgs)
-    audio: VitsAudioConfig = VitsAudioConfig()
+    audio: VitsAudioConfig = field(default_factory=VitsAudioConfig)
 
     # optimizer
     grad_clip: List[float] = field(default_factory=lambda: [1000, 1000])
