@@ -7,7 +7,6 @@ import pysbd
 import torch
 
 from TTS.config import load_config
-from TTS.tts.configs.tortoise_config import TortoiseConfig
 from TTS.tts.models import setup_model as setup_tts_model
 
 # pylint: disable=unused-wildcard-import

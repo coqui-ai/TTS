@@ -347,7 +347,7 @@ class TTS:
             # we assume that the model knows how to load itself
             return None, None, None, None, model_path
         if model_item.get("default_vocoder") is None:
-            return model_path, config_path, None, None
+            return model_path, config_path, None, None, None
         vocoder_path, vocoder_config_path, _ = self.manager.download_model(model_item["default_vocoder"])
         return model_path, config_path, vocoder_path, vocoder_config_path, None
 

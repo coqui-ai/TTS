@@ -519,7 +519,7 @@ class Tortoise(BaseTTS):
                 "diffusion_iterations": 400,
             },
         }
-        if hasattr(kwargs, "preset"):
+        if "preset" in kwargs:
             settings.update(presets[kwargs["preset"]])
             kwargs.pop("preset")
         settings.update(kwargs)  # allow overriding of preset settings with kwargs
@@ -769,7 +769,8 @@ class Tortoise(BaseTTS):
     def eval_step(self):
         raise NotImplementedError("Tortoise Training is not implemented")
 
-    def init_from_config(config: "TortoiseConfig", **kwargs):
+    @staticmethod
+    def init_from_config(config: "TortoiseConfig", **kwargs):  # pylint: disable=unused-argument
         return Tortoise(config)
 
     def load_checkpoint(
@@ -783,7 +784,7 @@ class Tortoise(BaseTTS):
         eval=False,
         strict=True,
         **kwargs,
-    ):
+    ):  # pylint: disable=unused-argument, redefined-builtin
         """Load a model checkpoints from a directory. This model is with multiple checkpoint files and it
         expects to have all the files to be under the given `checkpoint_dir` with the rigth names.
         If eval is True, set the model to eval mode.
