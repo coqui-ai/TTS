@@ -33,12 +33,12 @@ class TortoiseConfig(BaseTTSConfig):
     model_dir: str = None
 
     # settings
-    temperature: int = 0.2
-    length_penalty: int = 1.0
-    repetition_penalty: int = 2.0
-    top_p: int = 0.8
-    cond_free_k: int = 2.0
-    diffusion_temperature: int = 1.0
+    temperature: float = 0.2
+    length_penalty: float = 1.0
+    repetition_penalty: float = 2.0
+    top_p: float = 0.8
+    cond_free_k: float = 2.0
+    diffusion_temperature: float = 1.0
 
     # inference params
     num_autoregressive_samples: int = 16
