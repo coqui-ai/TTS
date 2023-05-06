@@ -349,8 +349,8 @@ If you don't specify any models, then it uses LJSpeech based English model.
             vc_path = model_path
             vc_config_path = config_path
 
-        # tortoise model
-        if model_path.split("--")[-1] == "tortoise-v2":
+        # tts model with multiple files to be loaded from the directory path
+        if isinstance(model_item["github_rls_url"], list):
             model_dir = model_path
             tts_path = None
             tts_config_path = None
