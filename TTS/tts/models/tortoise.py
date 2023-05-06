@@ -19,7 +19,7 @@ from TTS.tts.layers.tortoise.diffusion import SpacedDiffusion, get_named_beta_sc
 from TTS.tts.layers.tortoise.diffusion_decoder import DiffusionTts
 from TTS.tts.layers.tortoise.random_latent_generator import RandomLatentConverter
 from TTS.tts.layers.tortoise.tokenizer import VoiceBpeTokenizer
-from TTS.tts.layers.tortoise.vocoder import VocConf
+from TTS.tts.layers.tortoise.vocoder import VocConf, VocType
 from TTS.tts.layers.tortoise.wav2vec_alignment import Wav2VecAlignment
 from TTS.tts.models.base_tts import BaseTTS
 
@@ -191,11 +191,6 @@ def pick_best_batch_size_for_gpu():
     return batch_size
 
 
-def init_from_config(config: "TortoiseConfig"):
-    tts = Tortoise(config)
-    return tts
-
-
 @dataclass
 class TortoiseAudioConfig(Coqpit):
     sample_rate: int = 22050
@@ -213,6 +208,7 @@ class TortoiseArgs(Coqpit):
     clvp_checkpoint: str = None
     diff_checkpoint: str = None
     num_chars: int = 255
+    vocoder: VocType = VocConf.Univnet
 
     # UnifiedVoice params
     ar_max_mel_tokens: int = 604
@@ -261,11 +257,7 @@ class Tortoise(BaseTTS):
     Main entry point into Tortoise.
     """
 
-    def __init__(
-        self,
-        config: Coqpit,
-        vocoder=VocConf.Univnet,
-    ):
+    def __init__(self, config: Coqpit):
         """
         Constructor
         :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
@@ -299,77 +291,49 @@ class Tortoise(BaseTTS):
 
         self.tokenizer = VoiceBpeTokenizer()
 
-        self.autoregressive = (
-            UnifiedVoice(
-                max_mel_tokens=self.args.ar_max_mel_tokens,
-                max_text_tokens=self.args.ar_max_text_tokens,
-                max_conditioning_inputs=self.args.ar_max_conditioning_inputs,
-                layers=self.args.ar_layers,
-                model_dim=self.args.ar_model_dim,
-                heads=self.args.ar_heads,
-                number_text_tokens=self.args.ar_number_text_tokens,
-                start_text_token=self.args.ar_start_text_token,
-                checkpointing=self.args.ar_checkpointing,
-                train_solo_embeddings=self.args.ar_train_solo_embeddings,
-            )
-            .cpu()
-            .eval()
-        )
-        ar_path = self.args.ar_checkpoint or os.path.join(self.models_dir, "autoregressive.pth")
-        self.autoregressive.load_state_dict(torch.load(ar_path))
-        self.autoregressive.post_init_gpt2_config(self.args.kv_cache)
+        self.autoregressive = UnifiedVoice(
+            max_mel_tokens=self.args.ar_max_mel_tokens,
+            max_text_tokens=self.args.ar_max_text_tokens,
+            max_conditioning_inputs=self.args.ar_max_conditioning_inputs,
+            layers=self.args.ar_layers,
+            model_dim=self.args.ar_model_dim,
+            heads=self.args.ar_heads,
+            number_text_tokens=self.args.ar_number_text_tokens,
+            start_text_token=self.args.ar_start_text_token,
+            checkpointing=self.args.ar_checkpointing,
+            train_solo_embeddings=self.args.ar_train_solo_embeddings,
+        ).cpu()
 
-        diff_path = self.args.diff_checkpoint or os.path.join(self.models_dir, "diffusion_decoder.pth")
-        self.diffusion = (
-            DiffusionTts(
-                model_channels=self.args.diff_model_channels,
-                num_layers=self.args.diff_num_layers,
-                in_channels=self.args.diff_in_channels,
-                out_channels=self.args.diff_out_channels,
-                in_latent_channels=self.args.diff_in_latent_channels,
-                in_tokens=self.args.diff_in_tokens,
-                dropout=self.args.diff_dropout,
-                use_fp16=self.args.diff_use_fp16,
-                num_heads=self.args.diff_num_heads,
-                layer_drop=self.args.diff_layer_drop,
-                unconditioned_percentage=self.args.diff_unconditioned_percentage,
-            )
-            .cpu()
-            .eval()
-        )
-        self.diffusion.load_state_dict(torch.load(diff_path))
+        self.diffusion = DiffusionTts(
+            model_channels=self.args.diff_model_channels,
+            num_layers=self.args.diff_num_layers,
+            in_channels=self.args.diff_in_channels,
+            out_channels=self.args.diff_out_channels,
+            in_latent_channels=self.args.diff_in_latent_channels,
+            in_tokens=self.args.diff_in_tokens,
+            dropout=self.args.diff_dropout,
+            use_fp16=self.args.diff_use_fp16,
+            num_heads=self.args.diff_num_heads,
+            layer_drop=self.args.diff_layer_drop,
+            unconditioned_percentage=self.args.diff_unconditioned_percentage,
+        ).cpu()
 
-        self.clvp = (
-            CLVP(
-                dim_text=self.args.clvp_dim_text,
-                dim_speech=self.args.clvp_dim_speech,
-                dim_latent=self.args.clvp_dim_latent,
-                num_text_tokens=self.args.clvp_num_text_tokens,
-                text_enc_depth=self.args.clvp_text_enc_depth,
-                text_seq_len=self.args.clvp_text_seq_len,
-                text_heads=self.args.clvp_text_heads,
-                num_speech_tokens=self.args.clvp_num_speech_tokens,
-                speech_enc_depth=self.args.clvp_speech_enc_depth,
-                speech_heads=self.args.clvp_speech_heads,
-                speech_seq_len=self.args.clvp_speech_seq_len,
-                use_xformers=self.args.clvp_use_xformers,
-            )
-            .cpu()
-            .eval()
-        )
-        clvp_path = self.args.clvp_checkpoint or os.path.join(self.models_dir, "clvp2.pth")
-        self.clvp.load_state_dict(torch.load(clvp_path))
+        self.clvp = CLVP(
+            dim_text=self.args.clvp_dim_text,
+            dim_speech=self.args.clvp_dim_speech,
+            dim_latent=self.args.clvp_dim_latent,
+            num_text_tokens=self.args.clvp_num_text_tokens,
+            text_enc_depth=self.args.clvp_text_enc_depth,
+            text_seq_len=self.args.clvp_text_seq_len,
+            text_heads=self.args.clvp_text_heads,
+            num_speech_tokens=self.args.clvp_num_speech_tokens,
+            speech_enc_depth=self.args.clvp_speech_enc_depth,
+            speech_heads=self.args.clvp_speech_heads,
+            speech_seq_len=self.args.clvp_speech_seq_len,
+            use_xformers=self.args.clvp_use_xformers,
+        ).cpu()
 
-        self.vocoder = vocoder.value.constructor().cpu()
-        self.vocoder.load_state_dict(
-            vocoder.value.optionally_index(
-                torch.load(
-                    os.path.join(self.models_dir, vocoder.value.model_path),
-                    map_location=torch.device("cpu"),
-                )
-            )
-        )
-        self.vocoder.eval(inference=True)
+        self.vocoder = self.args.vocoder.value.constructor().cpu()
 
         # Random latent generators (RLGs) are loaded lazily.
         self.rlg_auto = None
@@ -805,11 +769,65 @@ class Tortoise(BaseTTS):
     def eval_step(self):
         raise NotImplementedError("Tortoise Training is not implemented")
 
-    def init_from_config(self):
-        raise NotImplementedError("Tortoise Training is not implemented")
+    def init_from_config(config: "TortoiseConfig", **kwargs):
+        return Tortoise(config)
 
-    def load_checkpoint(self):
-        raise NotImplementedError("Tortoise Training is not implemented")
+    def load_checkpoint(
+        self,
+        config,
+        checkpoint_dir,
+        ar_checkpoint_path=None,
+        diff_checkpoint_path=None,
+        clvp_checkpoint_path=None,
+        vocoder_checkpoint_path=None,
+        eval=False,
+        strict=True,
+        **kwargs,
+    ):
+        """Load a model checkpoints from a directory. This model is with multiple checkpoint files and it
+        expects to have all the files to be under the given `checkpoint_dir` with the rigth names.
+        If eval is True, set the model to eval mode.
+
+        Args:
+            config (TortoiseConfig): The model config.
+            checkpoint_dir (str): The directory where the checkpoints are stored.
+            ar_checkpoint_path (str, optional): The path to the autoregressive checkpoint. Defaults to None.
+            diff_checkpoint_path (str, optional): The path to the diffusion checkpoint. Defaults to None.
+            clvp_checkpoint_path (str, optional): The path to the CLVP checkpoint. Defaults to None.
+            vocoder_checkpoint_path (str, optional): The path to the vocoder checkpoint. Defaults to None.
+            eval (bool, optional): Whether to set the model to eval mode. Defaults to False.
+            strict (bool, optional): Whether to load the model strictly. Defaults to True.
+        """
+        ar_path = ar_checkpoint_path or os.path.join(checkpoint_dir, "autoregressive.pth")
+        diff_path = diff_checkpoint_path or os.path.join(checkpoint_dir, "diffusion_decoder.pth")
+        clvp_path = clvp_checkpoint_path or os.path.join(checkpoint_dir, "clvp2.pth")
+        vocoder_checkpoint_path = vocoder_checkpoint_path or os.path.join(checkpoint_dir, "vocoder.pth")
+
+        if os.path.exists(ar_path):
+            self.autoregressive.load_state_dict(torch.load(ar_path), strict=strict)
+
+        if os.path.exists(diff_path):
+            self.diffusion.load_state_dict(torch.load(diff_path), strict=strict)
+
+        if os.path.exists(clvp_path):
+            self.clvp.load_state_dict(torch.load(clvp_path), strict=strict)
+
+        if os.path.exists(vocoder_checkpoint_path):
+            self.vocoder.load_state_dict(
+                config.model_args.vocoder.value.optionally_index(
+                    torch.load(
+                        vocoder_checkpoint_path,
+                        map_location=torch.device("cpu"),
+                    )
+                )
+            )
+
+        if eval:
+            self.autoregressive.post_init_gpt2_config(self.args.kv_cache)
+            self.autoregressive.eval()
+            self.diffusion.eval()
+            self.clvp.eval()
+            self.vocoder.eval()
 
     def train_step(self):
         raise NotImplementedError("Tortoise Training is not implemented")
