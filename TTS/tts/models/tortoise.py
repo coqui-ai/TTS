@@ -450,7 +450,7 @@ class Tortoise(BaseTTS):
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
-    def synthesis(self, text, config, speaker_id="lj", **kwargs):
+    def synthesize(self, text, config, speaker_id="lj", **kwargs):
         voice_samples, conditioning_latents = load_voice(speaker_id)
 
         outputs = self.inference_with_config(

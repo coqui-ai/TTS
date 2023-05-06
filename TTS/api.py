@@ -342,7 +342,9 @@ class TTS:
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
-        if model_path.split("--")[-1] == "tortoise-v2":
+        if isinstance(model_item["github_rls_url"], list):
+            # return model directory if there are multiple files
+            # we assume that the model knows how to load itself
             return None, None, None, None, model_path
         if model_item.get("default_vocoder") is None:
             return model_path, config_path, None, None

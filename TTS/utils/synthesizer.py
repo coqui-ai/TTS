@@ -333,15 +333,15 @@ class Synthesizer(object):
                 )
 
         # compute a new d_vector from the given clip.
-        if speaker_wav is not None:
+        if speaker_wav is not None and self.tts_model.speaker_manager is not None:
             speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)
 
         use_gl = self.vocoder_model is None
 
         if not reference_wav:
             for sen in sens:
-                if self.tts_config.model == "tortoise":
-                    outputs = self.tts_model.synthesis(text=sen, config=self.tts_config, **kwargs)
+                if hasattr(self.tts_model, "synthesize"):
+                    outputs = self.tts_model.synthesize(text=sen, config=self.tts_config, **kwargs)
                 else:
                     # synthesize voice
                     outputs = synthesis(
