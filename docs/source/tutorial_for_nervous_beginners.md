@@ -19,6 +19,7 @@ $ pip install -e .
 ## Training a `tts` Model
 
 A breakdown of a simple script that trains a GlowTTS model on the LJspeech dataset. See the comments for more details.
+It will work with a GPU with 16GB Vram and 30GB ordinary ram, or, much slower, CPU only on systems with 64GB ram. 
 
 ### Pure Python Way
 
