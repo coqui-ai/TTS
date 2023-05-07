@@ -106,8 +106,13 @@ You can run `tts` and synthesize speech directly on the terminal.
 
 ```bash
 $ tts -h # see the help
-$ tts --list_models  # list the available models.
 ```
+Synthesizing speech with your given model (=pth file) then works by specifying `--model_path` and `--config_path`.
+
+```bash
+$ tts --text "Test after twentyfour hours" --out_path out24.wav --model_path ./best_model.pth --config_path ./config.json
+```
+
 
 ![cli.gif](https://github.com/coqui-ai/TTS/raw/main/images/tts_cli.gif)
 
