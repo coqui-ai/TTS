@@ -7,6 +7,7 @@ RUN pip3 install llvmlite --ignore-installed
 WORKDIR /root
 COPY . /root
 RUN pip3 install torch torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
+RUN rm -rf /root/.cache/pip
 RUN make install
 ENTRYPOINT ["tts"]
 CMD ["--help"]
