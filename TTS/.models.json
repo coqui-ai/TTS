@@ -220,6 +220,16 @@
                     "license": "apache 2.0",
                     "contact": "adamfroghyar@gmail.com"
                 }
+            },
+            "jenny": {
+                "jenny":{
+                    "description": "VITS model trained with Jenny(Dioco) dataset. Named as Jenny as demanded by the license. Original URL for the model https://www.kaggle.com/datasets/noml4u/tts-models--en--jenny-dioco--vits",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.14.0_models/tts_models--en--jenny--jenny.zip",
+                    "default_vocoder": null,
+                    "commit": "ba40a1c",
+                    "license": "custom - see https://github.com/dioco-group/jenny-tts-dataset#important",
+                    "author": "@noml4u"
+                }
             }
         },
         "es": {
