@@ -1846,7 +1846,6 @@ class Vits(BaseTTS):
 
         # if isinstance(x, str):
 
-
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()
 
