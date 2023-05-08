@@ -1838,13 +1838,21 @@ class Vits(BaseTTS):
             providers=providers,
         )
 
-    def inference_onnx(self, x, x_lengths):
+    def inference_onnx(self, x, x_lengths=None):
         """ONNX inference (only single speaker models are supported)
 
         TODO: implement multi speaker support.
         """
+
+        # if isinstance(x, str):
+
+
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()
+
+        if x_lengths is None:
+            x_lengths = np.array([x.shape[1]], dtype=np.int64)
+
         if isinstance(x_lengths, torch.Tensor):
             x_lengths = x_lengths.cpu().numpy()
         scales = np.array(
