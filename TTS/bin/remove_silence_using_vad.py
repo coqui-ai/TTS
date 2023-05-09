@@ -16,7 +16,7 @@ def adjust_path_and_remove_silence(audio_path):
     output_path = audio_path.replace(os.path.join(args.input_dir, ""), os.path.join(args.output_dir, ""))
     # ignore if the file exists
     if os.path.exists(output_path) and not args.force:
-        return output_path
+        return output_path, False
 
     # create all directory structure
     pathlib.Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -28,7 +28,6 @@ def adjust_path_and_remove_silence(audio_path):
         trim_just_beginning_and_end=args.trim_just_beginning_and_end,
         use_cuda=args.use_cuda,
     )
-
     return output_path, is_speech
 
 
@@ -70,7 +69,7 @@ def preprocess_audios():
         # write files that do not have speech
         with open(os.path.join(args.output_dir, "filtered_files.txt"), "w", encoding="utf-8") as f:
             for file in filtered_files:
-                f.write(file + "\n")
+                f.write(str(file) + "\n")
     else:
         print("> No files Found !")
 
@@ -119,5 +118,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     # load the model and utils
-    model_and_utils = get_vad_model_and_utils(use_cuda=args.use_cuda)
+    model_and_utils = get_vad_model_and_utils(use_cuda=args.use_cuda, use_onnx=args.use_onnx)
     preprocess_audios()
