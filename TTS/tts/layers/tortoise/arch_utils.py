@@ -293,7 +293,7 @@ class AudioMiniEncoder(nn.Module):
         return h[:, :, 0]
 
 
-DEFAULT_MEL_NORM_FILE = "https://coqui.gateway.scarf.sh/v0.14.0_models/mel_norms.pth"
+DEFAULT_MEL_NORM_FILE = "https://coqui.gateway.scarf.sh/v0.14.1_models/mel_norms.pth"
 
 
 class TorchMelSpectrogram(nn.Module):

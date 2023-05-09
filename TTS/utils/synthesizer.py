@@ -33,6 +33,7 @@ class Synthesizer(object):
         vc_checkpoint: str = "",
         vc_config: str = "",
         model_dir: str = "",
+        voice_dir: str = None,
         use_cuda: bool = False,
     ) -> None:
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
@@ -80,7 +81,7 @@ class Synthesizer(object):
         self.d_vector_dim = 0
         self.seg = self._get_segmenter("en")
         self.use_cuda = use_cuda
-
+        self.voice_dir = voice_dir
         if self.use_cuda:
             assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
 
@@ -269,6 +270,9 @@ class Synthesizer(object):
             print(sens)
 
         # handle multi-speaker
+        if "voice_dir" in kwargs:
+            self.voice_dir = kwargs["voice_dir"]
+            kwargs.pop("voice_dir")
         speaker_embedding = None
         speaker_id = None
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "name_to_id"):
@@ -295,7 +299,7 @@ class Synthesizer(object):
             else:
                 speaker_embedding = None
         else:
-            if speaker_name:
+            if speaker_name and self.voice_dir is None:
                 raise ValueError(
                     f" [!] Missing speakers.json file path for selecting speaker {speaker_name}."
                     "Define path for speaker.json if it is a multi-speaker model or remove defined speaker idx. "
@@ -340,7 +344,9 @@ class Synthesizer(object):
         if not reference_wav:
             for sen in sens:
                 if hasattr(self.tts_model, "synthesize"):
-                    outputs = self.tts_model.synthesize(text=sen, config=self.tts_config, **kwargs)
+                    outputs = self.tts_model.synthesize(
+                        text=sen, config=self.tts_config, extra_voice_dirs=self.voice_dir, **kwargs
+                    )
                 else:
                     # synthesize voice
                     outputs = synthesis(

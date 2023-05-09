@@ -450,8 +450,10 @@ class Tortoise(BaseTTS):
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
-    def synthesize(self, text, config, speaker_id="lj", **kwargs):
-        voice_samples, conditioning_latents = load_voice(speaker_id)
+    def synthesize(self, text, config, speaker_id="random", extra_voice_dirs=None, **kwargs):
+        if extra_voice_dirs is not None:
+            extra_voice_dirs = [extra_voice_dirs]
+        voice_samples, conditioning_latents = load_voice(speaker_id, extra_voice_dirs)
 
         outputs = self.inference_with_config(
             text, config, voice_samples=voice_samples, conditioning_latents=conditioning_latents, **kwargs
@@ -799,6 +801,8 @@ class Tortoise(BaseTTS):
             eval (bool, optional): Whether to set the model to eval mode. Defaults to False.
             strict (bool, optional): Whether to load the model strictly. Defaults to True.
         """
+        if self.models_dir is None:
+            self.models_dir = checkpoint_dir
         ar_path = ar_checkpoint_path or os.path.join(checkpoint_dir, "autoregressive.pth")
         diff_path = diff_checkpoint_path or os.path.join(checkpoint_dir, "diffusion_decoder.pth")
         clvp_path = clvp_checkpoint_path or os.path.join(checkpoint_dir, "clvp2.pth")

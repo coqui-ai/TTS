@@ -274,6 +274,13 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="Target audio file to convert in the voice of the source_wav",
     )
 
+    parser.add_argument(
+        "--voice_dir",
+        type=str,
+        default=None,
+        help="Voice dir for tortoise model",
+    )
+
     args = parser.parse_args()
 
     # print the description if either text or list_models is not set
@@ -355,6 +362,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
             tts_path = None
             tts_config_path = None
             args.vocoder_name = None
+            voice_dir = args.voice_dir
 
     # load vocoder
     if args.vocoder_name is not None and not args.vocoder_path:
@@ -388,6 +396,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         vc_path,
         vc_config_path,
         model_dir,
+        voice_dir,
         args.use_cuda,
     )
 
@@ -437,7 +446,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
             target_wav=args.target_wav,
         )
     elif model_dir is not None:
-        wav = synthesizer.tts(args.text)
+        wav = synthesizer.tts(args.text, speaker_name=args.speaker_idx)
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))

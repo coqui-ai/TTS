@@ -10,8 +10,6 @@ from scipy.io.wavfile import read
 
 from TTS.utils.audio.torch_transforms import TorchSTFT
 
-BUILTIN_VOICES_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/voices")
-
 
 def load_wav_to_torch(full_path):
     sampling_rate, data = read(full_path)
@@ -105,7 +103,7 @@ def dynamic_range_decompression(x, C=1):
 
 
 def get_voices(extra_voice_dirs: List[str] = []):
-    dirs = [BUILTIN_VOICES_DIR] + extra_voice_dirs
+    dirs = extra_voice_dirs
     voices: Dict[str, List[str]] = {}
     for d in dirs:
         subs = os.listdir(d)

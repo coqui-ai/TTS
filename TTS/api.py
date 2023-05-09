@@ -429,6 +429,7 @@ class TTS:
         speaker_wav: str = None,
         emotion: str = None,
         speed: float = None,
+        **kwargs,
     ) -> None:
         """Check if the arguments are valid for the model."""
         if not self.is_coqui_studio:
@@ -437,7 +438,7 @@ class TTS:
                 raise ValueError("Model is multi-speaker but no `speaker` is provided.")
             if self.is_multi_lingual and language is None:
                 raise ValueError("Model is multi-lingual but no `language` is provided.")
-            if not self.is_multi_speaker and speaker is not None:
+            if not self.is_multi_speaker and speaker is not None and "voice_dir" not in kwargs:
                 raise ValueError("Model is not multi-speaker but `speaker` is provided.")
             if not self.is_multi_lingual and language is not None:
                 raise ValueError("Model is not multi-lingual but `language` is provided.")
@@ -528,12 +529,13 @@ class TTS:
                 Speed factor to use for 🐸Coqui Studio models, between 0 and 2.0. If None, Studio models use 1.0.
                 Defaults to None.
         """
-        self._check_arguments(speaker=speaker, language=language, speaker_wav=speaker_wav, emotion=emotion, speed=speed)
+        self._check_arguments(
+            speaker=speaker, language=language, speaker_wav=speaker_wav, emotion=emotion, speed=speed, **kwargs
+        )
         if self.csapi is not None:
             return self.tts_coqui_studio(
                 text=text, speaker_name=speaker, language=language, emotion=emotion, speed=speed
             )
-
         wav = self.synthesizer.tts(
             text=text,
             speaker_name=speaker,
@@ -579,7 +581,7 @@ class TTS:
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
         """
-        self._check_arguments(speaker=speaker, language=language, speaker_wav=speaker_wav)
+        self._check_arguments(speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
 
         if self.csapi is not None:
             return self.tts_coqui_studio(
