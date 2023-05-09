@@ -239,6 +239,7 @@
                     "default_vocoder": null,
                     "author": "@neonbjb - James Betker, @manmay-nakhashi Manmay Nakhashi",
                     "license": "apache 2.0"
+                }
             },
             "jenny": {
                 "jenny":{
