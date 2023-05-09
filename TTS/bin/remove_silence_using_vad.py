@@ -78,10 +78,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="python TTS/bin/remove_silence_using_vad.py -i=VCTK-Corpus/ -o=VCTK-Corpus-removed-silence/ -g=wav48_silence_trimmed/*/*_mic1.flac --trim_just_beginning_and_end True"
     )
-    parser.add_argument("-i", "--input_dir", type=str, default="../VCTK-Corpus", help="Dataset root dir")
-    parser.add_argument(
-        "-o", "--output_dir", type=str, default="../VCTK-Corpus-removed-silence", help="Output Dataset dir"
-    )
+    parser.add_argument("-i", "--input_dir", type=str, help="Dataset root dir", required=True)
+    parser.add_argument("-o", "--output_dir", type=str, help="Output Dataset dir", default="")
     parser.add_argument("-f", "--force", default=False, action="store_true", help="Force the replace of exists files")
     parser.add_argument(
         "-g",
@@ -117,6 +115,10 @@ if __name__ == "__main__":
         help="Number of processes to use",
     )
     args = parser.parse_args()
+
+    if args.output_dir == "":
+        args.output_dir = args.input_dir
+
     # load the model and utils
     model_and_utils = get_vad_model_and_utils(use_cuda=args.use_cuda, use_onnx=args.use_onnx)
     preprocess_audios()
