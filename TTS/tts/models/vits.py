@@ -1844,8 +1844,6 @@ class Vits(BaseTTS):
         TODO: implement multi speaker support.
         """
 
-        # if isinstance(x, str):
-
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()
 
