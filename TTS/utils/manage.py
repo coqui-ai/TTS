@@ -435,10 +435,10 @@ class ModelManager(object):
             with open(temp_zip_name, "wb") as file:
                 if progress_bar:
                     progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-                    for data in r.iter_content(block_size):
-                        if progress_bar:
-                            progress_bar.update(len(data))
-                        file.write(data)
+                for data in r.iter_content(block_size):
+                    if progress_bar:
+                        progress_bar.update(len(data))
+                    file.write(data)
 
     @staticmethod
     def _check_dict_key(my_dict, key):
