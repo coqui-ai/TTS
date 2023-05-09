@@ -343,7 +343,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     # CASE4: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
-
+        voice_dir = None
         # tts model
         if model_item["model_type"] == "tts_models":
             tts_path = model_path
