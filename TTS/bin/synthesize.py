@@ -343,7 +343,6 @@ If you don't specify any models, then it uses LJSpeech based English model.
     # CASE4: load pre-trained model paths
     if args.model_name is not None and not args.model_path:
         model_path, config_path, model_item = manager.download_model(args.model_name)
-        voice_dir = None
         # tts model
         if model_item["model_type"] == "tts_models":
             tts_path = model_path
@@ -362,7 +361,6 @@ If you don't specify any models, then it uses LJSpeech based English model.
             tts_path = None
             tts_config_path = None
             args.vocoder_name = None
-            voice_dir = args.voice_dir
 
     # load vocoder
     if args.vocoder_name is not None and not args.vocoder_path:
@@ -396,7 +394,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         vc_path,
         vc_config_path,
         model_dir,
-        voice_dir,
+        args.voice_dir,
         args.use_cuda,
     )
 
