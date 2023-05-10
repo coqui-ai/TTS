@@ -345,7 +345,11 @@ class Synthesizer(object):
             for sen in sens:
                 if hasattr(self.tts_model, "synthesize"):
                     outputs = self.tts_model.synthesize(
-                        text=sen, config=self.tts_config, extra_voice_dirs=self.voice_dir, **kwargs
+                        text=sen,
+                        config=self.tts_config,
+                        speaker_id=speaker_name,
+                        extra_voice_dirs=self.voice_dir,
+                        **kwargs,
                     )
                 else:
                     # synthesize voice
