@@ -344,10 +344,11 @@ class Synthesizer(object):
         if not reference_wav:
             for sen in sens:
                 if hasattr(self.tts_model, "synthesize"):
+                    sp_name = "random " if speaker_name is None else speaker_name
                     outputs = self.tts_model.synthesize(
                         text=sen,
                         config=self.tts_config,
-                        speaker_id=speaker_name,
+                        speaker_id=sp_name,
                         extra_voice_dirs=self.voice_dir,
                         **kwargs,
                     )

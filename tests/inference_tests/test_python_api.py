@@ -12,6 +12,7 @@ is_coqui_available = os.environ.get("COQUI_STUDIO_TOKEN")
 
 
 if is_coqui_available:
+
     class CS_APITest(unittest.TestCase):
         def test_speakers(self):
             tts = CS_API()
@@ -39,7 +40,6 @@ if is_coqui_available:
             wav, sr = tts.tts(text="This is a test.", speaker_name=tts.list_speakers()[0].name)
             self.assertEqual(sr, 44100)
             self.assertGreater(len(wav), 1)
-
 
     class TTSTest(unittest.TestCase):
         def test_single_speaker_model(self):
@@ -86,7 +86,9 @@ if is_coqui_available:
         def test_multi_speaker_multi_lingual_model(self):
             tts = TTS()
             tts.load_tts_model_by_name(tts.models[0])  # YourTTS
-            tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path=OUTPUT_PATH)
+            tts.tts_to_file(
+                text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path=OUTPUT_PATH
+            )
 
             self.assertTrue(tts.is_multi_speaker)
             self.assertTrue(tts.is_multi_lingual)
