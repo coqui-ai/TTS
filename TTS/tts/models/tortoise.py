@@ -453,7 +453,9 @@ class Tortoise(BaseTTS):
     def synthesize(self, text, config, speaker_id="random", extra_voice_dirs=None, **kwargs):
         if extra_voice_dirs is not None:
             extra_voice_dirs = [extra_voice_dirs]
-        voice_samples, conditioning_latents = load_voice(speaker_id, extra_voice_dirs)
+            voice_samples, conditioning_latents = load_voice(speaker_id, extra_voice_dirs)
+        else:
+            voice_samples, conditioning_latents = load_voice(speaker_id)
 
         outputs = self.inference_with_config(
             text, config, voice_samples=voice_samples, conditioning_latents=conditioning_latents, **kwargs
