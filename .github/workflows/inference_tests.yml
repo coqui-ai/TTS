@@ -34,7 +34,6 @@ jobs:
       - name: set ENV
         run: |
           export TRAINER_TELEMETRY=0
-          export COQUI_STUDIO_TOKEN=${{ secrets.COQUI_STUDIO_TOKEN }}
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -52,3 +51,5 @@ jobs:
           python3 setup.py egg_info
       - name: Unit tests
         run: make inference_tests
+        env:
+            COQUI_STUDIO_TOKEN: ${{ secrets.COQUI_STUDIO_TOKEN }}
