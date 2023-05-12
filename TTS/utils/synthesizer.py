@@ -344,7 +344,7 @@ class Synthesizer(object):
         if not reference_wav:
             for sen in sens:
                 if hasattr(self.tts_model, "synthesize"):
-                    sp_name = "random " if speaker_name is None else speaker_name
+                    sp_name = "random" if speaker_name is None else speaker_name
                     outputs = self.tts_model.synthesize(
                         text=sen,
                         config=self.tts_config,
