@@ -263,7 +263,7 @@ class Synthesizer(object):
                     # get speaker idx from the speaker name
                     speaker_id = self.tts_model.speaker_manager.name_to_id[speaker_name]
             # handle Neon models with single speaker.
-            elif len(sef.tts_model.speaker_manager.name_to_id) == 1:
+            elif len(self.tts_model.speaker_manager.name_to_id) == 1:
                 speaker_id = list(self.tts_model.speaker_manager.name_to_id.values())[0]
             elif not speaker_name and not speaker_wav:
                 raise ValueError(
