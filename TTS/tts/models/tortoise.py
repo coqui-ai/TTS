@@ -557,50 +557,49 @@ class Tortoise(BaseTTS):
         **hf_generate_kwargs,
     ):
         """
-        Produces an audio clip of the given text being spoken with the given reference voice.
-        :param text: Text to be spoken.
-        :param voice_samples: List of an arbitrary number of reference clips, which should be *tuple-pairs* of torch tensors containing arbitrary kHz waveform data.
-        :param conditioning_latents: A tuple of (autoregressive_conditioning_latent, diffusion_conditioning_latent), which
-                                     can be provided in lieu of voice_samples. This is ignored unless voice_samples=None.
-                                     Conditioning latents can be retrieved via get_conditioning_latents().
-        :param k: The number of returned clips. The most likely (as determined by Tortoises' CLVP model) clips are returned.
-        :param latent_averaging_mode: 0/1/2 for following modes:
-            0 - latents will be generated as in original tortoise, using ~4.27s from each voice sample, averaging latent across all samples
-            1 - latents will be generated using (almost) entire voice samples, averaged across all the ~4.27s chunks
-            2 - latents will be generated using (almost) entire voice samples, averaged per voice sample
-        :param verbose: Whether or not to print log messages indicating the progress of creating a clip. Default=true.
-        ~~AUTOREGRESSIVE KNOBS~~
-        :param num_autoregressive_samples: Number of samples taken from the autoregressive model, all of which are filtered using CLVP.
-               As Tortoise is a probabilistic model, more samples means a higher probability of creating something "great".
-        :param temperature: The softmax temperature of the autoregressive model.
-        :param length_penalty: A length penalty applied to the autoregressive decoder. Higher settings causes the model to produce more terse outputs.
-        :param repetition_penalty: A penalty that prevents the autoregressive decoder from repeating itself during decoding. Can be used to reduce the incidence
-                                   of long silences or "uhhhhhhs", etc.
-        :param top_p: P value used in nucleus sampling. (0,1]. Lower values mean the decoder produces more "likely" (aka boring) outputs.
-        :param max_mel_tokens: Restricts the output length. (0,600] integer. Each unit is 1/20 of a second.
-        :param typical_sampling: Turns typical sampling on or off. This sampling mode is discussed in this paper: https://arxiv.org/abs/2202.00666
-                                 I was interested in the premise, but the results were not as good as I was hoping. This is off by default, but
-                                 could use some tuning.
-        :param typical_mass: The typical_mass parameter from the typical_sampling algorithm.
-        ~~DIFFUSION KNOBS~~
-        :param diffusion_iterations: Number of diffusion steps to perform. [0,4000]. More steps means the network has more chances to iteratively refine
-                                     the output, which should theoretically mean a higher quality output. Generally a value above 250 is not noticeably better,
-                                     however.
-        :param cond_free: Whether or not to perform conditioning-free diffusion. Conditioning-free diffusion performs two forward passes for
-                          each diffusion step: one with the outputs of the autoregressive model and one with no conditioning priors. The output
-                          of the two is blended according to the cond_free_k value below. Conditioning-free diffusion is the real deal, and
-                          dramatically improves realism.
-        :param cond_free_k: Knob that determines how to balance the conditioning free signal with the conditioning-present signal. [0,inf].
-                            As cond_free_k increases, the output becomes dominated by the conditioning-free signal.
-                            Formula is: output=cond_present_output*(cond_free_k+1)-cond_absenct_output*cond_free_k
-        :param diffusion_temperature: Controls the variance of the noise fed into the diffusion model. [0,1]. Values at 0
+        This function produces an audio clip of the given text being spoken with the given reference voice.
+
+        Args:
+            text: (str) Text to be spoken.
+            voice_samples: (List[Tuple[torch.Tensor]]) List of an arbitrary number of reference clips, which should be tuple-pairs
+                of torch tensors containing arbitrary kHz waveform data.
+            conditioning_latents: (Tuple[autoregressive_conditioning_latent, diffusion_conditioning_latent]) A tuple of
+                (autoregressive_conditioning_latent, diffusion_conditioning_latent), which can be provided in lieu
+                of voice_samples. This is ignored unless `voice_samples=None`. Conditioning latents can be retrieved
+                via `get_conditioning_latents()`.
+            k: (int) The number of returned clips. The most likely (as determined by Tortoises' CLVP model) clips are returned.
+                latent_averaging_mode: (int) 0/1/2 for following modes:
+                0 - latents will be generated as in original tortoise, using ~4.27s from each voice sample, averaging latent across all samples
+                1 - latents will be generated using (almost) entire voice samples, averaged across all the ~4.27s chunks
+                2 - latents will be generated using (almost) entire voice samples, averaged per voice sample
+            verbose: (bool) Whether or not to print log messages indicating the progress of creating a clip. Default=true.
+            num_autoregressive_samples: (int) Number of samples taken from the autoregressive model, all of which are filtered using CLVP.
+                As Tortoise is a probabilistic model, more samples means a higher probability of creating something "great".
+            temperature: (float) The softmax temperature of the autoregressive model.
+            length_penalty: (float) A length penalty applied to the autoregressive decoder. Higher settings causes the model to produce more terse outputs.
+            repetition_penalty: (float) A penalty that prevents the autoregressive decoder from repeating itself during decoding. Can be used to reduce
+                the incidence of long silences or "uhhhhhhs", etc.
+            top_p: (float) P value used in nucleus sampling. (0,1]. Lower values mean the decoder produces more "likely" (aka boring) outputs.
+            max_mel_tokens: (int) Restricts the output length. (0,600] integer. Each unit is 1/20 of a second.
+            typical_sampling: (bool) Turns typical sampling on or off. This sampling mode is discussed in this paper: https://arxiv.org/abs/2202.00666
+                I was interested in the premise, but the results were not as good as I was hoping. This is off by default, but could use some tuning.
+            typical_mass: (float) The typical_mass parameter from the typical_sampling algorithm.
+            diffusion_iterations: (int) Number of diffusion steps to perform. [0,4000]. More steps means the network has more chances to iteratively
+                refine the output, which should theoretically mean a higher quality output. Generally a value above 250 is not noticeably better, however.
+            cond_free: (bool) Whether or not to perform conditioning-free diffusion. Conditioning-free diffusion performs two forward passes for
+                each diffusion step: one with the outputs of the autoregressive model and one with no conditioning priors. The output of the two
+                is blended according to the cond_free_k value below. Conditioning-free diffusion is the real deal, and dramatically improves realism.
+            cond_free_k: (float) Knob that determines how to balance the conditioning free signal with the conditioning-present signal. [0,inf].
+                As cond_free_k increases, the output becomes dominated by the conditioning-free signal.
+            diffusion_temperature: (float) Controls the variance of the noise fed into the diffusion model. [0,1]. Values at 0
                                       are the "mean" prediction of the diffusion network and will sound bland and smeared.
-        ~~OTHER STUFF~~
-        :param hf_generate_kwargs: The huggingface Transformers generate API is used for the autoregressive transformer.
-                                   Extra keyword args fed to this function get forwarded directly to that API. Documentation
-                                   here: https://huggingface.co/docs/transformers/internal/generation_utils
-        :return: Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
-                 Sample rate is 24kHz.
+            hf_generate_kwargs: (**kwargs) The huggingface Transformers generate API is used for the autoregressive transformer.
+                                    Extra keyword args fed to this function get forwarded directly to that API. Documentation
+                                    here: https://huggingface.co/docs/transformers/internal/generation_utils
+        
+        Returns: 
+            Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
+            Sample rate is 24kHz.
         """
         deterministic_seed = deterministic_state(seed=use_deterministic_seed)
 
