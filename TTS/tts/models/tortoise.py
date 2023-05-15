@@ -253,7 +253,7 @@ class TortoiseArgs(Coqpit):
         clvp_use_xformers (bool): A flag indicating whether the model uses transformers in the CLVP module. Defaults to True.
         duration_const (int): A constant value used in the model. Defaults to 102400.
     """
-   
+
     autoregressive_batch_size: int = 1
     enable_redaction: bool = True
     high_vram: bool = False
@@ -307,10 +307,10 @@ class TortoiseArgs(Coqpit):
 
 
 class Tortoise(BaseTTS):
-    """Tortoise model class. 
+    """Tortoise model class.
 
-    Currently only supports inference. 
-    
+    Currently only supports inference.
+
     Examples:
         >>> from TTS.tts.configs.tortoise_config import TortoiseConfig
         >>> from TTS.tts.models.tortoise import Tortoise
@@ -498,18 +498,18 @@ class Tortoise(BaseTTS):
 
     def synthesize(self, text, config, speaker_id="random", extra_voice_dirs=None, **kwargs):
         """Synthesize speech with the given input text.
-        
+
         Args:
             text (str): Input text.
-            config (TortoiseConfig): Config with inference parameters. 
+            config (TortoiseConfig): Config with inference parameters.
             speaker_id (str): One of the available speaker names. If `random`, it generates a random speaker.
             extra_voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
-            **kwargs: Inference settings. See `inference()`. 
+            **kwargs: Inference settings. See `inference()`.
 
         Returns:
             A dictionary of the output values with `wav` as output waveform, `deterministic_seed` as seed used at inference,
             `text_input` as text token IDs after tokenizer, `voice_samples` as samples used for cloning, `conditioning_latents`
-            as latents used at inference. 
+            as latents used at inference.
 
         """
         if extra_voice_dirs is not None:
@@ -657,8 +657,8 @@ class Tortoise(BaseTTS):
             hf_generate_kwargs: (**kwargs) The huggingface Transformers generate API is used for the autoregressive transformer.
                                     Extra keyword args fed to this function get forwarded directly to that API. Documentation
                                     here: https://huggingface.co/docs/transformers/internal/generation_utils
-        
-        Returns: 
+
+        Returns:
             Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
             Sample rate is 24kHz.
         """
