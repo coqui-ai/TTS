@@ -103,6 +103,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
 - YourTTS: [paper](https://arxiv.org/abs/2112.02418)
+- Tortoise: [orig. repo](https://github.com/neonbjb/tortoise-tts)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
