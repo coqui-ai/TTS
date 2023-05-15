@@ -272,10 +272,16 @@ class ModelManager(object):
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
             # download from github release
-            self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
-            self.print_model_license(model_item=model_item)
+            if isinstance(model_item["github_rls_url"], list):
+                self._download_model_files(model_item["github_rls_url"], output_path, self.progress_bar)
+            else:
+                self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
+        self.print_model_license(model_item=model_item)
         # find downloaded files
-        output_model_path, output_config_path = self._find_files(output_path)
+        output_model_path = output_path
+        output_config_path = None
+        if model != "tortoise-v2":
+            output_model_path, output_config_path = self._find_files(output_path)
         # update paths in the config.json
         self._update_paths(output_path, output_config_path)
         return output_model_path, output_config_path, model_item
@@ -414,6 +420,25 @@ class ModelManager(object):
                 copyfile(src_path, dst_path)
         # remove the extracted folder
         rmtree(os.path.join(output_folder, z.namelist()[0]))
+
+    @staticmethod
+    def _download_model_files(file_urls, output_folder, progress_bar):
+        """Download the github releases"""
+        for file_url in file_urls:
+            # download the file
+            r = requests.get(file_url, stream=True)
+            # extract the file
+            bease_filename = file_url.split("/")[-1]
+            temp_zip_name = os.path.join(output_folder, bease_filename)
+            total_size_in_bytes = int(r.headers.get("content-length", 0))
+            block_size = 1024  # 1 Kibibyte
+            with open(temp_zip_name, "wb") as file:
+                if progress_bar:
+                    progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+                for data in r.iter_content(block_size):
+                    if progress_bar:
+                        progress_bar.update(len(data))
+                    file.write(data)
 
     @staticmethod
     def _check_dict_key(my_dict, key):

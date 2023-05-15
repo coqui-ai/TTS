@@ -10,5 +10,5 @@ def setup_model(config: "Coqpit", samples: Union[List[List], List[Dict]] = None)
         MyModel = find_module("TTS.tts.models", config.base_model.lower())
     else:
         MyModel = find_module("TTS.tts.models", config.model.lower())
-    model = MyModel.init_from_config(config, samples)
+    model = MyModel.init_from_config(config=config, samples=samples)
     return model

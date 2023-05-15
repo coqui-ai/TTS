@@ -51,6 +51,7 @@
     models/forward_tts.md
     models/tacotron1-2.md
     models/overflow.md
+    model/tortoise.md
 
 .. toctree::
     :maxdepth: 2
