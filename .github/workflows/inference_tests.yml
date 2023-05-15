@@ -52,4 +52,4 @@ jobs:
       - name: Unit tests
         run: make inference_tests
         env:
-            COQUI_STUDIO_TOKEN: ${{ secrets.COQUI_STUDIO_TOKEN }}
+          COQUI_STUDIO_TOKEN: ${{ secrets.COQUI_STUDIO_TOKEN }}

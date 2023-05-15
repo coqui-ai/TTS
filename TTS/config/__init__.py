@@ -41,7 +41,7 @@ def register_config(model_name: str) -> Coqpit:
     for path in paths:
         try:
             config_class = find_module(path, config_name)
-        except ModuleNotFoundError:
+        except ModuleNotFoundError as e:
             pass
     if config_class is None:
         raise ModuleNotFoundError(f" [!] Config for {model_name} cannot be found.")
