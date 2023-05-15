@@ -200,6 +200,60 @@ class TortoiseAudioConfig(Coqpit):
 
 @dataclass
 class TortoiseArgs(Coqpit):
+    """A dataclass to represent Tortoise model arguments that define the model structure.
+
+    Args:
+        autoregressive_batch_size (int): The size of the auto-regressive batch.
+        enable_redaction (bool, optional): Whether to enable redaction. Defaults to True.
+        high_vram (bool, optional): Whether to use high VRAM. Defaults to False.
+        kv_cache (bool, optional): Whether to use the kv_cache. Defaults to True.
+        ar_checkpoint (str, optional): The checkpoint for the autoregressive model. Defaults to None.
+        clvp_checkpoint (str, optional): The checkpoint for the ConditionalLatentVariablePerseq model. Defaults to None.
+        diff_checkpoint (str, optional): The checkpoint for the DiffTTS model. Defaults to None.
+        num_chars (int, optional): The maximum number of characters to generate. Defaults to 255.
+        vocoder (VocType, optional): The vocoder to use for synthesis. Defaults to VocConf.Univnet.
+
+        For UnifiedVoice model:
+        ar_max_mel_tokens (int, optional): The maximum mel tokens for the autoregressive model. Defaults to 604.
+        ar_max_text_tokens (int, optional): The maximum text tokens for the autoregressive model. Defaults to 402.
+        ar_max_conditioning_inputs (int, optional): The maximum conditioning inputs for the autoregressive model. Defaults to 2.
+        ar_layers (int, optional): The number of layers for the autoregressive model. Defaults to 30.
+        ar_model_dim (int, optional): The model dimension for the autoregressive model. Defaults to 1024.
+        ar_heads (int, optional): The number of heads for the autoregressive model. Defaults to 16.
+        ar_number_text_tokens (int, optional): The number of text tokens for the autoregressive model. Defaults to 255.
+        ar_start_text_token (int, optional): The start text token for the autoregressive model. Defaults to 255.
+        ar_checkpointing (bool, optional): Whether to use checkpointing for the autoregressive model. Defaults to False.
+        ar_train_solo_embeddings (bool, optional): Whether to train embeddings for the autoregressive model. Defaults to False.
+
+        For DiffTTS model:
+        diff_model_channels (int, optional): The number of channels for the DiffTTS model. Defaults to 1024.
+        diff_num_layers (int, optional): The number of layers for the DiffTTS model. Defaults to 10.
+        diff_in_channels (int, optional): The input channels for the DiffTTS model. Defaults to 100.
+        diff_out_channels (int, optional): The output channels for the DiffTTS model. Defaults to 200.
+        diff_in_latent_channels (int, optional): The input latent channels for the DiffTTS model. Defaults to 1024.
+        diff_in_tokens (int, optional): The input tokens for the DiffTTS model. Defaults to 8193.
+        diff_dropout (int, optional): The dropout percentage for the DiffTTS model. Defaults to 0.
+        diff_use_fp16 (bool, optional): Whether to use fp16 for the DiffTTS model. Defaults to False.
+        diff_num_heads (int, optional): The number of heads for the DiffTTS model. Defaults to 16.
+        diff_layer_drop (int, optional): The layer dropout percentage for the DiffTTS model. Defaults to 0.
+        diff_unconditioned_percentage (int, optional): The percentage of unconditioned inputs for the DiffTTS model. Defaults to 0.
+
+        For ConditionalLatentVariablePerseq model:
+        clvp_dim_text (int): The dimension of the text input for the CLVP module. Defaults to 768.
+        clvp_dim_speech (int): The dimension of the speech input for the CLVP module. Defaults to 768.
+        clvp_dim_latent (int): The dimension of the latent representation for the CLVP module. Defaults to 768.
+        clvp_num_text_tokens (int): The number of text tokens used by the CLVP module. Defaults to 256.
+        clvp_text_enc_depth (int): The depth of the text encoder in the CLVP module. Defaults to 20.
+        clvp_text_seq_len (int): The maximum sequence length of the text input for the CLVP module. Defaults to 350.
+        clvp_text_heads (int): The number of attention heads used by the text encoder in the CLVP module. Defaults to 12.
+        clvp_num_speech_tokens (int): The number of speech tokens used by the CLVP module. Defaults to 8192.
+        clvp_speech_enc_depth (int): The depth of the speech encoder in the CLVP module. Defaults to 20.
+        clvp_speech_heads (int): The number of attention heads used by the speech encoder in the CLVP module. Defaults to 12.
+        clvp_speech_seq_len (int): The maximum sequence length of the speech input for the CLVP module. Defaults to 430.
+        clvp_use_xformers (bool): A flag indicating whether the model uses transformers in the CLVP module. Defaults to True.
+        duration_const (int): A constant value used in the model. Defaults to 102400.
+    """
+   
     autoregressive_batch_size: int = 1
     enable_redaction: bool = True
     high_vram: bool = False
@@ -253,27 +307,19 @@ class TortoiseArgs(Coqpit):
 
 
 class Tortoise(BaseTTS):
-    """
-    Main entry point into Tortoise.
+    """Tortoise model class. 
+
+    Currently only supports inference. 
+    
+    Examples:
+        >>> from TTS.tts.configs.tortoise_config import TortoiseConfig
+        >>> from TTS.tts.models.tortoise import Tortoise
+        >>> config = TortoiseConfig()
+        >>> model = Tortoise.inif_from_config(config)
+        >>> model.load_checkpoint(config, checkpoint_dir="paths/to/models_dir/", eval=True)
     """
 
     def __init__(self, config: Coqpit):
-        """
-        Constructor
-        :param autoregressive_batch_size: Specifies how many samples to generate per batch. Lower this if you are seeing
-                                          GPU OOM errors. Larger numbers generates slightly faster.
-        :param models_dir: Where model weights are stored. This should only be specified if you are providing your own
-                           models, otherwise use the defaults.
-        :param enable_redaction: When true, text enclosed in brackets are automatically redacted from the spoken output
-                                 (but are still rendered by the model). This can be used for prompt engineering.
-                                 Default is true.
-        :param device: Device to use when running the model. If omitted, the device will be automatically chosen.
-        :param high_vram: If true, the model will use more VRAM but will run faster.
-        :param kv_cache: If true, the autoregressive model will cache key value attention pairs to speed up generation.
-        :param ar_checkpoint: Path to a checkpoint file for the autoregressive model. If omitted, uses default
-        :param clvp_checkpoint: Path to a checkpoint file for the CLVP model. If omitted, uses default
-        :param diff_checkpoint: Path to a checkpoint file for the diffusion model. If omitted, uses default
-        """
         super().__init__(config, ap=None, tokenizer=None)
         self.config = config
         self.ar_checkpoint = self.args.ar_checkpoint
@@ -451,6 +497,21 @@ class Tortoise(BaseTTS):
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
     def synthesize(self, text, config, speaker_id="random", extra_voice_dirs=None, **kwargs):
+        """Synthesize speech with the given input text.
+        
+        Args:
+            text (str): Input text.
+            config (TortoiseConfig): Config with inference parameters. 
+            speaker_id (str): One of the available speaker names. If `random`, it generates a random speaker.
+            extra_voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
+            **kwargs: Inference settings. See `inference()`. 
+
+        Returns:
+            A dictionary of the output values with `wav` as output waveform, `deterministic_seed` as seed used at inference,
+            `text_input` as text token IDs after tokenizer, `voice_samples` as samples used for cloning, `conditioning_latents`
+            as latents used at inference. 
+
+        """
         if extra_voice_dirs is not None:
             extra_voice_dirs = [extra_voice_dirs]
             voice_samples, conditioning_latents = load_voice(speaker_id, extra_voice_dirs)
