@@ -248,7 +248,6 @@ def beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_factor=1.
     return np.array(mel_text_probs)
 
 
-
 def compute_attn_prior(x_len, y_len, scaling_factor=1.0):
     """Compute attention priors for the alignment network."""
     attn_prior = beta_binomial_prior_distribution(
@@ -257,4 +256,3 @@ def compute_attn_prior(x_len, y_len, scaling_factor=1.0):
         scaling_factor,
     )
     return attn_prior  # [y_len, x_len]
-

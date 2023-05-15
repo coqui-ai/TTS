@@ -1,9 +1,8 @@
-from typing import Dict, Any
-
 import torch
-import torch.nn as nn
+import torch.nn as nn # pylint: disable=consider-using-from-import
 
 from TTS.tts.layers.delightful_tts.conv_layers import ConvTransposed
+
 
 class PhonemeProsodyPredictor(nn.Module):
     """Non-parallel Prosody Predictor inspired by: https://arxiv.org/pdf/2102.00851.pdf

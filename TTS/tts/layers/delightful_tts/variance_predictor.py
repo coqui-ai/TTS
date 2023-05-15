@@ -1,5 +1,5 @@
 import torch
-import torch.nn as nn
+import torch.nn as nn # pylint: disable=consider-using-from-import
 
 from TTS.tts.layers.delightful_tts.conv_layers import ConvTransposed
 
@@ -25,13 +25,7 @@ class VariancePredictor(nn.Module):
     """
 
     def __init__(
-        self,
-        channels_in: int,
-        channels: int,
-        channels_out: int,
-        kernel_size: int,
-        p_dropout: float,
-        lrelu_slope: float
+        self, channels_in: int, channels: int, channels_out: int, kernel_size: int, p_dropout: float, lrelu_slope: float
     ):
         super().__init__()
 

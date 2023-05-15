@@ -24,7 +24,7 @@ class Conformer(nn.Module):
         speaker_embedding_dim: int,
         p_dropout: float,
         kernel_size_conv_mod: int,
-        lrelu_slope: float
+        lrelu_slope: float,
     ):
         """
         A Tansformer variant that integrates both CNNs and Transformers components.
@@ -58,7 +58,7 @@ class Conformer(nn.Module):
                     kernel_size_conv_mod=kernel_size_conv_mod,
                     dropout=p_dropout,
                     speaker_embedding_dim=speaker_embedding_dim,
-                    lrelu_slope=lrelu_slope
+                    lrelu_slope=lrelu_slope,
                 )
                 for _ in range(n_layers)
             ]
@@ -100,7 +100,7 @@ class ConformerBlock(torch.nn.Module):
         kernel_size_conv_mod: int,
         speaker_embedding_dim: int,
         dropout: float,
-        lrelu_slope: float = 0.3
+        lrelu_slope: float = 0.3,
     ):
         """
         A Conformer block is composed of four modules stacked together,
@@ -134,10 +134,14 @@ class ConformerBlock(torch.nn.Module):
             )
 
         self.ff = FeedForward(d_model=d_model, dropout=dropout, kernel_size=3, lrelu_slope=lrelu_slope)
-        self.conformer_conv_1 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout, lrelu_slope=lrelu_slope)
+        self.conformer_conv_1 = ConformerConvModule(
+            d_model, kernel_size=kernel_size_conv_mod, dropout=dropout, lrelu_slope=lrelu_slope
+        )
         self.ln = nn.LayerNorm(d_model)
         self.slf_attn = ConformerMultiHeadedSelfAttention(d_model=d_model, num_heads=n_head, dropout_p=dropout)
-        self.conformer_conv_2 = ConformerConvModule(d_model, kernel_size=kernel_size_conv_mod, dropout=dropout, lrelu_slope=lrelu_slope)
+        self.conformer_conv_2 = ConformerConvModule(
+            d_model, kernel_size=kernel_size_conv_mod, dropout=dropout, lrelu_slope=lrelu_slope
+        )
 
     def forward(
         self,
@@ -172,10 +176,10 @@ class ConformerBlock(torch.nn.Module):
 
 class FeedForward(nn.Module):
     def __init__(
-        self, 
-        d_model: int, 
-        kernel_size: int, 
-        dropout: float, 
+        self,
+        d_model: int,
+        kernel_size: int,
+        dropout: float,
         lrelu_slope: float,
         expansion_factor: int = 4,
     ):
@@ -232,7 +236,7 @@ class ConformerConvModule(nn.Module):
         expansion_factor: int = 2,
         kernel_size: int = 7,
         dropout: float = 0.1,
-        lrelu_slope: float = 0.3
+        lrelu_slope: float = 0.3,
     ):
         """
         Convolution module for conformer. Starts with a gating machanism.
@@ -305,12 +309,7 @@ class ConformerMultiHeadedSelfAttention(nn.Module):
         - **outputs** (batch, time, dim): Tensor produces by relative multi headed self attention module.
     """
 
-    def __init__(
-        self, 
-        d_model: int, 
-        num_heads: int, 
-        dropout_p: float
-    ):
+    def __init__(self, d_model: int, num_heads: int, dropout_p: float):
         super().__init__()
         self.attention = RelativeMultiHeadAttention(d_model=d_model, num_heads=num_heads)
         self.dropout = nn.Dropout(p=dropout_p)
@@ -323,7 +322,7 @@ class ConformerMultiHeadedSelfAttention(nn.Module):
         mask: torch.Tensor,
         encoding: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch_size, seq_length, _ = key.size()
+        batch_size, seq_length, _ = key.size() # pylint: disable=unused-variable
         encoding = encoding[:, : key.shape[1]]
         encoding = encoding.repeat(batch_size, 1, 1)
         outputs, attn = self.attention(query, key, value, pos_embedding=encoding, mask=mask)
@@ -404,14 +403,14 @@ class RelativeMultiHeadAttention(nn.Module):
 
         return self.out_proj(context), attn
 
-    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor:
+    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor: # pylint: disable=no-self-use
         batch_size, num_heads, seq_length1, seq_length2 = pos_score.size()
         zeros = torch.zeros((batch_size, num_heads, seq_length1, 1), device=pos_score.device)
         padded_pos_score = torch.cat([zeros, pos_score], dim=-1)
         padded_pos_score = padded_pos_score.view(batch_size, num_heads, seq_length2 + 1, seq_length1)
         pos_score = padded_pos_score[:, :, 1:].view_as(pos_score)
         return pos_score
-    
+
 
 class MultiHeadAttention(nn.Module):
     """
@@ -423,7 +422,6 @@ class MultiHeadAttention(nn.Module):
     """
 
     def __init__(self, query_dim: int, key_dim: int, num_units: int, num_heads: int):
-
         super().__init__()
         self.num_units = num_units
         self.num_heads = num_heads

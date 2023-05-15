@@ -441,7 +441,6 @@ class BaseTTS(BaseTrainerModel):
             print(" > `language_ids_file` is updated in the config.json.")
 
 
-
 class BaseTTSE2E(BaseTTS):
     def _set_model_args(self, config: Coqpit):
         self.config = config
@@ -458,4 +457,3 @@ class BaseTTSE2E(BaseTTS):
             self.args.num_chars = self.args.num_chars
         else:
             raise ValueError("config must be either a *Config or *Args")
-            

@@ -1,16 +1,16 @@
 import os
-import pyworld as pw
 from dataclasses import dataclass, field
 from itertools import chain
-from librosa.filters import mel as librosa_mel_fn
-import torchaudio
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import pyworld as pw
 import torch
 import torch.distributed as dist
+import torchaudio
 from coqpit import Coqpit
+from librosa.filters import mel as librosa_mel_fn
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
 from torch.nn import functional as F
@@ -18,62 +18,47 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
-from TTS.tts.utils.speakers import SpeakerManager
-from TTS.tts.utils.text.tokenizer import TTSTokenizer
 
-from coqpit import Coqpit
-from TTS.tts.layers.losses import ForwardSumLoss, VitsDiscriminatorLoss
-from TTS.tts.configs.shared_configs import BaseTTSConfig
 from TTS.tts.datasets.dataset import F0Dataset, TTSDataset, _parse_sample
 from TTS.tts.layers.delightful_tts.acoustic_model import AcousticModel
+from TTS.tts.layers.losses import ForwardSumLoss, VitsDiscriminatorLoss
 from TTS.tts.layers.vits.discriminator import VitsDiscriminator
 from TTS.tts.models.base_tts import BaseTTSE2E
-from TTS.tts.utils.helpers import (
-    average_over_durations,
-    compute_attn_prior,
-    rand_segments,
-    segment,
-    sequence_mask,
-)
-from TTS.utils.audio.processor import AudioProcessor
-from TTS.vocoder.models.hifigan_generator import HifiganGenerator
+from TTS.tts.utils.helpers import average_over_durations, compute_attn_prior, rand_segments, segment, sequence_mask
+from TTS.tts.utils.speakers import SpeakerManager
+from TTS.tts.utils.text.tokenizer import TTSTokenizer
+from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_pitch, plot_spectrogram
 from TTS.utils.audio.numpy_transforms import build_mel_basis
 from TTS.utils.audio.numpy_transforms import db_to_amp as db_to_amp_numpy
 from TTS.utils.audio.numpy_transforms import mel_to_wav as mel_to_wav_numpy
-from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_pitch, plot_spectrogram
+from TTS.utils.audio.processor import AudioProcessor
 from TTS.utils.io import load_fsspec
 from TTS.vocoder.layers.losses import MultiScaleSTFTLoss
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
 
-
 def compute_f0(
-    *, 
-    x: np.ndarray = None, 
-    pitch_fmax: float = None,
-    hop_length: int = None, 
-    sample_rate: int = None, 
-    **kwargs
-    ) -> np.ndarray:
-        """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
+    *, x: np.ndarray = None, pitch_fmax: float = None, hop_length: int = None, sample_rate: int = None
+) -> np.ndarray:
+    """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
 
-        Args:
-            x (np.ndarray): Waveform.
+    Args:
+        x (np.ndarray): Waveform.
 
-        Returns:
-            np.ndarray: Pitch.
-        """
-        assert pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
+    Returns:
+        np.ndarray: Pitch.
+    """
+    assert pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
 
-        f0, t = pw.dio(
-            x.astype(np.double),
-            fs=sample_rate,
-            f0_ceil=pitch_fmax,
-            frame_period=1000 * hop_length / sample_rate,
-        )
-        f0 = pw.stonemask(x.astype(np.double), f0, t, sample_rate)
-        return f0
+    f0, t = pw.dio(
+        x.astype(np.double),
+        fs=sample_rate,
+        f0_ceil=pitch_fmax,
+        frame_period=1000 * hop_length / sample_rate,
+    )
+    f0 = pw.stonemask(x.astype(np.double), f0, t, sample_rate)
+    return f0
 
 
 def id_to_torch(aux_id, cuda=False):
@@ -139,6 +124,7 @@ def initialize_embeddings(shape: Tuple[int]) -> torch.Tensor:
     return torch.randn(shape) * np.sqrt(2 / shape[1])
 
 
+# pylint: disable=redefined-outer-name
 def calc_same_padding(kernel_size: int) -> Tuple[int, int]:
     pad = kernel_size // 2
     return (pad, pad - (kernel_size + 1) % 2)
@@ -165,7 +151,7 @@ def get_module_weights_sum(mdl: nn.Module):
     return dict_sums
 
 
-def load_audio(file_path, sample_rate=None):
+def load_audio(file_path: str):
     """Load the audio file normalized in [-1, 1]
 
     Return Shapes:
@@ -204,7 +190,7 @@ def _wav_to_spec(y, n_fft, hop_length, win_length, center=False):
     if torch.max(y) > 1.0:
         print("max value is ", torch.max(y))
 
-    global hann_window
+    global hann_window # pylint: disable=global-statement
     dtype_device = str(y.dtype) + "_" + str(y.device)
     wnsize_dtype_device = str(win_length) + "_" + dtype_device
     if wnsize_dtype_device not in hann_window:
@@ -216,7 +202,6 @@ def _wav_to_spec(y, n_fft, hop_length, win_length, center=False):
         mode="reflect",
     )
     y = y.squeeze(1)
-
 
     spec = torch.stft(
         y,
@@ -267,9 +252,11 @@ def spec_to_mel(spec, n_fft, num_mels, sample_rate, fmin, fmax):
     Return Shapes:
         - mel : :math:`[B,C,T]`
     """
-    global mel_basis
+    global mel_basis # pylint: disable=global-statement
     mel_basis_key = name_mel_basis(spec, n_fft, fmax)
+    # pylint: disable=too-many-function-args
     if mel_basis_key not in mel_basis:
+        # pylint: disable=missing-kwoa
         mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax)
         mel_basis[mel_basis_key] = torch.from_numpy(mel).to(dtype=spec.dtype, device=spec.device)
     mel = torch.matmul(mel_basis[mel_basis_key], spec)
@@ -292,11 +279,12 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
     if torch.max(y) > 1.0:
         print("max value is ", torch.max(y))
 
-    global mel_basis, hann_window
+    global mel_basis, hann_window # pylint: disable=global-statement
     mel_basis_key = name_mel_basis(y, n_fft, fmax)
     wnsize_dtype_device = str(win_length) + "_" + str(y.dtype) + "_" + str(y.device)
     if mel_basis_key not in mel_basis:
-        mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax)
+        # pylint: disable=missing-kwoa
+        mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax) # pylint: disable=too-many-function-args
         mel_basis[mel_basis_key] = torch.from_numpy(mel).to(dtype=y.dtype, device=y.device)
     if wnsize_dtype_device not in hann_window:
         hann_window[wnsize_dtype_device] = torch.hann_window(win_length).to(dtype=y.dtype, device=y.device)
@@ -325,8 +313,6 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
     spec = torch.matmul(mel_basis[mel_basis_key], spec)
     spec = amp_to_db(spec)
     return spec
-
-
 
 
 ##############################
@@ -375,7 +361,7 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         )
 
     def _compute_and_save_pitch(self, wav_file, pitch_file=None):
-        wav, _ = load_audio(wav_file, sample_rate=self.ap.sample_rate)
+        wav, _ = load_audio(wav_file)
         f0 = compute_f0(
             x=wav.numpy()[0],
             sample_rate=self.ap.sample_rate,
@@ -395,9 +381,7 @@ class ForwardTTSE2eF0Dataset(F0Dataset):
         """
         pitch_file = self.create_pitch_file_path(audio_name, self.cache_path)
         if not os.path.exists(pitch_file):
-            pitch = self._compute_and_save_pitch(
-             wav_file=wav_file, pitch_file=pitch_file
-            )
+            pitch = self._compute_and_save_pitch(wav_file=wav_file, pitch_file=pitch_file)
         else:
             pitch = np.load(pitch_file)
         return pitch.astype(np.float32)
@@ -414,7 +398,7 @@ class ForwardTTSE2eDataset(TTSDataset):
 
         self.compute_f0 = compute_f0
         self.pad_id = self.tokenizer.characters.pad_id
-        self.ap = kwargs['ap']
+        self.ap = kwargs["ap"]
 
         if self.compute_f0:
             self.f0_dataset = ForwardTTSE2eF0Dataset(
@@ -434,13 +418,14 @@ class ForwardTTSE2eDataset(TTSDataset):
         rel_wav_path = str(rel_wav_path).replace("/", "_")
 
         raw_text = item["text"]
-        wav, _ = load_audio(item["audio_file"], sample_rate=self.ap.sample_rate)
+        wav, _ = load_audio(item["audio_file"])
         wav_filename = os.path.basename(item["audio_file"])
 
         try:
             token_ids = self.get_token_ids(idx, item["text"])
         except:
             print(idx, item)
+            # pylint: disable=raise-missing-from
             raise OSError
         f0 = None
         if self.compute_f0:
@@ -467,12 +452,13 @@ class ForwardTTSE2eDataset(TTSDataset):
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
             "attn_prior": attn_prior,
-            "audio_unique_name": item["audio_unique_name"]
+            "audio_unique_name": item["audio_unique_name"],
         }
 
     def load_or_compute_attn_prior(self, token_ids, wav, rel_wav_path):
         """Load or compute and save the attention prior."""
         attn_prior_file = os.path.join(self.attn_prior_cache_path, f"{rel_wav_path}.npy")
+        # pylint: disable=no-else-return
         if os.path.exists(attn_prior_file):
             return np.load(attn_prior_file)
         else:
@@ -565,6 +551,7 @@ class ForwardTTSE2eDataset(TTSDataset):
 # CONFIG DEFINITIONS
 ##############################
 
+
 @dataclass
 class VocoderConfig(Coqpit):
     resblock_type_decoder: str = "1"
@@ -656,19 +643,6 @@ class DelightfulTtsArgs(Coqpit):
     freeze_decoder: bool = False
     length_scale: float = 1.0
 
-
-@dataclass
-class VocoderConfig(Coqpit):
-    resblock_type_decoder: str = "1"
-    resblock_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [3, 7, 11])
-    resblock_dilation_sizes_decoder: List[List[int]] = field(default_factory=lambda: [[1, 3, 5], [1, 3, 5], [1, 3, 5]])
-    upsample_rates_decoder: List[int] = field(default_factory=lambda: [8, 8, 2, 2])
-    upsample_initial_channel_decoder: int = 512
-    upsample_kernel_sizes_decoder: List[int] = field(default_factory=lambda: [16, 16, 4, 4])
-    use_spectral_norm_discriminator: bool = False
-    upsampling_rates_discriminator: List[int] = field(default_factory=lambda: [4, 4, 4, 4])
-    periods_discriminator: List[int] = field(default_factory=lambda: [2, 3, 5, 7, 11])
-    pretrained_model_path: str = None
 
 
 ##############################
@@ -774,7 +748,7 @@ class DelightfulTTS(BaseTTSE2E):
         return self.acoustic_model.pitch_std
 
     @pitch_mean.setter
-    def pitch_std(self, value):
+    def pitch_std(self, value): # pylint: disable=function-redefined
         self.acoustic_model.pitch_std = value
 
     @property
@@ -785,11 +759,13 @@ class DelightfulTTS(BaseTTSE2E):
             num_mels=self.ap.num_mels,
             mel_fmax=self.ap.mel_fmax,
             mel_fmin=self.ap.mel_fmin,
-        )
+        ) # pylint: disable=function-redefined
 
     def init_for_training(self) -> None:
-        self.train_disc = self.config.steps_to_start_discriminator <= 0 # pylint: disable=attribute-defined-outside-init
-        self.update_energy_scaler = True # pylint: disable=attribute-defined-outside-init
+        self.train_disc = ( # pylint: disable=attribute-defined-outside-init
+            self.config.steps_to_start_discriminator <= 0
+        )  # pylint: disable=attribute-defined-outside-init
+        self.update_energy_scaler = True  # pylint: disable=attribute-defined-outside-init
 
     def init_multispeaker(self, config: Coqpit):
         """Init for multi-speaker training.
@@ -913,10 +889,7 @@ class DelightfulTTS(BaseTTSE2E):
         else:
             g = None
 
-        vocoder_output = self.waveform_decoder(
-            x=vocoder_input_slices.detach(),
-            g=g
-        )
+        vocoder_output = self.waveform_decoder(x=vocoder_input_slices.detach(), g=g)
         wav_seg = segment(
             waveform,
             slice_ids * self.ap.hop_length,
@@ -931,7 +904,9 @@ class DelightfulTTS(BaseTTSE2E):
         return model_outputs
 
     @torch.no_grad()
-    def inference(self, x, aux_input={"d_vectors": None, "speaker_ids": None}, pitch_transform=None, energy_transform=None):
+    def inference(
+        self, x, aux_input={"d_vectors": None, "speaker_ids": None}, pitch_transform=None, energy_transform=None
+    ):
         encoder_outputs = self.acoustic_model.inference(
             tokens=x,
             d_vectors=aux_input["d_vectors"],
@@ -974,7 +949,7 @@ class DelightfulTTS(BaseTTSE2E):
             speaker_ids = batch["speaker_ids"]
             attn_priors = batch["attn_priors"]
             energy = batch["energy"]
-            
+
             # generator pass
             outputs = self.forward(
                 x=tokens,
@@ -986,7 +961,7 @@ class DelightfulTTS(BaseTTSE2E):
                 energy=energy,
                 attn_priors=attn_priors,
                 d_vectors=d_vectors,
-                speaker_idx=speaker_ids
+                speaker_idx=speaker_ids,
             )
 
             # cache tensors for the generator pass
@@ -1199,12 +1174,7 @@ class DelightfulTTS(BaseTTSE2E):
                 else:
                     speaker_id = self.speaker_manager.ids[speaker_name]
 
-        return {
-            "text": text,
-            "speaker_id": speaker_id,
-            "style_wav": style_wav,
-            "d_vector": d_vector
-        }
+        return {"text": text, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector}
 
     def plot_outputs(self, text, wav, alignment, outputs):
         figures = {}
@@ -1230,9 +1200,7 @@ class DelightfulTTS(BaseTTSE2E):
         input_text = self.tokenizer.ids_to_text(self.tokenizer.text_to_ids(text, language="en"))
         input_text = input_text.replace("<BLNK>", "_")
         durations = outputs["durations"]
-        pitch_avg = average_over_durations(
-            torch.from_numpy(pitch)[None, None, :], durations.cpu()
-        )  # [1, 1, n_frames]
+        pitch_avg = average_over_durations(torch.from_numpy(pitch)[None, None, :], durations.cpu())  # [1, 1, n_frames]
         pitch_avg_pred_denorm = (pitch_avg_pred * self.pitch_std) + self.pitch_mean
         figures["alignment"] = plot_alignment(alignment.transpose(1, 2), output_fig=False)
         figures["spectrogram"] = plot_spectrogram(spec)
@@ -1242,7 +1210,7 @@ class DelightfulTTS(BaseTTSE2E):
         figures["energy_avg_pred"] = plot_avg_pitch(energy_avg_pred.squeeze(), input_text)
         return figures
 
-    def synthesize(self, text: str, speaker_id, d_vector, ref_waveform=None, pitch_transform=None):
+    def synthesize(self, text: str, speaker_id, d_vector, ref_waveform=None, pitch_transform=None): # pylint: disable=unused-argument
         is_cuda = next(self.parameters()).is_cuda
 
         # convert text to sequence of token IDs
@@ -1281,7 +1249,6 @@ class DelightfulTTS(BaseTTSE2E):
         return return_dict
 
     def synthesize_with_gl(self, text: str, speaker_id, d_vector):
-
         is_cuda = next(self.parameters()).is_cuda
 
         # convert text to sequence of token IDs
@@ -1561,13 +1528,13 @@ class DelightfulTTS(BaseTTSE2E):
         """Schedule binary loss weight."""
         self.binary_loss_weight = min(trainer.epochs_done / self.config.binary_loss_warmup_epochs, 1.0) * 1.0
 
-    def on_epoch_end(self, trainer):
+    def on_epoch_end(self, trainer): # pylint: disable=unused-argument
         # stop updating mean and var
         # TODO: do the same for F0
         self.energy_scaler.eval()
 
     @staticmethod
-    def init_from_config(config: "DelightfulTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False):
+    def init_from_config(config: "DelightfulTTSConfig", samples: Union[List[List], List[Dict]] = None, verbose=False): # pylint: disable=unused-argument
         """Initiate model from config
 
         Args:
@@ -1579,9 +1546,7 @@ class DelightfulTTS(BaseTTSE2E):
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         speaker_manager = SpeakerManager.init_from_config(config.model_args, samples)
         ap = AudioProcessor.init_from_config(config=config)
-        return DelightfulTTS(
-            config=new_config, tokenizer=tokenizer, speaker_manager=speaker_manager, ap=ap
-        )
+        return DelightfulTTS(config=new_config, tokenizer=tokenizer, speaker_manager=speaker_manager, ap=ap)
 
     def load_checkpoint(self, config, checkpoint_path, eval=False):
         """Load model from a checkpoint created by the 👟"""
@@ -1606,7 +1571,7 @@ class DelightfulTTS(BaseTTSE2E):
 
     def save(self, config, checkpoint_path):
         """Save model to a file."""
-        save_state = self.get_state_dict(config, checkpoint_path)
+        save_state = self.get_state_dict(config, checkpoint_path) # pylint: disable=too-many-function-args
         save_state["pitch_mean"] = self.pitch_mean
         save_state["pitch_std"] = self.pitch_std
         torch.save(save_state, checkpoint_path)
@@ -1617,7 +1582,7 @@ class DelightfulTTS(BaseTTSE2E):
         Args:
             trainer (Trainer): Trainer object.
         """
-        self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator
+        self.train_disc = trainer.total_steps_done >= self.config.steps_to_start_discriminator # pylint: disable=attribute-defined-outside-init
 
 
 class DelightfulTTSLoss(nn.Module):
@@ -1735,7 +1700,6 @@ class DelightfulTTSLoss(nn.Module):
         mel_target.requires_grad = False
         pitch_target.requires_grad = False
 
-
         masked_mel_predictions = mel_output.masked_select(mel_mask[:, None])
         mel_targets = mel_target.masked_select(mel_mask[:, None])
         mel_loss = self.mae_loss(masked_mel_predictions, mel_targets)
@@ -1809,4 +1773,3 @@ class DelightfulTTSLoss(nn.Module):
 
         loss_dict["loss"] = loss_dict["loss"] + loss_mel + loss_stft_sc + loss_stft_mg
         return loss_dict
-

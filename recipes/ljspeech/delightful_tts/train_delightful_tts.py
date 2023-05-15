@@ -5,14 +5,16 @@ from trainer import Trainer, TrainerArgs
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.delightful_tts_config import DelightfulTtsAudioConfig, DelightfulTTSConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTTS, VocoderConfig
+from TTS.tts.models.delightful_tts import DelightfulTTS, DelightfulTtsArgs, VocoderConfig
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio.processor import AudioProcessor
 
 data_path = ""
 output_path = os.path.dirname(os.path.abspath(__file__))
 
-dataset_config = BaseDatasetConfig(dataset_name="ljspeech", formatter="ljspeech", meta_file_train="metadata.csv", path=data_path)
+dataset_config = BaseDatasetConfig(
+    dataset_name="ljspeech", formatter="ljspeech", meta_file_train="metadata.csv", path=data_path
+)
 
 audio_config = DelightfulTtsAudioConfig()
 model_args = DelightfulTtsArgs()
@@ -67,9 +69,6 @@ train_samples, eval_samples = load_tts_samples(
     eval_split_max_size=config.eval_split_max_size,
     eval_split_size=config.eval_split_size,
 )
-
-train_samples = train_samples
-eval_samples = eval_samples
 
 model = DelightfulTTS(ap=ap, config=config, tokenizer=tokenizer, speaker_manager=None)
 

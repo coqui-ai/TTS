@@ -1,7 +1,9 @@
 from typing import Tuple
+
 import torch
-import torch.nn as nn
+import torch.nn as nn # pylint: disable=consider-using-from-import
 import torch.nn.functional as F
+
 from TTS.tts.layers.delightful_tts.kernel_predictor import KernelPredictor
 
 
@@ -12,11 +14,11 @@ def calc_same_padding(kernel_size: int) -> Tuple[int, int]:
 
 class ConvNorm(nn.Module):
     """A 1-dimensional convolutional layer with optional weight normalization.
-    
+
     This layer wraps a 1D convolutional layer from PyTorch and applies
     optional weight normalization. The layer can be used in a similar way to
     the convolutional layers in PyTorch's `torch.nn` module.
-    
+
     Args:
         in_channels (int): The number of channels in the input signal.
         out_channels (int): The number of channels in the output signal.
@@ -32,13 +34,14 @@ class ConvNorm(nn.Module):
             Can be either 'linear' or 'relu'. Defaults to 'linear'.
         use_weight_norm (bool, optional): If `True`, apply weight normalization
             to the convolutional weights. Defaults to `False`.
-    
+
     Shapes:
      - Input: :math:`[N, D, T]`
-        
-    - Output: :math:`[N, out\_dim, T]` where `out_dim` is the number of output dimensions.
+
+    - Output: :math:`[N, out_dim, T]` where `out_dim` is the number of output dimensions.
 
     """
+
     def __init__(
         self,
         in_channels,
@@ -51,7 +54,7 @@ class ConvNorm(nn.Module):
         w_init_gain="linear",
         use_weight_norm=False,
     ):
-        super(ConvNorm, self).__init__() # pylint: disable=super-with-arguments
+        super(ConvNorm, self).__init__()  # pylint: disable=super-with-arguments
         if padding is None:
             assert kernel_size % 2 == 1
             padding = int(dilation * (kernel_size - 1) / 2)
@@ -93,7 +96,7 @@ class ConvLSTMLinear(nn.Module):
         lstm_type="bilstm",
         use_linear=True,
     ):
-        super(ConvLSTMLinear, self).__init__() # pylint: disable=super-with-arguments
+        super(ConvLSTMLinear, self).__init__()  # pylint: disable=super-with-arguments
         self.out_dim = out_dim
         self.lstm_type = lstm_type
         self.use_linear = use_linear
@@ -144,10 +147,10 @@ class ConvLSTMLinear(nn.Module):
         context = nn.utils.rnn.pad_sequence(context_embedded, batch_first=True)
         return context
 
-    def run_unsorted_inputs(self, fn, context, lens):
+    def run_unsorted_inputs(self, fn, context, lens): # pylint: disable=no-self-use
         lens_sorted, ids_sorted = torch.sort(lens, descending=True)
         unsort_ids = [0] * lens.size(0)
-        for i in range(len(ids_sorted)):
+        for i in range(len(ids_sorted)): # pylint: disable=consider-using-enumerate
             unsort_ids[ids_sorted[i]] = i
         lens_sorted = lens_sorted.long().cpu()
 
@@ -186,13 +189,7 @@ class ConvLSTMLinear(nn.Module):
 
 
 class DepthWiseConv1d(nn.Module):
-    def __init__(
-        self, 
-        in_channels: int, 
-        out_channels: int, 
-        kernel_size: int, 
-        padding: int
-    ):
+    def __init__(self, in_channels: int, out_channels: int, kernel_size: int, padding: int):
         super().__init__()
         self.conv = nn.Conv1d(in_channels, out_channels, kernel_size, padding=padding, groups=in_channels)
 
@@ -303,6 +300,7 @@ class ConvTransposed(nn.Module):
         padding (int): The number of padding elements to add to the input tensor. Default: 0.
         conv (BSConv1d): The 1D convolutional transpose layer.
     """
+
     def __init__(
         self,
         in_channels: int,
@@ -326,13 +324,7 @@ class ConvTransposed(nn.Module):
 
 
 class DepthwiseConvModule(nn.Module):
-    def __init__(
-        self, 
-        dim: int, 
-        kernel_size: int = 7, 
-        expansion: int = 4,
-        lrelu_slope: float = 0.3
-    ):
+    def __init__(self, dim: int, kernel_size: int = 7, expansion: int = 4, lrelu_slope: float = 0.3):
         super().__init__()
         padding = calc_same_padding(kernel_size)
         self.depthwise = nn.Conv1d(
@@ -364,7 +356,7 @@ class AddCoords(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.rank == 1:
-            batch_size_shape, channel_in_shape, dim_x = x.shape
+            batch_size_shape, channel_in_shape, dim_x = x.shape # pylint: disable=unused-variable
             xx_range = torch.arange(dim_x, dtype=torch.int32)
             xx_channel = xx_range[None, None, :]
 
@@ -542,7 +534,7 @@ class CoordConv2d(nn.modules.conv.Conv2d):
 class LVCBlock(torch.nn.Module):
     """the location-variable convolutions"""
 
-    def __init__(
+    def __init__( # pylint: disable=dangerous-default-value
         self,
         in_channels,
         cond_channels,
@@ -634,7 +626,7 @@ class LVCBlock(torch.nn.Module):
 
         return x
 
-    def location_variable_convolution(self, x, kernel, bias, dilation=1, hop_size=256):
+    def location_variable_convolution(self, x, kernel, bias, dilation=1, hop_size=256): # pylint: disable=no-self-use
         """perform location-variable convolution operation on the input sequence (x) using the local convolution kernl.
         Time: 414 μs ± 309 ns per loop (mean ± std. dev. of 7 runs, 1000 loops each), test on NVIDIA V100.
         Args:

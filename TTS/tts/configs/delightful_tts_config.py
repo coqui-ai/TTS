@@ -1,5 +1,5 @@
-from dataclasses import asdict, dataclass, field
-from typing import Dict, List
+from dataclasses import dataclass, field
+from typing import List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
 from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTtsAudioConfig, VocoderConfig
@@ -7,7 +7,58 @@ from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTtsAudioC
 
 @dataclass
 class DelightfulTTSConfig(BaseTTSConfig):
+    """
+    Configuration class for the DelightfulTTS model.
 
+    Attributes:
+        model (str): Name of the model ("delightful_tts").
+        audio (DelightfulTtsAudioConfig): Configuration for audio settings.
+        model_args (DelightfulTtsArgs): Configuration for model arguments.
+        use_attn_priors (bool): Whether to use attention priors.
+        vocoder (VocoderConfig): Configuration for the vocoder.
+        init_discriminator (bool): Whether to initialize the discriminator.
+        steps_to_start_discriminator (int): Number of steps to start the discriminator.
+        grad_clip (List[float]): Gradient clipping values.
+        lr_gen (float): Learning rate for the  gan generator.
+        lr_disc (float): Learning rate for the gan discriminator.
+        lr_scheduler_gen (str): Name of the learning rate scheduler for the generator.
+        lr_scheduler_gen_params (dict): Parameters for the learning rate scheduler for the generator.
+        lr_scheduler_disc (str): Name of the learning rate scheduler for the discriminator.
+        lr_scheduler_disc_params (dict): Parameters for the learning rate scheduler for the discriminator.
+        scheduler_after_epoch (bool): Whether to schedule after each epoch.
+        optimizer (str): Name of the optimizer.
+        optimizer_params (dict): Parameters for the optimizer.
+        ssim_loss_alpha (float): Alpha value for the SSIM loss.
+        mel_loss_alpha (float): Alpha value for the mel loss.
+        aligner_loss_alpha (float): Alpha value for the aligner loss.
+        pitch_loss_alpha (float): Alpha value for the pitch loss.
+        energy_loss_alpha (float): Alpha value for the energy loss.
+        u_prosody_loss_alpha (float): Alpha value for the utterance prosody loss.
+        p_prosody_loss_alpha (float): Alpha value for the phoneme prosody loss.
+        dur_loss_alpha (float): Alpha value for the duration loss.
+        char_dur_loss_alpha (float): Alpha value for the character duration loss.
+        binary_align_loss_alpha (float): Alpha value for the binary alignment loss.
+        binary_loss_warmup_epochs (int): Number of warm-up epochs for the binary loss.
+        disc_loss_alpha (float): Alpha value for the discriminator loss.
+        gen_loss_alpha (float): Alpha value for the generator loss.
+        feat_loss_alpha (float): Alpha value for the feature loss.
+        vocoder_mel_loss_alpha (float): Alpha value for the vocoder mel loss.
+        multi_scale_stft_loss_alpha (float): Alpha value for the multi-scale STFT loss.
+        multi_scale_stft_loss_params (dict): Parameters for the multi-scale STFT loss.
+        return_wav (bool): Whether to return audio waveforms.
+        use_weighted_sampler (bool): Whether to use a weighted sampler.
+        weighted_sampler_attrs (dict): Attributes for the weighted sampler.
+        weighted_sampler_multipliers (dict): Multipliers for the weighted sampler.
+        r (int): Value for the `r` override.
+        compute_f0 (bool): Whether to compute F0 values.
+        f0_cache_path (str): Path to the F0 cache.
+        attn_prior_cache_path (str): Path to the attention prior cache.
+        num_speakers (int): Number of speakers.
+        use_speaker_embedding (bool): Whether to use speaker embedding.
+        speakers_file (str): Path to the speaker file.
+        speaker_embedding_channels (int): Number of channels for the speaker embedding.
+        language_ids_file (str): Path to the language IDs file.
+    """
     model: str = "delightful_tts"
 
     # model specific params

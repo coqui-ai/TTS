@@ -1,4 +1,5 @@
-import torch.nn as nn
+import torch.nn as nn # pylint: disable=consider-using-from-import
+
 
 class KernelPredictor(nn.Module):
     """Kernel predictor for the location-variable convolutions
@@ -8,10 +9,10 @@ class KernelPredictor(nn.Module):
             conv_in_channels (int): number of channel for the input sequence,
             conv_out_channels (int): number of channel for the output sequence,
             conv_layers (int): number of layers
-    
+
     """
 
-    def __init__(
+    def __init__( # pylint: disable=dangerous-default-value
         self,
         cond_channels,
         conv_in_channels,

@@ -1,10 +1,10 @@
-from typing import Tuple
 import math
+from typing import Tuple
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
+import torch
+import torch.nn as nn # pylint: disable=consider-using-from-import
+import torch.nn.functional as F
 
 from TTS.tts.layers.delightful_tts.conv_layers import ConvNorm
 
@@ -25,7 +25,6 @@ def positional_encoding(d_model: int, length: int, device: torch.device) -> torc
     return pe
 
 
-
 class BottleneckLayer(nn.Module):
     """
     Bottleneck layer for reducing the dimensionality of a tensor.
@@ -39,9 +38,9 @@ class BottleneckLayer(nn.Module):
         use_partial_padding: Whether to use partial padding with the convolutional kernel.
 
     Shape:
-        - Input: :math:`[N, in\_dim]` where `N` is the batch size and `in_dim` is the number of input dimensions.
-        
-        - Output: :math:`[N, out\_dim]` where `out_dim` is the number of output dimensions.
+        - Input: :math:`[N, in_dim]` where `N` is the batch size and `in_dim` is the number of input dimensions.
+
+        - Output: :math:`[N, out_dim]` where `out_dim` is the number of output dimensions.
     """
     def __init__(
         self,
@@ -50,9 +49,9 @@ class BottleneckLayer(nn.Module):
         norm="weightnorm",
         non_linearity="relu",
         kernel_size=3,
-        use_partial_padding=False, # pylint: disable=unused-argument
+        use_partial_padding=False,  # pylint: disable=unused-argument
     ):
-        super(BottleneckLayer, self).__init__()
+        super(BottleneckLayer, self).__init__() # pylint: disable=super-with-arguments
 
         self.reduction_factor = reduction_factor
         reduced_dim = int(in_dim / reduction_factor)
@@ -77,10 +76,11 @@ class BottleneckLayer(nn.Module):
 class GLUActivation(nn.Module):
     """Class that implements the Gated Linear Unit (GLU) activation function.
 
-    The GLU activation function is a variant of the Leaky ReLU activation function, 
+    The GLU activation function is a variant of the Leaky ReLU activation function,
     where the output of the activation function is gated by an input tensor.
 
     """
+
     def __init__(self, slope: float):
         super().__init__()
         self.lrelu = nn.LeakyReLU(slope)
@@ -131,12 +131,7 @@ class StyleEmbedAttention(nn.Module):
 
 
 class EmbeddingPadded(nn.Module):
-    def __init__(
-        self, 
-        num_embeddings: int, 
-        embedding_dim: int, 
-        padding_idx: int
-    ):
+    def __init__(self, num_embeddings: int, embedding_dim: int, padding_idx: int):
         super().__init__()
         padding_mult = torch.ones((num_embeddings, 1), dtype=torch.int64)
         padding_mult[padding_idx] = 0
@@ -188,18 +183,18 @@ class STL(nn.Module):
     A PyTorch module for the Style Token Layer (STL) as described in
     "A Style-Based Generator Architecture for Generative Adversarial Networks"
     (https://arxiv.org/abs/1812.04948)
-    
+
     The STL applies a multi-headed attention mechanism over the learned style tokens,
     using the text input as the query and the style tokens as the keys and values.
     The output of the attention mechanism is used as the text's style embedding.
-    
+
     Args:
         token_num (int): The number of style tokens.
         n_hidden (int): Number of hidden dimensions.
     """
 
     def __init__(self, n_hidden: int, token_num: int):
-        super(STL, self).__init__() # pylint: disable=super-with-arguments
+        super(STL, self).__init__()  # pylint: disable=super-with-arguments
 
         num_heads = 1
         E = n_hidden

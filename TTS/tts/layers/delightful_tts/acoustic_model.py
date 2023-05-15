@@ -6,28 +6,27 @@ import torch.nn.functional as F
 from coqpit import Coqpit
 from torch import nn
 
-from TTS.tts.layers.generic.aligner import AlignmentNetwork
-
 from TTS.tts.layers.delightful_tts.conformer import Conformer
-from TTS.tts.layers.delightful_tts.pitch_adaptor import PitchAdaptor
-from TTS.tts.layers.delightful_tts.energy_adaptor import EnergyAdaptor
-from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor
-from TTS.tts.layers.delightful_tts.networks import EmbeddingPadded, positional_encoding
-from TTS.tts.layers.delightful_tts.phoneme_prosody_predictor import PhonemeProsodyPredictor
 from TTS.tts.layers.delightful_tts.encoders import (
     PhonemeLevelProsodyEncoder,
     UtteranceLevelProsodyEncoder,
     get_mask_from_lengths,
 )
+from TTS.tts.layers.delightful_tts.energy_adaptor import EnergyAdaptor
+from TTS.tts.layers.delightful_tts.networks import EmbeddingPadded, positional_encoding
+from TTS.tts.layers.delightful_tts.phoneme_prosody_predictor import PhonemeProsodyPredictor
+from TTS.tts.layers.delightful_tts.pitch_adaptor import PitchAdaptor
+from TTS.tts.layers.delightful_tts.variance_predictor import VariancePredictor
+from TTS.tts.layers.generic.aligner import AlignmentNetwork
 from TTS.tts.utils.helpers import generate_path, maximum_path, sequence_mask
 
 
 class AcousticModel(torch.nn.Module):
     def __init__(
         self,
-        args: 'ModelArgs',
+        args: "ModelArgs",
         tokenizer: "TTSTokenizer" = None,
-        speaker_manager: 'SpeakerManager' = None,
+        speaker_manager: "SpeakerManager" = None,
     ):
         super().__init__()
         self.args = args
@@ -49,7 +48,7 @@ class AcousticModel(torch.nn.Module):
             speaker_embedding_dim=self.embedded_speaker_dim,
             p_dropout=self.args.dropout_conformer_encoder,
             kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_encoder,
-            lrelu_slope=self.args.lrelu_slope
+            lrelu_slope=self.args.lrelu_slope,
         )
         self.pitch_adaptor = PitchAdaptor(
             n_input=self.args.n_hidden_conformer_encoder,
@@ -147,8 +146,7 @@ class AcousticModel(torch.nn.Module):
             speaker_embedding_dim=self.embedded_speaker_dim,
             p_dropout=self.args.dropout_conformer_decoder,
             kernel_size_conv_mod=self.args.kernel_size_conv_mod_conformer_decoder,
-            lrelu_slope=self.args.lrelu_slope
-
+            lrelu_slope=self.args.lrelu_slope,
         )
 
         padding_idx = self.tokenizer.characters.pad_id
@@ -162,7 +160,6 @@ class AcousticModel(torch.nn.Module):
 
         self.energy_scaler = torch.nn.BatchNorm1d(1, affine=False, track_running_stats=True, momentum=None)
         self.energy_scaler.requires_grad_(False)
-
 
     def init_multispeaker(self, args: Coqpit):  # pylint: disable=unused-argument
         """Init for multi-speaker training."""
@@ -178,7 +175,7 @@ class AcousticModel(torch.nn.Module):
 
         if self.args.use_d_vector_file:
             self._init_d_vector()
-            
+
     @staticmethod
     def _set_cond_input(aux_input: Dict):
         """Set the speaker conditioning input based on the multi-speaker mode."""
@@ -318,7 +315,7 @@ class AcousticModel(torch.nn.Module):
         aligner_mas = aligner_mas.transpose(1, 2)  # [B, T_max, T_max2] -> [B, T_max2, T_max]
         return aligner_durations, aligner_soft, aligner_logprob, aligner_mas
 
-    def average_utterance_prosody(self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor) -> torch.Tensor:
+    def average_utterance_prosody(self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor) -> torch.Tensor: # pylint: disable=no-self-use
         lengths = ((~src_mask) * 1.0).sum(1)
         u_prosody_pred = u_prosody_pred.sum(1, keepdim=True) / lengths.view(-1, 1, 1)
         return u_prosody_pred
@@ -336,7 +333,7 @@ class AcousticModel(torch.nn.Module):
         d_vectors: torch.Tensor = None,
         speaker_idx: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
-        sid, g, lid, _ = self._set_cond_input(
+        sid, g, lid, _ = self._set_cond_input( # pylint: disable=unused-variable
             {"d_vectors": d_vectors, "speaker_ids": speaker_idx}
         )  # pylint: disable=unused-variable
 
@@ -357,13 +354,13 @@ class AcousticModel(torch.nn.Module):
         )
         dr = aligner_durations  # [B, T_en]
 
-       # Embeddings
+        # Embeddings
         speaker_embedding = None
         if d_vectors is not None:
             speaker_embedding = g
         elif speaker_idx is not None:
             speaker_embedding = F.normalize(self.emb_g(sid))
-        
+
         pos_encoding = positional_encoding(
             self.emb_dim,
             max(token_embeddings.shape[1], max(mel_lens)),
@@ -417,12 +414,9 @@ class AcousticModel(torch.nn.Module):
             mask=src_mask,
         )
 
-        encoder_outputs = (
-            encoder_outputs.transpose(1, 2) + pitch_emb + energy_emb
-        ) 
+        encoder_outputs = encoder_outputs.transpose(1, 2) + pitch_emb + energy_emb
         log_duration_prediction = self.duration_predictor(x=encoder_outputs_res.detach(), mask=src_mask)
 
-    
         mel_pred_mask, encoder_outputs_ex, alignments = self._expand_encoder_with_durations(
             o_en=encoder_outputs, y_lengths=mel_lens, dr=dr, x_mask=~src_mask[:, None]
         )
@@ -465,16 +459,16 @@ class AcousticModel(torch.nn.Module):
     def inference(
         self,
         tokens: torch.Tensor,
-        speaker_idx: torch.Tensor,  
-        p_control: float = None,  # TODO
-        d_control: float = None,  # TODO
+        speaker_idx: torch.Tensor,
+        p_control: float = None,  # TODO # pylint: disable=unused-argument
+        d_control: float = None,  # TODO # pylint: disable=unused-argument
         d_vectors: torch.Tensor = None,
         pitch_transform: Callable = None,
         energy_transform: Callable = None,
     ) -> torch.Tensor:
         src_mask = get_mask_from_lengths(torch.tensor([tokens.shape[1]], dtype=torch.int64, device=tokens.device))
         src_lens = torch.tensor(tokens.shape[1:2]).to(tokens.device)  # pylint: disable=unused-variable
-        sid, g, lid, _ = self._set_cond_input(
+        sid, g, lid, _ = self._set_cond_input( # pylint: disable=unused-variable
             {"d_vectors": d_vectors, "speaker_ids": speaker_idx}
         )  # pylint: disable=unused-variable
 
@@ -487,8 +481,6 @@ class AcousticModel(torch.nn.Module):
             speaker_embedding = g
         elif speaker_idx is not None:
             speaker_embedding = F.normalize(self.emb_g(sid))
-
-
 
         pos_encoding = positional_encoding(
             self.emb_dim,
