@@ -1,7 +1,7 @@
 
 
 ## 🐸Coqui.ai News
-- 📣 Coqui Studio API is landed on 🐸TTS. You can use the studio voices in combination with 🐸TTS models. [Example](https://github.com/coqui-ai/TTS/edit/dev/README.md#-python-api)
+- 📣 Coqui Studio API is landed on 🐸TTS. You can use the studio voices in combination with 🐸TTS models. [Example](https://github.com/coqui-ai/TTS/blob/dev/README.md#-python-api)
 - 📣 Voice generation with prompts - **Prompt to Voice** - is live on Coqui.ai!! [Blog Post](https://coqui.ai/blog/tts/prompt-to-voice)
 - 📣 Clone your voice with a single click on [🐸Coqui.ai](https://app.coqui.ai/auth/signin)
 <br>
@@ -103,6 +103,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
 - YourTTS: [paper](https://arxiv.org/abs/2112.02418)
+- Tortoise: [orig. repo](https://github.com/neonbjb/tortoise-tts)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
@@ -312,7 +313,7 @@ tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", 
 
 #### Multi-speaker Models
 
-- List the available speakers and choose as <speaker_id> among them:
+- List the available speakers and choose a <speaker_id> among them:
 
     ```
     $ tts --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs

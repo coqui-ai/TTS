@@ -125,4 +125,4 @@ See `TTS.tts.datasets.TTSDataset`, a generic `Dataset` implementation for the `t
 See `TTS.vocoder.datasets.*`, for different `Dataset` implementations for the `vocoder` models.
 
 See `TTS.utils.audio.AudioProcessor` that includes all the audio processing and feature extraction functions used in a
-`Dataset` implementation. Feel free to add things as you need.passed
+`Dataset` implementation. Feel free to add things as you need.

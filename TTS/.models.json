@@ -220,6 +220,36 @@
                     "license": "apache 2.0",
                     "contact": "adamfroghyar@gmail.com"
                 }
+
+            },
+            "multi-dataset":{
+                "tortoise-v2":{
+                    "description": "Tortoise tts model https://github.com/neonbjb/tortoise-tts",
+                    "github_rls_url": ["https://coqui.gateway.scarf.sh/v0.14.1_models/autoregressive.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/clvp2.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/cvvp.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/diffusion_decoder.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/rlg_auto.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/rlg_diffuser.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/vocoder.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/mel_norms.pth",
+                                       "https://coqui.gateway.scarf.sh/v0.14.1_models/config.json"
+                                    ],
+                    "commit": "c1875f6",
+                    "default_vocoder": null,
+                    "author": "@neonbjb - James Betker, @manmay-nakhashi Manmay Nakhashi",
+                    "license": "apache 2.0"
+                }
+            },
+            "jenny": {
+                "jenny":{
+                    "description": "VITS model trained with Jenny(Dioco) dataset. Named as Jenny as demanded by the license. Original URL for the model https://www.kaggle.com/datasets/noml4u/tts-models--en--jenny-dioco--vits",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.14.0_models/tts_models--en--jenny--jenny.zip",
+                    "default_vocoder": null,
+                    "commit": "ba40a1c",
+                    "license": "custom - see https://github.com/dioco-group/jenny-tts-dataset#important",
+                    "author": "@noml4u"
+                }
             }
         },
         "es": {
