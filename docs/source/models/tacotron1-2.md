@@ -12,7 +12,7 @@ Vanilla Tacotron models are slow at inference due to the auto-regressive* nature
 
 Tacotron also uses a Prenet module with Dropout that projects the model’s previous output before feeding it to the decoder again. The paper and most of the implementations use the Dropout layer even in inference and they report the attention fails or the voice quality degrades otherwise. But the issue with that, you get a slightly different output speech every time you run the model.
 
-Tsraining the attention is notoriously problematic in Tacoron models. Especially, in inference, for some input sequences, the alignment fails and causes the model to produce unexpected results. There are many different methods proposed to improve the attention.
+Training the attention is notoriously problematic in Tacoron models. Especially, in inference, for some input sequences, the alignment fails and causes the model to produce unexpected results. There are many different methods proposed to improve the attention.
 
 After hundreds of experiments,  @ 🐸TTS we suggest Double Decoder Consistency that leads to the most robust model performance.
 

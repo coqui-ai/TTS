@@ -32,7 +32,7 @@ OUT_PATH = os.path.dirname(os.path.abspath(__file__))  # "/raid/coqui/Checkpoint
 # If you want to do transfer learning and speedup your training you can set here the path to the original YourTTS model
 RESTORE_PATH = None  # "/root/.local/share/tts/tts_models--multilingual--multi-dataset--your_tts/model_file.pth"
 
-# This paramter is usefull to debug, it skips the training epochs and just do the evaluation  and produce the test sentences
+# This paramter is useful to debug, it skips the training epochs and just do the evaluation  and produce the test sentences
 SKIP_TRAIN_EPOCH = False
 
 # Set here the batch size to be used in training and evaluation
@@ -78,7 +78,7 @@ vctk_config = BaseDatasetConfig(
     ],  # Ignore the test speakers to full replicate the paper experiment
 )
 
-# Add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK. Note: If you want to added new datasets just added they here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
+# Add here all datasets configs, in our case we just want to train with the VCTK dataset then we need to add just VCTK. Note: If you want to add new datasets, just add them here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
 DATASETS_CONFIG_LIST = [vctk_config]
 
 ### Extract speaker embeddings
@@ -123,7 +123,7 @@ audio_config = VitsAudioConfig(
     num_mels=80,
 )
 
-# Init VITSArgs setting the arguments that is needed for the YourTTS model
+# Init VITSArgs setting the arguments that are needed for the YourTTS model
 model_args = VitsArgs(
     d_vector_file=D_VECTOR_FILES,
     use_d_vector_file=True,
@@ -131,15 +131,15 @@ model_args = VitsArgs(
     num_layers_text_encoder=10,
     speaker_encoder_model_path=SPEAKER_ENCODER_CHECKPOINT_PATH,
     speaker_encoder_config_path=SPEAKER_ENCODER_CONFIG_PATH,
-    resblock_type_decoder="2",  # On the paper, we accidentally trained the YourTTS using ResNet blocks type 2, if you like you can use the ResNet blocks type 1 like the VITS model
-    # Usefull parameters to enable the Speaker Consistency Loss (SCL) discribed in the paper
+    resblock_type_decoder="2",  # In the paper, we accidentally trained the YourTTS using ResNet blocks type 2, if you like you can use the ResNet blocks type 1 like the VITS model
+    # Useful parameters to enable the Speaker Consistency Loss (SCL) described in the paper
     # use_speaker_encoder_as_loss=True,
-    # Usefull parameters to the enable multilingual training
+    # Useful parameters to enable multilingual training
     # use_language_embedding=True,
     # embedded_language_dim=4,
 )
 
-# General training config, here you can change the batch size and others usefull parameters
+# General training config, here you can change the batch size and others useful parameters
 config = VitsConfig(
     output_path=OUT_PATH,
     model_args=model_args,
