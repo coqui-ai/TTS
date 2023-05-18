@@ -255,7 +255,7 @@ class TortoiseArgs(Coqpit):
     """
 
     autoregressive_batch_size: int = 1
-    enable_redaction: bool = True
+    enable_redaction: bool = False
     high_vram: bool = False
     kv_cache: bool = True
     ar_checkpoint: str = None
