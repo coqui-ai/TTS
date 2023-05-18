@@ -284,7 +284,7 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
     wnsize_dtype_device = str(win_length) + "_" + str(y.dtype) + "_" + str(y.device)
     if mel_basis_key not in mel_basis:
         # pylint: disable=missing-kwoa
-        mel = librosa_mel_fn(sample_rate, n_fft, num_mels, fmin, fmax) # pylint: disable=too-many-function-args
+        mel = librosa_mel_fn(sr=sample_rate, n_fft=n_fft, n_mels=num_mels, fmin=fmin, fmax=fmax) # pylint: disable=too-many-function-args
         mel_basis[mel_basis_key] = torch.from_numpy(mel).to(dtype=y.dtype, device=y.device)
     if wnsize_dtype_device not in hann_window:
         hann_window[wnsize_dtype_device] = torch.hann_window(win_length).to(dtype=y.dtype, device=y.device)
@@ -1329,7 +1329,7 @@ class DelightfulTTS(BaseTTSE2E):
 
         # get numerical speaker ids from speaker names
         if self.speaker_manager is not None and self.speaker_manager.speaker_names and self.args.use_speaker_embedding:
-            speaker_ids = [self.speaker_manager.speaker_names[sn] for sn in batch["speaker_names"]]
+            speaker_ids = [self.speaker_manager.name_to_id[sn] for sn in batch["speaker_names"]]
 
         if speaker_ids is not None:
             speaker_ids = torch.LongTensor(speaker_ids)
@@ -1338,8 +1338,9 @@ class DelightfulTTS(BaseTTSE2E):
         # get d_vectors from audio file names
         if self.speaker_manager is not None and self.speaker_manager.embeddings and self.args.use_d_vector_file:
             d_vector_mapping = self.speaker_manager.embeddings
-            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_files"]]
+            d_vectors = [d_vector_mapping[w]["embedding"] for w in batch["audio_unique_names"]]
             d_vectors = torch.FloatTensor(d_vectors)
+
 
         batch["d_vectors"] = d_vectors
         batch["speaker_ids"] = speaker_ids

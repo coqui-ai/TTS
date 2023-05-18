@@ -129,7 +129,7 @@ class AcousticModel(torch.nn.Module):
         )
 
         self.u_norm = nn.InstanceNorm1d(
-            self.args.bottleneck_size_u_reference_encoder,
+            self.args.bottleneck_size_u_reference_encoder
         )
         self.p_bottle_out = nn.Linear(
             self.args.bottleneck_size_p_reference_encoder,
@@ -138,7 +138,6 @@ class AcousticModel(torch.nn.Module):
         self.p_norm = nn.InstanceNorm1d(
             self.args.bottleneck_size_p_reference_encoder,
         )
-
         self.decoder = Conformer(
             dim=self.args.n_hidden_conformer_decoder,
             n_layers=self.args.n_layers_conformer_decoder,
@@ -185,9 +184,9 @@ class AcousticModel(torch.nn.Module):
             if sid.ndim == 0:
                 sid = sid.unsqueeze_(0)
         if "d_vectors" in aux_input and aux_input["d_vectors"] is not None:
-            g = F.normalize(aux_input["d_vectors"]).unsqueeze(-1)
+            g = F.normalize(aux_input["d_vectors"])# .unsqueeze_(-1)
             if g.ndim == 2:
-                g = g.unsqueeze_(0)
+                g = g#  .unsqueeze_(0) # pylint: disable=self-assigning-variable
 
         if "durations" in aux_input and aux_input["durations"] is not None:
             durations = aux_input["durations"]
@@ -516,8 +515,8 @@ class AcousticModel(torch.nn.Module):
             x=encoder_outputs,
             mask=src_mask,
             pitch_transform=pitch_transform,
-            pitch_mean=self.pitch_mean,
-            pitch_std=self.pitch_std,
+            pitch_mean=self.pitch_mean if hasattr(self, "pitch_mean") else None,
+            pitch_std=self.pitch_std if hasattr(self, "pitch_std") else None
         )
 
         energy_emb_pred, energy_pred = self.energy_adaptor.get_energy_embedding(

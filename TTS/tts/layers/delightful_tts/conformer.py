@@ -27,7 +27,7 @@ class Conformer(nn.Module):
         lrelu_slope: float,
     ):
         """
-        A Tansformer variant that integrates both CNNs and Transformers components.
+        A Transformer variant that integrates both CNNs and Transformers components.
         Conformer proposes a novel combination of self-attention and convolution, in which self-attention
         learns the global interaction while the convolutions efficiently capture the local correlations.
 
@@ -78,6 +78,7 @@ class Conformer(nn.Module):
             - speaker_embedding: :math: `[B, C]`
             - encoding: :math: `[B, T_max2, C]`
         """
+
         attn_mask = mask.view((mask.shape[0], 1, 1, mask.shape[1]))
         for enc_layer in self.layer_stack:
             x = enc_layer(

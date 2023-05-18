@@ -45,8 +45,10 @@ config = DelightfulTTSConfig(
     f0_cache_path="tests/data/ljspeech/f0_cache/",
     run_eval=True,
     test_delay_epochs=-1,
+    binary_align_loss_alpha=0.0,
     epochs=1,
     print_step=1,
+    use_attn_priors=False,
     print_eval=True,
     test_sentences=[
         "Be a voice, not an echo.",
@@ -83,7 +85,7 @@ with open(continue_config_path, "r", encoding="utf-8") as f:
     config_loaded = json.load(f)
 assert config_loaded["characters"] is not None
 assert config_loaded["output_path"] in continue_path
-assert config_loaded["test_delay_epochs"] == 0
+assert config_loaded["test_delay_epochs"] == -1
 
 # Load the model and run inference
 inference_command = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' tts --text 'This is an example.' --config_path {continue_config_path} --model_path {continue_restore_path} --out_path {out_wav_path}"

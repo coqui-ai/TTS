@@ -14,7 +14,7 @@ output_path = os.path.join(get_tests_output_path(), "train_outputs")
 
 
 audio_config = DelightfulTtsAudioConfig()
-model_args = DelightfulTtsArgs(use_speaker_embedding=False)
+model_args = DelightfulTtsArgs(use_speaker_embedding=False, d_vector_dim=256, use_d_vector_file=True, speaker_embedding_channels=256)
 
 vocoder_config = VocoderConfig()
 
@@ -43,6 +43,7 @@ config = DelightfulTTSConfig(
     use_d_vector_file=True,
     d_vector_file="tests/data/ljspeech/speakers.json",
     d_vector_dim=256,
+    speaker_embedding_channels=256,
 )
 
 # active multispeaker d-vec mode
@@ -58,7 +59,6 @@ command_train = (
     f"CUDA_VISIBLE_DEVICES='{get_device_id()}'  python TTS/bin/train_tts.py --config_path {config_path}  "
     f"--coqpit.output_path {output_path} "
     "--coqpit.datasets.0.formatter ljspeech "
-    "--coqpit.datasets.0.dataset_name ljspeech "
     "--coqpit.datasets.0.meta_file_train metadata.csv "
     "--coqpit.datasets.0.meta_file_val metadata.csv "
     "--coqpit.datasets.0.path tests/data/ljspeech "
