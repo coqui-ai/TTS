@@ -882,3 +882,5 @@ class ForwardTTSLoss(nn.Module):
 
         return_dict["loss"] = loss
         return return_dict
+class Naturalspeech2Loss(nn.Module):
+    """Generic configurable Naturalspeech2Loss loss."""
