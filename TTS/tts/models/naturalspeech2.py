@@ -23,6 +23,7 @@ from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.naturalspeech2.encoder import TransformerEncoder
 from TTS.tts.layers.naturalspeech2.predictor import ConvBlockWithPrompting
 from TTS.tts.layers.naturalspeech2.diffusion import Diffusion
+from TTS.tts.layers.generic.aligner import AlignmentNetwork
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
 from TTS.tts.utils.languages import LanguageManager
@@ -399,7 +400,7 @@ class NaturalSpeech2Args(Coqpit):
 
     #diffusion params
     max_step: int = 1000
-    size: int = 512
+    diff_size: int = 512
     pre_attention_query_token: int = 32
     pre_attention_query_size: int = 512
     pre_attention_head: int = 8
@@ -487,7 +488,12 @@ class NaturalSpeech2(BaseTTS):
             self.args.dp_attention_head,
             self.args.dp_dropout,
         )
-
+        self.f0_embedding = nn.Conv1d(
+            in_channels= 1,
+            out_channels= self.args.diff_size,
+            kernel_size= 1,
+        )
+        
         self.pitch_predictor = ConvBlockWithPrompting(
             self.args.pp_hidden_dim,
             self.args.pp_n_layers,
@@ -498,7 +504,7 @@ class NaturalSpeech2(BaseTTS):
 
         self.diffusion = Diffusion(
             max_step=self.args.max_step,
-            size_=self.args.size,
+            size_=self.args.diff_size,
             pre_attention_query_token=self.args.pre_attention_query_token,
             pre_attention_query_size=self.args.pre_attention_query_size,
             pre_attention_head=self.args.pre_attention_head,
@@ -509,6 +515,10 @@ class NaturalSpeech2(BaseTTS):
             wavenet_attention_apply_in_stack=self.args.wavenet_attention_apply_in_stack,
             wavenet_attention_head=self.args.wavenet_attention_head,
             noise_schedule=self.args.noise_schedule
+        )
+        
+        self.aligner = AlignmentNetwork(
+            in_query_channels=self.args.out_channels, in_key_channels=self.args.hidden_channels
         )
 
     @property
@@ -562,23 +572,50 @@ class NaturalSpeech2(BaseTTS):
     def _set_cond_input(aux_input: Dict):
         # [TODO] use this  
         return None
+    def expand_sequence(phoneme_hidden, duration_prediction):
+        expanded_sequence = []
+        for i, phoneme in enumerate(phoneme_hidden):
+            repeat_count = int(duration_prediction[i].item())
+            expanded_sequence.extend([phoneme] * repeat_count)
+        return torch.stack(expanded_sequence)
 
+    # add pitch to duraion after adding pitch to durations add this to diffusion model
+    # [TODO] check if we need to add average over durations function
+    def add_pitch_information(expanded_sequence, pitch_prediction):
+        return expanded_sequence + pitch_prediction.unsqueeze(-1)
+    
     def forward(  # pylint: disable=dangerous-default-value
         self,
-        x: torch.tensor,
-        x_lengths: torch.tensor,
-        y: torch.tensor,
-        y_lengths: torch.tensor,
-        waveform: torch.tensor,
-        aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
+        latents: torch.tensor,
+        latents_lengths: torch.tensor,
+        mel: torch.tensor,
+        mel_lengths: torch.tensor,
+        prompt: torch.tensor,
+        aux_input={"pitch": None, "durations": None, "language_ids": None},
     ) -> Dict:
-       
-
+        outputs = {}
+        phoneme_enc = self.phoneme_encoder(latents)
+        
+        prompt_enc = self.prompt_encoder(prompt)
+        
+        durations = self.duration_predictor(phoneme_enc, prompt_enc)
+        pitch = self.pitch_predictor(phoneme_enc, prompt_enc)
+        
+        phoneme_with_durations = self.expand_sequence(phoneme_enc, durations)
+        expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
+        
+        latents, _, _= self.diffusion(encodings = expanded_encodings,
+                                      lengths = latents_lengths,
+                                      speech_prompts = prompt_enc,
+                                      latents=latents)
         outputs.update(
             {
-                
+                "latents": latents,
+                "durations": durations,
+                "pitch": pitch
             }
         )
+       
         return outputs
 
     @torch.no_grad()
@@ -594,7 +631,8 @@ class NaturalSpeech2(BaseTTS):
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
         
         codec_lens = batch["codec_lens"]
-
+        latents = self.encodec.quantizer.decode(batch["codec"])
+        predictions = self.encodec.decoder(latents).squeeze(1)  # [Batch, Audio_t]
         if optimizer_idx == 0:
             tokens = batch["tokens"]
             token_lenghts = batch["token_lens"]
