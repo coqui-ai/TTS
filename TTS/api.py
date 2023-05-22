@@ -105,7 +105,7 @@ class CS_API:
         """List built-in Coqui Studio speakers."""
         self._check_token()
         conn = http.client.HTTPSConnection("app.coqui.ai")
-        conn.request("GET", f"{self.api_prefix}/speakers", headers=self.headers)
+        conn.request("GET", f"{self.api_prefix}/speakers?per_page=100", headers=self.headers)
         res = conn.getresponse()
         data = res.read()
         return [Speaker(s) for s in json.loads(data)["result"]]
