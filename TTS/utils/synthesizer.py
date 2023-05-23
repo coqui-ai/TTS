@@ -146,7 +146,7 @@ class Synthesizer(object):
         """
         self.tts_config = VitsConfig()
         self.tts_model = Vits.init_from_config(self.tts_config)
-        self.tts_model.load_fairseq_checkpoint(self.tts_config , checkpoint_dir=model_dir, eval=True)
+        self.tts_model.load_fairseq_checkpoint(self.tts_config, checkpoint_dir=model_dir, eval=True)
         self.tts_config = self.tts_model.config
         if use_cuda:
             self.tts_model.cuda()

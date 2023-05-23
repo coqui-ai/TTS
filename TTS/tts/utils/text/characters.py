@@ -79,8 +79,6 @@ class BaseVocabulary:
                 idx: char for idx, char in enumerate(self._vocab)  # pylint: disable=unnecessary-comprehension
             }
 
-
-
     @staticmethod
     def init_from_config(config, **kwargs):
         """Initialize from the given config."""
