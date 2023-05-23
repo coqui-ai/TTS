@@ -1724,7 +1724,7 @@ class Vits(BaseTTS):
             self.eval()
             assert not self.training
 
-    def load_fairseq_checkpoint(self, config, checkpoint_dir, eval=False):
+    def load_fairseq_checkpoint(self, config, checkpoint_dir, eval=False): # pylint: disable=unused-argument, redefined-builtin
         """Load VITS checkpoints released by fairseq here: https://github.com/facebookresearch/fairseq/tree/main/examples/mms
         Performs some changes for compatibility.
 
@@ -1741,7 +1741,7 @@ class Vits(BaseTTS):
         checkpoint_file = os.path.join(checkpoint_dir, "G_100000.pth")
         vocab_file = os.path.join(checkpoint_dir, "vocab.txt")
         # set config params
-        with open(config_file, "r") as file:
+        with open(config_file, "r", encoding="utf-8") as file:
             # Load the JSON data as a dictionary
             config_org = json.load(file)
         self.config.audio.sample_rate = config_org["data"]["sampling_rate"]
@@ -1974,9 +1974,10 @@ class FairseqVocab(BaseVocabulary):
 
     @vocab.setter
     def vocab(self, vocab_file):
-        self._vocab = [x.replace("\n", "") for x in open(vocab_file, encoding="utf-8").readlines()]
+        with open(vocab_file, encoding="utf-8") as f:
+            self._vocab = [x.replace("\n", "") for x in f.readlines()]
         self.blank = self._vocab[0]
         print(self._vocab)
         self.pad = " "
-        self._char_to_id = {s: i for i, s in enumerate(self._vocab)}
+        self._char_to_id = dict(enumerate(self._vocab))
         self._id_to_char = {i: s for i, s in enumerate(self._vocab)}
