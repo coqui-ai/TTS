@@ -1726,7 +1726,6 @@ class Vits(BaseTTS):
 
     def load_fairseq_checkpoint(self, config, checkpoint_dir, eval=False):
         """Load VITS checkpoints released by fairseq here: https://github.com/facebookresearch/fairseq/tree/main/examples/mms
-
         Performs some changes for compatibility.
 
         Args:
@@ -1736,6 +1735,7 @@ class Vits(BaseTTS):
         """
         import json
 
+        self.disc = None
         # set paths
         config_file = os.path.join(checkpoint_dir, "config.json")
         checkpoint_file = os.path.join(checkpoint_dir, "G_100000.pth")
@@ -1974,7 +1974,7 @@ class FairseqVocab(BaseVocabulary):
 
     @vocab.setter
     def vocab(self, vocab_file):
-        self._vocab = [x.replace("\n", "") for x in open(vocab_file).readlines()]
+        self._vocab = [x.replace("\n", "") for x in open(vocab_file, encoding="utf-8").readlines()]
         self.blank = self._vocab[0]
         print(self._vocab)
         self.pad = " "
