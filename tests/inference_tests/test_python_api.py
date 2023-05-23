@@ -83,6 +83,10 @@ if is_coqui_available:
             wav = tts.tts(text="This is a test.", speed=2.0, emotion="Sad")
             self.assertGreater(len(wav), 0)
 
+        def test_fairseq_model(self):
+            tts = TTS(model_name="tts_models/eng/fairseq/vits")
+            tts.tts_to_file(text="This is a test.")
+
         def test_multi_speaker_multi_lingual_model(self):
             tts = TTS()
             tts.load_tts_model_by_name(tts.models[0])  # YourTTS
