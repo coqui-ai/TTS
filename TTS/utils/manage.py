@@ -247,7 +247,7 @@ class ModelManager(object):
             print(" > Model's license - No license information available")
 
     def download_fairseq_model(self, model_name, output_path):
-        URI_PREFIX = "https://dl.fbaipublicfiles.com/mms/tts/"
+        URI_PREFIX = "coqui.gateway.scarf.sh/fairseq/"
         model_type, lang, dataset, model = model_name.split("/")
         model_download_uri = os.path.join(URI_PREFIX, f"{lang}.tar.gz")
         self._download_tar_file(model_download_uri, output_path, self.progress_bar)
