@@ -2,7 +2,7 @@ import torch
 
 
 def rehash_fairseq_vits_checkpoint(checkpoint_file):
-    chk = torch.load(checkpoint_file)["model"]
+    chk = torch.load(checkpoint_file, map_location=torch.device('cpu'))["model"]
     new_chk = {}
     for k, v in chk.items():
         if "enc_p." in k:
