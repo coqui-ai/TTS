@@ -71,11 +71,15 @@ class BaseVocabulary:
     @vocab.setter
     def vocab(self, vocab):
         """Set the vocabulary dictionary and character mapping dictionaries."""
-        self._vocab = vocab
-        self._char_to_id = {char: idx for idx, char in enumerate(self._vocab)}
-        self._id_to_char = {
-            idx: char for idx, char in enumerate(self._vocab)  # pylint: disable=unnecessary-comprehension
-        }
+        self._vocab, self._char_to_id, self._id_to_char = None, None, None
+        if vocab is not None:
+            self._vocab = vocab
+            self._char_to_id = {char: idx for idx, char in enumerate(self._vocab)}
+            self._id_to_char = {
+                idx: char for idx, char in enumerate(self._vocab)  # pylint: disable=unnecessary-comprehension
+            }
+
+
 
     @staticmethod
     def init_from_config(config, **kwargs):
@@ -92,6 +96,17 @@ class BaseVocabulary:
                 config,
             )
         return BaseVocabulary(**kwargs), config
+
+    def to_config(self) -> "CharactersConfig":
+        return CharactersConfig(
+            vocab_dict=self._vocab,
+            pad=self.pad,
+            eos=self.eos,
+            bos=self.bos,
+            blank=self.blank,
+            is_unique=False,
+            is_sorted=False,
+        )
 
     @property
     def num_chars(self):
