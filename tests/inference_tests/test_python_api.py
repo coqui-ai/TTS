@@ -83,7 +83,7 @@ if is_coqui_available:
             wav = tts.tts(text="This is a test.", speed=2.0, emotion="Sad")
             self.assertGreater(len(wav), 0)
 
-        def test_fairseq_model(self):
+        def test_fairseq_model(self):  # pylint: disable=no-self-use
             tts = TTS(model_name="tts_models/eng/fairseq/vits")
             tts.tts_to_file(text="This is a test.")
 
