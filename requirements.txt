@@ -50,3 +50,6 @@ bnunicodenormalizer==0.1.1
 k_diffusion
 einops
 transformers
+
+#deps for bark
+encodec
