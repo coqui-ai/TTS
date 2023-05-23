@@ -1725,22 +1725,37 @@ class Vits(BaseTTS):
             assert not self.training
 
     def load_fairseq_checkpoint(self, config, checkpoint_dir, eval=False):
+        """Load VITS checkpoints released by fairseq here: https://github.com/facebookresearch/fairseq/tree/main/examples/mms
+
+        Performs some changes for compatibility.
+
+        Args:
+            config (Coqpit): 🐸TTS model config.
+            checkpoint_dir (str): Path to the checkpoint directory.
+            eval (bool, optional): Set to True for evaluation. Defaults to False.
+        """
         import json
+
         # set paths
         config_file = os.path.join(checkpoint_dir, "config.json")
         checkpoint_file = os.path.join(checkpoint_dir, "G_100000.pth")
         vocab_file = os.path.join(checkpoint_dir, "vocab.txt")
         # set config params
-        with open(config_file, 'r') as file:
+        with open(config_file, "r") as file:
             # Load the JSON data as a dictionary
             config_org = json.load(file)
-        self.config.audio.sample_rate = config_org['data']['sampling_rate']
+        self.config.audio.sample_rate = config_org["data"]["sampling_rate"]
         # self.config.add_blank = config['add_blank']
         # set tokenizer
         vocab = FairseqVocab(vocab_file)
         self.text_encoder.emb = nn.Embedding(vocab.num_chars, config.model_args.hidden_channels)
         self.tokenizer = TTSTokenizer(
-            use_phonemes=False, text_cleaner=None, characters=vocab, phonemizer=None, add_blank=config_org['data']['add_blank'], use_eos_bos=False
+            use_phonemes=False,
+            text_cleaner=None,
+            characters=vocab,
+            phonemizer=None,
+            add_blank=config_org["data"]["add_blank"],
+            use_eos_bos=False,
         )
         # load fairseq checkpoint
         new_chk = rehash_fairseq_vits_checkpoint(checkpoint_file)
