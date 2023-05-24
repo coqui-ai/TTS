@@ -1724,7 +1724,9 @@ class Vits(BaseTTS):
             self.eval()
             assert not self.training
 
-    def load_fairseq_checkpoint(self, config, checkpoint_dir, eval=False): # pylint: disable=unused-argument, redefined-builtin
+    def load_fairseq_checkpoint(
+        self, config, checkpoint_dir, eval=False
+    ):  # pylint: disable=unused-argument, redefined-builtin
         """Load VITS checkpoints released by fairseq here: https://github.com/facebookresearch/fairseq/tree/main/examples/mms
         Performs some changes for compatibility.
 
@@ -1734,6 +1736,8 @@ class Vits(BaseTTS):
             eval (bool, optional): Set to True for evaluation. Defaults to False.
         """
         import json
+
+        from TTS.tts.utils.text.cleaners import basic_cleaners
 
         self.disc = None
         # set paths
@@ -1751,7 +1755,7 @@ class Vits(BaseTTS):
         self.text_encoder.emb = nn.Embedding(vocab.num_chars, config.model_args.hidden_channels)
         self.tokenizer = TTSTokenizer(
             use_phonemes=False,
-            text_cleaner=None,
+            text_cleaner=basic_cleaners,
             characters=vocab,
             phonemizer=None,
             add_blank=config_org["data"]["add_blank"],
