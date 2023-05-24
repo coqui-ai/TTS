@@ -1,10 +1,13 @@
 
 
 ## 🐸Coqui.ai News
-- 📣 Coqui Studio API is landed on 🐸TTS. You can use the studio voices in combination with 🐸TTS models. [Example](https://github.com/coqui-ai/TTS/blob/dev/README.md#-python-api)
-- 📣 Voice generation with prompts - **Prompt to Voice** - is live on Coqui.ai!! [Blog Post](https://coqui.ai/blog/tts/prompt-to-voice)
-- 📣 Clone your voice with a single click on [🐸Coqui.ai](https://app.coqui.ai/auth/signin)
-<br>
+- 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
+- 📣 🐸TTS now supports 🐢Tortoise with faster inference.
+- 📣 **Coqui Studio API** is landed on 🐸TTS. - [Example](https://github.com/coqui-ai/TTS/blob/dev/README.md#-python-api)
+- 📣 [**Coqui Sudio API**](https://docs.coqui.ai/docs) is live.
+- 📣 Voice generation with prompts - **Prompt to Voice** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin)!! - [Blog Post](https://coqui.ai/blog/tts/prompt-to-voice)
+- 📣 Voice generation with fusion - **Voice fusion** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
+- 📣 Voice cloning is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
 
 ## <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
 
@@ -185,7 +188,9 @@ from TTS.api import TTS
 model_name = TTS.list_models()[0]
 # Init TTS
 tts = TTS(model_name)
+
 # Run TTS
+
 # ❗ Since this model is multi-speaker and multi-lingual, we must set the target speaker and the language
 # Text to speech with a numpy output
 wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
@@ -199,7 +204,8 @@ tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False,
 # Run TTS
 tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path=OUTPUT_PATH)
 
-# Example voice cloning with YourTTS in English, French and Portuguese:
+# Example voice cloning with YourTTS in English, French and Portuguese
+
 tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False, gpu=True)
 tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr-fr", file_path="output.wav")
@@ -221,7 +227,9 @@ tts.tts_with_vc_to_file(
     file_path="ouptut.wav"
 )
 
-# Example text to speech using [🐸Coqui Studio](https://coqui.ai) models. You can use all of your available speakers in the studio.
+# Example text to speech using [🐸Coqui Studio](https://coqui.ai) models.
+
+# You can use all of your available speakers in the studio.
 # [🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
 # You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
 
@@ -234,6 +242,20 @@ tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_b
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
 # Run TTS with emotion and speed control
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
+
+
+#Example text to speech using **Fairseq models in ~1100 languages** 🤯.
+
+#For these models use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
+#You can find the list of language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html) and learn about the Fairseq models [here](https://github.com/facebookresearch/fairseq/tree/main/examples/mms).
+
+# TTS with on the fly voice conversion
+api = TTS("tts_models/deu/fairseq/vits")
+api.tts_with_vc_to_file(
+    "Wie sage ich auf Italienisch, dass ich dich liebe?",
+    speaker_wav="target/speaker.wav",
+    file_path="ouptut.wav"
+)
 ```
 
 ### Command line `tts`
