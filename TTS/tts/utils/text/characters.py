@@ -64,6 +64,18 @@ class BaseVocabulary:
         return self.char_to_id(self.blank) if self.blank else len(self.vocab)
 
     @property
+    def bos_id(self) -> int:
+        """Return the index of the bos character. If the bos character is not specified, return the length of the
+        vocabulary."""
+        return self.char_to_id(self.bos) if self.bos else len(self.vocab)
+
+    @property
+    def eos_id(self) -> int:
+        """Return the index of the eos character. If the eos character is not specified, return the length of the
+        vocabulary."""
+        return self.char_to_id(self.eos) if self.eos else len(self.vocab)
+
+    @property
     def vocab(self):
         """Return the vocabulary dictionary."""
         return self._vocab
@@ -186,6 +198,14 @@ class BaseCharacters:
     @property
     def blank_id(self) -> int:
         return self.char_to_id(self.blank) if self.blank else len(self.vocab)
+
+    @property
+    def eos_id(self) -> int:
+        return self.char_to_id(self.eos) if self.eos else len(self.vocab)
+
+    @property
+    def bos_id(self) -> int:
+        return self.char_to_id(self.bos) if self.bos else len(self.vocab)
 
     @property
     def characters(self):
