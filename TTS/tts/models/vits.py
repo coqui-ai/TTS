@@ -1979,5 +1979,5 @@ class FairseqVocab(BaseVocabulary):
         self.blank = self._vocab[0]
         print(self._vocab)
         self.pad = " "
-        self._char_to_id = dict(enumerate(self._vocab))
+        self._char_to_id = {s: i for i, s in enumerate(self._vocab)}  # pylint: disable=unnecessary-comprehension
         self._id_to_char = {i: s for i, s in enumerate(self._vocab)}  # pylint: disable=unnecessary-comprehension
