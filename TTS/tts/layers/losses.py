@@ -882,5 +882,47 @@ class ForwardTTSLoss(nn.Module):
 
         return_dict["loss"] = loss
         return return_dict
+
+
 class Naturalspeech2Loss(nn.Module):
     """Generic configurable Naturalspeech2Loss loss."""
+
+    def __init__(self, c):
+        super().__init__()
+        # init loss alpha
+        self.ce_loss_alpha = c.ce_loss_alpha
+
+        # use aligner if needed
+        if c.model_args.use_aligner:
+            self.aligner_loss = ForwardSumLoss()
+            self.aligner_loss_alpha = c.aligner_loss_alpha
+
+    def forward(
+        self,
+        ce_loss=None,
+        input_lens=None,
+        spec_lens=None,
+        alignment_logprob=None,
+        alignment_hard=None,
+        alignment_soft=None,
+        binary_loss_weight=None,
+    ):
+        loss = 0
+        return_dict = {}
+        if ce_loss:
+            loss += ce_loss * self.ce_loss_alpha
+
+        if hasattr(self, "aligner_loss") and self.aligner_loss_alpha > 0:
+            aligner_loss = self.aligner_loss(alignment_logprob, input_lens, spec_lens)
+            loss = loss + self.aligner_loss_alpha * aligner_loss
+            return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
+
+        if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
+            binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
+            loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
+            if binary_loss_weight:
+                return_dict["loss_binary_alignment"] = (
+                    self.binary_alignment_loss_alpha * binary_alignment_loss * binary_loss_weight
+                )
+            else:
+                return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
