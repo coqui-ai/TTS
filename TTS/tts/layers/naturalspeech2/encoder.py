@@ -18,8 +18,10 @@ class PositionalEncoding(nn.Module):
 
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, d_model, nhead, num_layers, dim_feedforward, kernel_size, dropout, max_len=250):
+    def __init__(self, d_model, nhead, num_layers, dim_feedforward, kernel_size, dropout, language_emb_dim = 4, max_len=250):
         super().__init__()
+        if language_emb_dim:
+            d_model += language_emb_dim
         self.embedding = nn.Embedding(d_model, d_model)
         self.pos_enc = PositionalEncoding(d_model, max_len=max_len)
         self.transformer = nn.TransformerEncoder(
@@ -31,8 +33,11 @@ class TransformerEncoder(nn.Module):
             nn.Conv1d(dim_feedforward, d_model, kernel_size, padding=kernel_size // 2),
         )
 
-    def forward(self, x):
+    def forward(self, x, lang_emb):
         x = self.embedding(x)
+        # concat the lang emb in embedding chars
+        if lang_emb is not None:
+            x = torch.cat((x, lang_emb.transpose(2, 1).expand(x.size(0), x.size(1), -1)), dim=-1)
         x = self.pos_enc(x)
         x = self.transformer(x)
         x = x.transpose(1, 2)

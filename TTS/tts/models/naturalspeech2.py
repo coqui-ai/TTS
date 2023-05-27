@@ -17,6 +17,8 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import WeightedRandomSampler
 from trainer.torch import DistributedSampler, DistributedSamplerWrapper
 from trainer.trainer_utils import get_optimizer, get_scheduler
+from encodec import EncodecModel
+from encodec.utils import convert_audio
 
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
@@ -213,7 +215,7 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
 
 
 @dataclass
-class NaturalSpeech2AudioConfig(Coqpit):
+class Naturalspeech2AudioConfig(Coqpit):
     fft_size: int = 1024
     sample_rate: int = 22050
     win_length: int = 1024
@@ -252,12 +254,13 @@ def get_attribute_balancer_weights(items: list, attr_name: str, multi_dict: dict
     )
 
 
-class NaturalSpeech2Dataset(TTSDataset):
+class Naturalspeech2Dataset(TTSDataset):
     def __init__(self, model_args, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pad_id = self.tokenizer.characters.pad_id
         self.model_args = model_args
-
+        self.ecodec = EncodecModel.encodec_model_24khz()
+        model.set_target_bandwidth(12.0)
     def __getitem__(self, idx):
         item = self.samples[idx]
         raw_text = item["text"]
@@ -266,7 +269,13 @@ class NaturalSpeech2Dataset(TTSDataset):
         if self.model_args.encoder_sample_rate is not None:
             if wav.size(1) % self.model_args.encoder_sample_rate != 0:
                 wav = wav[:, : -int(wav.size(1) % self.model_args.encoder_sample_rate)]
+        wav = convert_audio(wav, self.ap.sample_rate, model.sample_rate, model.channels)
+        wav = wav.unsqueeze(0)
 
+        # Extract discrete codes from EnCodec
+        with torch.no_grad():
+            encoded_frames = model.encode(wav)
+        codes = torch.cat([encoded[0] for encoded in encoded_frames], dim=-1)  # [B, n_q, T]
         wav_filename = os.path.basename(item["audio_file"])
 
         token_ids = self.get_token_ids(idx, item["text"])
@@ -287,6 +296,7 @@ class NaturalSpeech2Dataset(TTSDataset):
             "speaker_name": item["speaker_name"],
             "language_name": item["language"],
             "audio_unique_name": item["audio_unique_name"],
+            "latents": codes
         }
 
     @property
@@ -330,16 +340,28 @@ class NaturalSpeech2Dataset(TTSDataset):
         wav_lens_max = torch.max(wav_lens)
         wav_rel_lens = wav_lens / wav_lens_max
 
+        latents_lens = [w.shape[2] for w in batch["latents"]]
+        latents_lens = torch.LongTensor(latents_lens)
+        latents_lens_max = torch.max(latents_lens)
+        latents_rel_lens = latents_lens / latents_lens_max
+
         token_padded = torch.LongTensor(B, max_text_len)
         wav_padded = torch.FloatTensor(B, 1, wav_lens_max)
         token_padded = token_padded.zero_() + self.pad_id
         wav_padded = wav_padded.zero_() + self.pad_id
+
+        latents_padded = torch.LongTensor(B, 32, latents_lens_max)
+        latents_padded = latents_padded.zero_() + self.pad_id
+
         for i in range(len(ids_sorted_decreasing)):
             token_ids = batch["token_ids"][i]
             token_padded[i, : batch["token_len"][i]] = torch.LongTensor(token_ids)
 
             wav = batch["wav"][i]
             wav_padded[i, :, : wav.size(1)] = torch.FloatTensor(wav)
+
+            latents_emb = batch["latents"][i]
+            latents_padded[i, : , : latents_emb.size(2)] = torch.LongTensor(latents_emb)
 
         return {
             "tokens": token_padded,
@@ -353,6 +375,8 @@ class NaturalSpeech2Dataset(TTSDataset):
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
             "audio_unique_names": batch["audio_unique_name"],
+            "latents": latents_padded,
+            "latents_rel_lens": latents_rel_lens,
         }
 
 
@@ -362,7 +386,7 @@ class NaturalSpeech2Dataset(TTSDataset):
 
 
 @dataclass
-class NaturalSpeech2Args(Coqpit):
+class Naturalspeech2Args(Coqpit):
     """NaturalSpeech2 model arguments.
 
     Args:
@@ -413,7 +437,10 @@ class NaturalSpeech2Args(Coqpit):
     num_cervq_sample: int = 4
     noise_schedule: str = "sigmoid"  # you might want to add this, wasn't clear from your code
 
-class NaturalSpeech2(BaseTTS):
+    #train param
+    segment_size = 64
+
+class Naturalspeech2(BaseTTS):
     """NaturalSpeech2 TTS model
 
     Paper::
@@ -459,7 +486,7 @@ class NaturalSpeech2(BaseTTS):
 
         self.init_multilingual(config)
 
-        self.spec_segment_size = self.args.spec_segment_size
+        self.segment_size = self.args.segment_size
 
         self.phoneme_encoder = TransformerEncoder(
             self.args.phe_hidden_dim,
@@ -479,6 +506,7 @@ class NaturalSpeech2(BaseTTS):
             self.args.pre_kernel_size,
             self.args.pre_dropout,
             language_emb_dim=self.embedded_language_dim,
+            max_len=5000
         )
 
         self.duration_predictor = ConvBlockWithPrompting(
@@ -488,10 +516,11 @@ class NaturalSpeech2(BaseTTS):
             self.args.dp_attention_head,
             self.args.dp_dropout,
         )
-        self.f0_embedding = nn.Conv1d(
+
+        self.pitch_embedding = nn.Conv1d(
             in_channels= 1,
             out_channels= self.args.diff_size,
-            kernel_size= 1,
+            kernel_size= 1
         )
         
         self.pitch_predictor = ConvBlockWithPrompting(
@@ -567,7 +596,47 @@ class NaturalSpeech2(BaseTTS):
         if self.args.freeze_diffusion:
             for param in self.diffusion.parameters():
                 param.requires_grad = False
+    
+    def _forward_aligner(
+        self, x: torch.FloatTensor, y: torch.FloatTensor, x_mask: torch.IntTensor, y_mask: torch.IntTensor
+    ) -> Tuple[torch.IntTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+        """Aligner forward pass.
 
+        1. Compute a mask to apply to the attention map.
+        2. Run the alignment network.
+        3. Apply MAS to compute the hard alignment map.
+        4. Compute the durations from the hard alignment map.
+
+        Args:
+            x (torch.FloatTensor): Input sequence.
+            y (torch.FloatTensor): Output sequence.
+            x_mask (torch.IntTensor): Input sequence mask.
+            y_mask (torch.IntTensor): Output sequence mask.
+
+        Returns:
+            Tuple[torch.IntTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+                Durations from the hard alignment map, soft alignment potentials, log scale alignment potentials,
+                hard alignment map.
+
+        Shapes:
+            - x: :math:`[B, T_en, C_en]`
+            - y: :math:`[B, T_de, C_de]`
+            - x_mask: :math:`[B, 1, T_en]`
+            - y_mask: :math:`[B, 1, T_de]`
+
+            - alignment_hard: :math:`[B, T_en]`
+            - alignment_soft: :math:`[B, T_en, T_de]`
+            - alignment_logprob: :math:`[B, 1, T_de, T_en]`
+            - alignment_mas: :math:`[B, T_en, T_de]`
+        """
+        attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
+        alignment_soft, alignment_logprob = self.aligner(y.transpose(1, 2), x.transpose(1, 2), x_mask, None)
+        alignment_mas = maximum_path(
+            alignment_soft.squeeze(1).transpose(1, 2).contiguous(), attn_mask.squeeze(1).contiguous()
+        )
+        alignment_hard = torch.sum(alignment_mas, -1).int()
+        alignment_soft = alignment_soft.squeeze(1).transpose(1, 2)
+        return alignment_hard, alignment_soft, alignment_logprob, alignment_mas
     @staticmethod
     def _set_cond_input(aux_input: Dict):
         # [TODO] use this  
@@ -586,33 +655,59 @@ class NaturalSpeech2(BaseTTS):
     
     def forward(  # pylint: disable=dangerous-default-value
         self,
+        tokens: torch.tensor,
+        tokens_lens: torch.tensor,
         latents: torch.tensor,
         latents_lengths: torch.tensor,
-        mel: torch.tensor,
-        mel_lengths: torch.tensor,
+        sepc: torch.tensor,
+        spec_lens: torch.tensor,
         prompt: torch.tensor,
-        aux_input={"pitch": None, "durations": None, "language_ids": None},
+        pitch: torch.tensor,
+        aux_input={"durations": None, "language_ids": None},
     ) -> Dict:
         outputs = {}
-        phoneme_enc = self.phoneme_encoder(latents)
+        tokens_mask = torch.unsqueeze(sequence_mask(tokens_lens, tokens.shape[1]), 1).float()
+        spec_mask = torch.unsqueeze(sequence_mask(spec_lens, sepc.shape[1]), 1).float()
+        phoneme_enc = self.phoneme_encoder(tokens)
         
         prompt_enc = self.prompt_encoder(prompt)
         
-        durations = self.duration_predictor(phoneme_enc, prompt_enc)
-        pitch = self.pitch_predictor(phoneme_enc, prompt_enc)
+        alignment_hard, alignment_soft, alignment_logprob, alignment_mas = self._forward_aligner(
+            phoneme_enc, sepc, tokens_mask, y_mask
+        )
+
+        alignment_soft = alignment_soft.transpose(1, 2)
+        alignment_mas = alignment_mas.transpose(1, 2)
         
+        durations = self.duration_predictor(phoneme_enc, prompt_enc)
+        loss_duration = torch.sum((log_durations - dr) ** 2, [1, 2]) / torch.sum(tokens_mask)
+        outputs["loss_duration"] = loss_duration
+        pitch_pred = self.pitch_predictor(phoneme_enc, prompt_enc)
+        outputs["pitch_loss"] = torch.sum(torch.sum((pitch - pitch_pred) ** 2, [1, 2]) / torch.sum(tokens_mask))
         phoneme_with_durations = self.expand_sequence(phoneme_enc, durations)
         expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
         
-        latents, _, _= self.diffusion(encodings = expanded_encodings,
+        continuous_vector =  torch.sum(latents, dim=1)
+        # select a random feature segment for the diffusion
+        continuous_vector_slice, cv_slice_ids = rand_segments(continuous_vector, latents_lengths, self.segment_size, let_short_samples=True, pad_short=True)
+        expanded_encodings_seg, enc_slice_ids = rand_segments(expanded_encodings, tokens_mask, self.segment_size, let_short_samples=True, pad_short=True)
+
+        latents, _, _= self.diffusion(encodings = expanded_encodings_seg,
                                       lengths = latents_lengths,
                                       speech_prompts = prompt_enc,
-                                      latents=latents)
+                                      latents=continuous_vector_slice)
+        
+        latents = self.encodec.quantizer.decode(latents)
+        predictions = self.encodec.decoder(latents).squeeze(1)  # [Batch, Audio_t]
         outputs.update(
             {
-                "latents": latents,
+                "audio": predictions,
+                "latent_z_hat": latents,
                 "durations": durations,
                 "pitch": pitch
+                "alignment_hard": alignment_hard,
+                "alignment_soft": alignment_soft,
+                "alignment_logprob": alignment_logprob,
             }
         )
        
@@ -630,39 +725,41 @@ class NaturalSpeech2(BaseTTS):
         return outputs
     def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
         
-        codec_lens = batch["codec_lens"]
-        latents = self.encodec.quantizer.decode(batch["codec"])
+        latents_lens = batch["latents_lens"]
+        latents = batch["latents"]
         predictions = self.encodec.decoder(latents).squeeze(1)  # [Batch, Audio_t]
-        if optimizer_idx == 0:
-            tokens = batch["tokens"]
-            token_lenghts = batch["token_lens"]
-            language_ids = batch["language_ids"]
-            waveform = batch["waveform"]
-            style_wav = batch["style_wav"]
-            codec = batch["codec"]
-            # generator pass
-            outputs = self.forward(
-                tokens,
-                token_lenghts,
-                codec,
-                codec_lens,
-                waveform,
-                style_wav,
+        tokens = batch["tokens"]
+        token_lenghts = batch["token_lens"]
+        language_ids = batch["language_ids"]
+        waveform = batch["waveform"]
+        spec_lens = batch["spec_lens"]
+        spec = batch["spec"]
+        outputs = self.forward(
+            tokens,
+            token_lenghts,
+            latents,
+            latents_lens,
+            spec,
+            spec_lens,
+            waveform,
+        )
+        latents = segment(
+                    latents.float(), outputs["slice_ids"], self.segment_size, pad_short=True
+                )
+        latent_z_hat = outputs["latent_z_hat"]
+        # compute losses
+        with autocast(enabled=False):  # use float32 for the criterion
+            loss_dict = criterion[optimizer_idx](
+                latent_z = latents
+                latent_z_hat = latent_z_hat
+                input_lens=token_lenghts,
+                spec_lens=latents_lens,
+                alignment_logprob = outputs["alignment_logprob"],
+                alignment_hard = outputs["alignment_hard"],
+                alignment_soft = outputs["alignment_soft"],
             )
 
-            # cache tensors for the generator pass
-            self.model_outputs_cache = outputs  # pylint: disable=attribute-defined-outside-init
-
-            # compute loss
-            return outputs, loss_dict
-
-        if optimizer_idx == 1:
-            # compute losses
-            with autocast(enabled=False):  # use float32 for the criterion
-                loss_dict = criterion[optimizer_idx](
-                )
-
-            return self.model_outputs_cache, loss_dict
+        return self.model_outputs_cache, loss_dict
 
         raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
@@ -719,7 +816,7 @@ class NaturalSpeech2(BaseTTS):
             config = self.config
 
         # extract speaker and language info
-        text, speaker_name, style_wav, language_name = None, None, None, None
+        text, speaker_name, voice_prompt, language_name = None, None, None, None
 
         if isinstance(sentence_info, list):
             if len(sentence_info) == 1:
@@ -727,25 +824,11 @@ class NaturalSpeech2(BaseTTS):
             elif len(sentence_info) == 2:
                 text, speaker_name = sentence_info
             elif len(sentence_info) == 3:
-                text, speaker_name, style_wav = sentence_info
+                text, speaker_name, voice_prompt = sentence_info
             elif len(sentence_info) == 4:
-                text, speaker_name, style_wav, language_name = sentence_info
+                text, speaker_name, voice_prompt, language_name = sentence_info
         else:
             text = sentence_info
-
-        # get speaker  id/d_vector
-        speaker_id, d_vector, language_id = None, None, None
-        if hasattr(self, "speaker_manager"):
-            if config.use_d_vector_file:
-                if speaker_name is None:
-                    d_vector = self.speaker_manager.get_random_embedding()
-                else:
-                    d_vector = self.speaker_manager.get_mean_embedding(speaker_name, num_samples=None, randomize=False)
-            elif config.use_speaker_embedding:
-                if speaker_name is None:
-                    speaker_id = self.speaker_manager.get_random_id()
-                else:
-                    speaker_id = self.speaker_manager.name_to_id[speaker_name]
 
         # get language id
         if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
@@ -852,7 +935,7 @@ class NaturalSpeech2(BaseTTS):
         # compute spectrogram frame lengths
         batch["spec_lens"] = (batch["spec"].shape[2] * batch["waveform_rel_lens"]).int()
         batch["mel_lens"] = (batch["mel"].shape[2] * batch["waveform_rel_lens"]).int()
-
+        batch["codes_lens"] = (batch["codes"].shape[2] * batch["waveform_rel_lens"]).int()
         if self.args.encoder_sample_rate:
             assert (batch["spec_lens"] - (batch["mel_lens"] / self.interpolate_factor).int()).sum() == 0
         else:
@@ -913,9 +996,10 @@ class NaturalSpeech2(BaseTTS):
             loader = None
         else:
             # init dataloader
-            dataset = NaturalSpeech2Dataset(
+            dataset = Naturalspeech2Dataset(
                 model_args=self.args,
                 samples=samples,
+                ap=self.ap,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
                 min_text_len=config.min_text_len,
                 max_text_len=config.max_text_len,
@@ -926,6 +1010,8 @@ class NaturalSpeech2(BaseTTS):
                 verbose=verbose,
                 tokenizer=self.tokenizer,
                 start_by_longest=config.start_by_longest,
+                compute_f0=config.get("compute_f0", False),
+                f0_cache_path=config.get("f0_cache_path", None),
             )
 
             # wait all the DDP process to be ready
@@ -1041,14 +1127,14 @@ class NaturalSpeech2(BaseTTS):
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
         language_manager = LanguageManager.init_from_config(config)
 
-        return NaturalSpeech2(new_config, ap, tokenizer, language_manager)
+        return Naturalspeech2(new_config, ap, tokenizer, language_manager)
 
 ##################################
 # NaturalSpeech2 CHARACTERS
 ##################################
 
 
-class NaturalSpeech2Characters(BaseCharacters):
+class Naturalspeech2Characters(BaseCharacters):
     """Characters class for NaturalSpeech2 model for compatibility with pre-trained models"""
 
     def __init__(
@@ -1076,10 +1162,10 @@ class NaturalSpeech2Characters(BaseCharacters):
             _letters = config.characters["characters"]
             _letters_ipa = config.characters["phonemes"]
             return (
-                NaturalSpeech2Characters(graphemes=_letters, ipa_characters=_letters_ipa, punctuations=_punctuations, pad=_pad),
+                Naturalspeech2Characters(graphemes=_letters, ipa_characters=_letters_ipa, punctuations=_punctuations, pad=_pad),
                 config,
             )
-        characters = NaturalSpeech2Characters()
+        characters = Naturalspeech2Characters()
         new_config = replace(config, characters=characters.to_config())
         return characters, new_config
 
