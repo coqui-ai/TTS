@@ -29,7 +29,6 @@ from TTS.tts.layers.naturalspeech2.predictor import ConvBlockWithPrompting
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
 from TTS.tts.utils.languages import LanguageManager
-from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
@@ -289,7 +288,6 @@ class Naturalspeech2Dataset(TTSDataset):
             "token_len": len(token_ids),
             "wav": wav,
             "wav_file": wav_filename,
-            "speaker_name": item["speaker_name"],
             "language_name": item["language"],
             "audio_unique_name": item["audio_unique_name"],
             "latents": emb,
@@ -313,7 +311,6 @@ class Naturalspeech2Dataset(TTSDataset):
             - waveform: :math:`[B, 1, T]`
             - waveform_lens: :math:`[B]`
             - waveform_rel_lens: :math:`[B]`
-            - speaker_names: :math:`[B]`
             - language_names: :math:`[B]`
             - audiofile_paths: :math:`[B]`
             - raw_texts: :math:`[B]`
@@ -366,7 +363,6 @@ class Naturalspeech2Dataset(TTSDataset):
             "waveform": wav_padded,  # (B x T)
             "waveform_lens": wav_lens,  # (B)
             "waveform_rel_lens": wav_rel_lens,
-            "speaker_names": batch["speaker_name"],
             "language_names": batch["language_name"],
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
@@ -476,10 +472,9 @@ class Naturalspeech2(BaseTTS):
         config: Coqpit,
         ap: "AudioProcessor" = None,
         tokenizer: "TTSTokenizer" = None,
-        speaker_manager: SpeakerManager = None,
         language_manager: LanguageManager = None,
     ):
-        super().__init__(config, ap, tokenizer, speaker_manager, language_manager)
+        super().__init__(config, ap, tokenizer, language_manager)
         self.ecodec = EncodecWrapper()
         self.init_multilingual(config)
 
@@ -809,17 +804,17 @@ class Naturalspeech2(BaseTTS):
             config = self.config
 
         # extract speaker and language info
-        text, speaker_name, voice_prompt, language_name = None, None, None, None
+        text, voice_prompt, language_name = None, None, None, None
 
         if isinstance(sentence_info, list):
             if len(sentence_info) == 1:
                 text = sentence_info[0]
             elif len(sentence_info) == 2:
-                text, speaker_name = sentence_info
+                text, voice_prompt = sentence_info
             elif len(sentence_info) == 3:
-                text, speaker_name, voice_prompt = sentence_info
+                text, voice_prompt, style_prompt = sentence_info
             elif len(sentence_info) == 4:
-                text, speaker_name, voice_prompt, language_name = sentence_info
+                text, voice_prompt, style_prompt, language_name = sentence_info
         else:
             text = sentence_info
 
@@ -829,7 +824,8 @@ class Naturalspeech2(BaseTTS):
 
         return {
             "text": text,
-            "style_wav": voice_prompt,
+            "voice_prompt": voice_prompt,
+            "style_prompt": style_prompt,
             "language_id": language_id,
             "language_name": language_name,
         }
@@ -1106,12 +1102,10 @@ class Naturalspeech2(BaseTTS):
 
         Args:
             config (NaturalSpeech2Config): Model config.
-            samples (Union[List[List], List[Dict]]): Training samples to parse speaker ids for training.
+            samples (Union[List[List], List[Dict]]): Training samples to parse audios for training.
                 Defaults to None.
         """
         from TTS.utils.audio import AudioProcessor
-
-        upsample_rate = torch.prod(torch.as_tensor(config.model_args.upsample_rates_decoder)).item()
 
         ap = AudioProcessor.init_from_config(config, verbose=verbose)
         tokenizer, new_config = TTSTokenizer.init_from_config(config)
