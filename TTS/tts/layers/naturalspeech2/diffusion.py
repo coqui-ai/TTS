@@ -2,7 +2,7 @@ import math
 from typing import Dict, List, Optional, Union
 
 import torch
-from torch.nn import nn
+import torch.nn as nn
 
 from TTS.tts.layers.naturalspeech2.attend import Attend
 
@@ -11,6 +11,7 @@ class Diffusion(nn.Module):
     def __init__(
         self,
         max_step: int,
+        audio_codec_size: int,
         size_: int,
         pre_attention_query_token: int,
         pre_attention_query_size: int,
@@ -27,7 +28,7 @@ class Diffusion(nn.Module):
         self.max_step = max_step
         self.size_ = size_
         self.denoiser = Denoiser(
-            audio_codec_size=self.size_,
+            audio_codec_size=audio_codec_size,
             diffusion_size=self.size_,
             encoder_size=self.size_,
             speech_prompter_size=self.size_,
@@ -65,7 +66,7 @@ class Diffusion(nn.Module):
 
         diffusion_steps = torch.rand(size=(latents.size(0),), device=latents.device)
 
-        gammas = self.gamma_scheuler(diffusion_steps)
+        gammas = self.gamma_schedule(diffusion_steps)
         alphas, sigmas = self.gamma_to_alpha_sigma(gammas)
 
         noised_latents = latents * alphas[:, None, None] + noises * sigmas[:, None, None]
@@ -205,13 +206,7 @@ class Denoiser(torch.nn.Module):
 
         self.step_ffn = DiffusionFFN(diffusion_size=diffusion_size)
 
-        self.pre_attention = Attend(
-            query_channels=pre_attention_query_size,
-            key_channels=speech_prompter_size,
-            value_channels=speech_prompter_size,
-            calc_channels=pre_attention_query_size,
-            num_heads=pre_attention_head,
-        )
+        self.pre_attention = Attend(causal=True)
 
         self.pre_attention_query = torch.nn.Parameter(
             torch.empty(1, pre_attention_query_size, pre_attention_query_token)
@@ -242,47 +237,46 @@ class Denoiser(torch.nn.Module):
             torch.nn.SiLU(), torch.nn.Conv1d(in_channels=diffusion_size, out_channels=audio_codec_size, kernel_size=1)
         )
 
-        def forward(
+    def forward(
             self,
             latents: torch.Tensor,
             encodings: torch.Tensor,
             lengths: torch.Tensor,
             speech_prompts: torch.Tensor,
-            diffusion_steps: torch.Tensor,
-        ):
-            """
-            latents: [Batch, Codec_d, Audio_ct]
-            encodings: [Batch, Enc_d, Audio_ct]
-            diffusion_steps: [Batch]
-            speech_prompts: [Batch, Prompt_d, Prompt_t]
-            """
-            masks = (~Mask_Generate(lengths, max_length=latents.size(2))).unsqueeze(1).float()  # [Batch, 1, Audio_ct]
+            diffusion_steps: torch.Tensor):
+        """
+        latents: [Batch, Codec_d, Audio_ct]
+        encodings: [Batch, Enc_d, Audio_ct]
+        diffusion_steps: [Batch]
+        speech_prompts: [Batch, Prompt_d, Prompt_t]
+        """
+        masks = (~Mask_Generate(lengths, max_length=latents.size(2))).unsqueeze(1).float()  # [Batch, 1, Audio_ct]
 
-            x = self.prenet(latents)  # [Batch, Diffusion_d, Audio_ct]
-            encodings = self.encoding_ffn(encodings)  # [Batch, Diffusion_d, Audio_ct]
-            diffusion_steps = self.step_ffn(diffusion_steps)  # [Batch, Diffusion_d, 1]
+        x = self.prenet(latents)  # [Batch, Diffusion_d, Audio_ct]
+        encodings = self.encoding_ffn(encodings)  # [Batch, Diffusion_d, Audio_ct]
+        diffusion_steps = self.step_ffn(diffusion_steps)  # [Batch, Diffusion_d, 1]
 
-            speech_prompts = self.pre_attention(
-                queries=self.pre_attention_query.expand(speech_prompts.size(0), -1, -1),
-                keys=speech_prompts,
-                values=speech_prompts,
-            )  # [Batch, Diffusion_d, Token_n]
+        speech_prompts = self.pre_attention(
+            q=self.pre_attention_query.expand(speech_prompts.size(0), -1, -1),
+            k=speech_prompts,
+            v=speech_prompts,
+        )  # [Batch, Diffusion_d, Token_n]
 
-            skips_list = []
-            for wavenet in self.wavenets:
-                x, skips = wavenet(
-                    x=x,
-                    masks=masks,
-                    conditions=encodings,
-                    diffusion_steps=diffusion_steps,
-                    speech_prompts=speech_prompts,
-                )  # [Batch, Diffusion_d, Audio_ct]
-                skips_list.append(skips)
+        skips_list = []
+        for wavenet in self.wavenets:
+            x, skips = wavenet(
+                x=x,
+                masks=masks,
+                conditions=encodings,
+                diffusion_steps=diffusion_steps,
+                speech_prompts=speech_prompts,
+            )  # [Batch, Diffusion_d, Audio_ct]
+            skips_list.append(skips)
 
-            x = torch.stack(skips_list, dim=0).sum(dim=0) / math.sqrt(wavenet_stack)
-            x = self.postnet(x) * masks
+        x = torch.stack(skips_list, dim=0).sum(dim=0) / math.sqrt(wavenet_stack)
+        x = self.postnet(x) * masks
 
-            return x
+        return x
 
 
 class DiffusionFFN(nn.Module):
@@ -350,13 +344,7 @@ class WaveNet(torch.nn.Module):
         self.diffusion_step = nn.Conv1d(in_channels=diffusion_step_channels, out_channels=channels, kernel_size=1)
 
         if apply_film:
-            self.attention = Attend(
-                query_channels=channels,
-                key_channels=speech_prompt_channels,
-                value_channels=speech_prompt_channels,
-                calc_channels=channels,
-                num_heads=speech_prompt_attention_head,
-            )
+            self.attention = Attend(causal=True)
             self.film = FilM(
                 channels=channels * 2,
                 condition_channels=channels,
@@ -377,9 +365,9 @@ class WaveNet(torch.nn.Module):
 
         if self.apply_film:
             prompt_conditions = self.attention(
-                queries=queries,
-                keys=speech_prompts,
-                values=speech_prompts,
+                q=queries,
+                k=speech_prompts,
+                v=speech_prompts,
             )  # [Batch, Diffusion_d, Time]
             x = self.film(x, prompt_conditions, masks)
 
@@ -402,7 +390,7 @@ class FilM(nn.Conv1d):
         channels: int,
         condition_channels: int,
     ):
-        super().__init__(in_channels=condition_channels, out_channels=channels * 2, kernel_size=1, w_init_gain="linear")
+        super().__init__(in_channels=condition_channels, out_channels=channels * 2, kernel_size=1)
 
     def forward(
         self,

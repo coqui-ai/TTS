@@ -1,9 +1,10 @@
 from collections import namedtuple
 from functools import wraps
+from typing import Optional
 
 import torch
 import torch.nn.functional as F
-from einops import rearrange
+from einops import einsum, rearrange
 from packaging import version
 from torch import einsum, nn
 

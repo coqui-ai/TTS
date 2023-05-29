@@ -9,7 +9,6 @@ import torch
 import torch.distributed as dist
 import torchaudio
 from coqpit import Coqpit
-from encodec.utils import convert_audio
 from librosa.filters import mel as librosa_mel_fn
 from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
@@ -27,7 +26,14 @@ from TTS.tts.layers.naturalspeech2.encodec import EncodecWrapper
 from TTS.tts.layers.naturalspeech2.encoder import TransformerEncoder
 from TTS.tts.layers.naturalspeech2.predictor import ConvBlockWithPrompting
 from TTS.tts.models.base_tts import BaseTTS
-from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
+from TTS.tts.utils.helpers import (
+    average_over_durations,
+    generate_path,
+    maximum_path,
+    rand_segments,
+    segment,
+    sequence_mask,
+)
 from TTS.tts.utils.languages import LanguageManager
 from TTS.tts.utils.synthesis import synthesis
 from TTS.tts.utils.text.characters import BaseCharacters, _characters, _pad, _phonemes, _punctuations
@@ -265,12 +271,10 @@ class Naturalspeech2Dataset(TTSDataset):
         raw_text = item["text"]
 
         wav, _ = load_audio(item["audio_file"])
-        if self.model_args.encoder_sample_rate is not None:
-            if wav.size(1) % self.model_args.encoder_sample_rate != 0:
-                wav = wav[:, : -int(wav.size(1) % self.model_args.encoder_sample_rate)]
 
         # Extract discrete codes from EnCodec
-        emb, codes, _ = self.ecodec(wav)
+        emb, codes, _ = self.ecodec(wav, return_encoded=True)
+        emb = emb.transpose(1, 2)
         wav_filename = os.path.basename(item["audio_file"])
 
         token_ids = self.get_token_ids(idx, item["text"])
@@ -343,7 +347,7 @@ class Naturalspeech2Dataset(TTSDataset):
         token_padded = token_padded.zero_() + self.pad_id
         wav_padded = wav_padded.zero_() + self.pad_id
 
-        latents_padded = torch.LongTensor(B, 32, latents_lens_max)
+        latents_padded = torch.FloatTensor(B, 128, latents_lens_max)
         latents_padded = latents_padded.zero_() + self.pad_id
 
         for i in range(len(ids_sorted_decreasing)):
@@ -354,7 +358,7 @@ class Naturalspeech2Dataset(TTSDataset):
             wav_padded[i, :, : wav.size(1)] = torch.FloatTensor(wav)
 
             latents_emb = batch["latents"][i]
-            latents_padded[i, :, : latents_emb.size(2)] = torch.LongTensor(latents_emb)
+            latents_padded[i, :, : latents_emb.size(2)] = torch.FloatTensor(latents_emb)
 
         return {
             "tokens": token_padded,
@@ -384,12 +388,14 @@ class Naturalspeech2Args(Coqpit):
     Args:
     """
 
+    num_chars: int = 100
     # DurationPredictor params
     dp_hidden_dim: int = 512
     dp_n_layers: int = 30
     dp_n_attentions: int = 10
     dp_attention_head: int = 8
     dp_dropout: float = 0.5
+    dp_use_flash_attn: bool = True
 
     # PitchPredictor params
     pp_hidden_dim: int = 512
@@ -397,26 +403,28 @@ class Naturalspeech2Args(Coqpit):
     pp_n_attentions: int = 10
     pp_attention_head: int = 8
     pp_dropout: float = 0.2
+    pp_use_flash_attn: bool = True
 
-    # PeomptEncoder params
-    pre_hidden_dim = 512
-    pre_nhead = 8
-    pre_n_layers = 6
-    pre_dim_feedforward = 2048
-    pre_kernel_size = 9
-    pre_dropout = 0.1
+    # PromptEncoder params
+    pre_hidden_dim: int = 512
+    pre_nhead: int = 8
+    pre_n_layers: int = 6
+    pre_dim_feedforward: int = 2048
+    pre_kernel_size: int = 9
+    pre_dropout: float = 0.1
 
     # PhonemeEncoder params
-    phe_hidden_dim = 512
-    phe_nhead = 8
-    phe_n_layers = 6
-    phe_dim_feedforward = 2048
-    phe_kernel_size = 9
-    phe_dropout = 0.1
+    phe_hidden_dim: int = 512
+    phe_nhead: int = 4
+    phe_n_layers: int = 6
+    phe_dim_feedforward: int = 2048
+    phe_kernel_size: int = 9
+    phe_dropout: float = 0.1
 
-    # diffusion params
+    # Diffusion params
     max_step: int = 1000
     diff_size: int = 512
+    audio_codec_size: int = 128
     pre_attention_query_token: int = 32
     pre_attention_query_size: int = 512
     pre_attention_head: int = 8
@@ -429,8 +437,15 @@ class Naturalspeech2Args(Coqpit):
     num_cervq_sample: int = 4
     noise_schedule: str = "sigmoid"  # you might want to add this, wasn't clear from your code
 
-    # train param
-    segment_size = 64
+    # Train param
+    segment_size: int = 64
+
+    # Freeze layers
+    freeze_phoneme_encoder: bool = False
+    freeze_prompt_encoder: bool = False
+    freeze_duration_predictor: bool = False
+    freeze_pitch_predictor: bool = False
+    freeze_diffusion: bool = False
 
 
 class Naturalspeech2(BaseTTS):
@@ -474,10 +489,10 @@ class Naturalspeech2(BaseTTS):
         tokenizer: "TTSTokenizer" = None,
         language_manager: LanguageManager = None,
     ):
-        super().__init__(config, ap, tokenizer, language_manager)
-        self.ecodec = EncodecWrapper()
-        self.init_multilingual(config)
-
+        super().__init__(config, ap, tokenizer)
+        self.encodec = EncodecWrapper()
+        # self.init_multilingual(config)
+        self.embedded_language_dim = 0
         self.segment_size = self.args.segment_size
 
         self.phoneme_encoder = TransformerEncoder(
@@ -488,6 +503,8 @@ class Naturalspeech2(BaseTTS):
             self.args.phe_kernel_size,
             self.args.phe_dropout,
             language_emb_dim=self.embedded_language_dim,
+            n_vocab=self.args.num_chars,
+            encoder_type="phoneme",
         )
 
         self.prompt_encoder = TransformerEncoder(
@@ -499,6 +516,7 @@ class Naturalspeech2(BaseTTS):
             self.args.pre_dropout,
             language_emb_dim=self.embedded_language_dim,
             max_len=5000,
+            encoder_type="prompt",
         )
 
         self.duration_predictor = ConvBlockWithPrompting(
@@ -521,6 +539,7 @@ class Naturalspeech2(BaseTTS):
 
         self.diffusion = Diffusion(
             max_step=self.args.max_step,
+            audio_codec_size=self.args.audio_codec_size,
             size_=self.args.diff_size,
             pre_attention_query_token=self.args.pre_attention_query_token,
             pre_attention_query_size=self.args.pre_attention_query_size,
@@ -534,9 +553,7 @@ class Naturalspeech2(BaseTTS):
             noise_schedule=self.args.noise_schedule,
         )
 
-        self.aligner = AlignmentNetwork(
-            in_query_channels=self.args.out_channels, in_key_channels=self.args.hidden_channels
-        )
+        self.aligner = AlignmentNetwork(in_query_channels=80, in_key_channels=self.args.phe_hidden_dim)
 
     @property
     def device(self):
@@ -618,7 +635,9 @@ class Naturalspeech2(BaseTTS):
             - alignment_mas: :math:`[B, T_en, T_de]`
         """
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
-        alignment_soft, alignment_logprob = self.aligner(y.transpose(1, 2), x.transpose(1, 2), x_mask, None)
+        alignment_soft, alignment_logprob = self.aligner(y.transpose(1, 2), x, x_mask, None)
+        print(alignment_soft.squeeze(1).transpose(1, 2).contiguous().shape)
+        print(attn_mask.squeeze(1).contiguous().shape)
         alignment_mas = maximum_path(
             alignment_soft.squeeze(1).transpose(1, 2).contiguous(), attn_mask.squeeze(1).contiguous()
         )
@@ -631,17 +650,8 @@ class Naturalspeech2(BaseTTS):
         # [TODO] use this
         return None
 
-    def expand_sequence(phoneme_hidden, duration_prediction):
-        expanded_sequence = []
-        for i, phoneme in enumerate(phoneme_hidden):
-            repeat_count = int(duration_prediction[i].item())
-            expanded_sequence.extend([phoneme] * repeat_count)
-        return torch.stack(expanded_sequence)
-
-    # add pitch to duraion after adding pitch to durations add this to diffusion model
-    # [TODO] check if we need to add average over durations function
-    def add_pitch_information(expanded_sequence, pitch_prediction):
-        return expanded_sequence + pitch_prediction.unsqueeze(-1)
+    def add_pitch_information(self, expanded_sequence, pitch_prediction):
+        return expanded_sequence + pitch_prediction
 
     def forward(  # pylint: disable=dangerous-default-value
         self,
@@ -649,42 +659,45 @@ class Naturalspeech2(BaseTTS):
         tokens_lens: torch.tensor,
         latents: torch.tensor,
         latents_lengths: torch.tensor,
-        sepc: torch.tensor,
-        spec_lens: torch.tensor,
+        mel: torch.tensor,
+        mel_lens: torch.tensor,
         pitch: torch.tensor,
         aux_input={"prompt": None, "durations": None, "language_ids": None},
     ) -> Dict:
         outputs = {}
         tokens_mask = torch.unsqueeze(sequence_mask(tokens_lens, tokens.shape[1]), 1).float()
-        spec_mask = torch.unsqueeze(sequence_mask(spec_lens, sepc.shape[1]), 1).float()
-        phoneme_enc = self.phoneme_encoder(tokens)
-
+        mel_mask = torch.unsqueeze(sequence_mask(mel_lens, mel.shape[2]), 1).float()
+        phoneme_enc = self.phoneme_encoder(tokens.unsqueeze(2))
+        continuous_vector = torch.sum(latents.transpose(1, 2), dim=1)
         # use latents as a prompt while inference use prompt as a input to latents
         prompt_enc = self.prompt_encoder(latents)
 
         alignment_hard, alignment_soft, alignment_logprob, alignment_mas = self._forward_aligner(
-            phoneme_enc, sepc, tokens_mask, spec_mask
+            phoneme_enc.transpose(1, 2), mel.transpose(1, 2), tokens_mask, mel_mask
         )
 
         alignment_soft = alignment_soft.transpose(1, 2)
         alignment_mas = alignment_mas.transpose(1, 2)
 
-        durations = self.duration_predictor(phoneme_enc, prompt_enc)
-        loss_duration = torch.sum((durations - alignment_hard) ** 2, [1, 2]) / torch.sum(tokens_mask)
+        durations = self.duration_predictor(phoneme_enc.transpose(1, 2), prompt_enc.transpose(1, 2))
+        loss_duration = torch.sum((durations - alignment_hard.unsqueeze(1)) ** 2, [1, 2]) / torch.sum(tokens_mask)
         outputs["loss_duration"] = loss_duration
-        pitch_pred = self.pitch_predictor(phoneme_enc, prompt_enc)
+
+        pitch_pred = self.pitch_predictor(phoneme_enc.transpose(1, 2), prompt_enc.transpose(1, 2))
+        pitch = average_over_durations(pitch, alignment_hard)
         outputs["pitch_loss"] = torch.sum(torch.sum((pitch - pitch_pred) ** 2, [1, 2]) / torch.sum(tokens_mask))
-        phoneme_with_durations = self.expand_sequence(phoneme_enc, durations)
+        # print(phoneme_enc.shape, durations.shape)
+        phoneme_with_durations = phoneme_enc.transpose(1,2) + durations
+        print(phoneme_with_durations.shape, pitch.shape)
         expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
 
-        continuous_vector = torch.sum(latents, dim=1)
         # [TODO] write a logic to choose a random segments
-
+        print(expanded_encodings.shape , latents_lengths.shape, continuous_vector.shape , latents.shape, prompt_enc.shape)
         latents_hat, _, _ = self.diffusion(
             encodings=expanded_encodings,
             lengths=latents_lengths,
             speech_prompts=prompt_enc,
-            latents=continuous_vector,
+            latents=latents,
         )
 
         predictions = self.encodec.decode(latents_hat)
@@ -692,7 +705,7 @@ class Naturalspeech2(BaseTTS):
         outputs.update(
             {
                 "input_lens": tokens_lens,
-                "spec_lens": spec_lens,
+                "spec_lens": mel_lens,
                 "audio_hat": predictions,
                 "latent_hat": latents_hat,
                 "durations": durations,
@@ -710,35 +723,35 @@ class Naturalspeech2(BaseTTS):
         outputs = {}
         return outputs
 
-    def train_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int) -> Tuple[Dict, Dict]:
+    def train_step(self, batch: dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
         latents_lens = batch["latents_lens"]
         latents = batch["latents"]
-        audio = self.encodec.decode(latents).squeeze(1)  # [Batch, Audio_t]
+
         tokens = batch["tokens"]
         token_lenghts = batch["token_lens"]
         language_ids = batch["language_ids"]
         waveform = batch["waveform"]
-        spec_lens = batch["spec_lens"]
-        spec = batch["spec"]
+        mel_lens = batch["mel_lens"]
+        mel = batch["mel"]
         outputs = self.forward(
             tokens,
             token_lenghts,
             latents,
             latents_lens,
-            spec,
-            spec_lens,
+            mel,
+            mel_lens,
             waveform,
         )
         latents = segment(latents.float(), outputs["slice_ids"], self.segment_size, pad_short=True)
         latent_z_hat = outputs["latent_hat"]
         ce_loss = self.encodec.rq(latents, latent_z_hat)
         audio_hat = outputs["audio_hat"]
-
+        audio = self.encodec.decode(latents.transpose(1, 2)).squeeze(1)  # [Batch, Audio_t]
         # [TODO] compute mel_loss from audio and audio_hat not according to the paper
 
         # compute losses
         with autocast(enabled=False):  # use float32 for the criterion
-            loss_dict = criterion[optimizer_idx](
+            loss_dict = criterion(
                 ce_loss=ce_loss,
                 input_lens=token_lenghts,
                 spec_lens=latents_lens,
@@ -885,24 +898,12 @@ class Naturalspeech2(BaseTTS):
         """Compute spectrograms on the device."""
         ac = self.config.audio
 
-        if self.args.encoder_sample_rate:
-            wav = self.audio_resampler(batch["waveform"])
-        else:
-            wav = batch["waveform"]
+        wav = batch["waveform"]
 
         # compute spectrograms
         batch["spec"] = wav_to_spec(wav, ac.fft_size, ac.hop_length, ac.win_length, center=False)
 
-        if self.args.encoder_sample_rate:
-            # recompute spec with high sampling rate to the loss
-            spec_mel = wav_to_spec(batch["waveform"], ac.fft_size, ac.hop_length, ac.win_length, center=False)
-            # remove extra stft frames if needed
-            if spec_mel.size(2) > int(batch["spec"].size(2) * self.interpolate_factor):
-                spec_mel = spec_mel[:, :, : int(batch["spec"].size(2) * self.interpolate_factor)]
-            else:
-                batch["spec"] = batch["spec"][:, :, : int(spec_mel.size(2) / self.interpolate_factor)]
-        else:
-            spec_mel = batch["spec"]
+        spec_mel = batch["spec"]
 
         batch["mel"] = spec_to_mel(
             spec=spec_mel,
@@ -913,21 +914,14 @@ class Naturalspeech2(BaseTTS):
             fmax=ac.mel_fmax,
         )
 
-        if self.args.encoder_sample_rate:
-            assert batch["spec"].shape[2] == int(
-                batch["mel"].shape[2] / self.interpolate_factor
-            ), f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
-        else:
-            assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
+        assert batch["spec"].shape[2] == batch["mel"].shape[2], f"{batch['spec'].shape[2]}, {batch['mel'].shape[2]}"
 
         # compute spectrogram frame lengths
         batch["spec_lens"] = (batch["spec"].shape[2] * batch["waveform_rel_lens"]).int()
         batch["mel_lens"] = (batch["mel"].shape[2] * batch["waveform_rel_lens"]).int()
-        batch["codes_lens"] = (batch["codes"].shape[2] * batch["waveform_rel_lens"]).int()
-        if self.args.encoder_sample_rate:
-            assert (batch["spec_lens"] - (batch["mel_lens"] / self.interpolate_factor).int()).sum() == 0
-        else:
-            assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
+        batch["latents_lens"] = (batch["latents"].shape[2] * batch["waveform_rel_lens"]).int()
+
+        assert (batch["spec_lens"] - batch["mel_lens"]).sum() == 0
 
         # zero the padding frames
         batch["spec"] = batch["spec"] * sequence_mask(batch["spec_lens"]).unsqueeze(1)
@@ -1040,42 +1034,6 @@ class Naturalspeech2(BaseTTS):
                         pin_memory=False,
                     )
         return loader
-
-    def get_optimizer(self) -> List:
-        """Initiate and return the GAN optimizers based on the config parameters.
-        It returnes 2 optimizers in a list. First one is for the generator and the second one is for the discriminator.
-        Returns:
-            List: optimizers.
-        """
-        # select generator parameters
-        optimizer0 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_disc, self.disc)
-
-        gen_parameters = chain(params for k, params in self.named_parameters() if not k.startswith("disc."))
-        optimizer1 = get_optimizer(
-            self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
-        )
-        return [optimizer0, optimizer1]
-
-    def get_lr(self) -> List:
-        """Set the initial learning rates for each optimizer.
-
-        Returns:
-            List: learning rates for each optimizer.
-        """
-        return [self.config.lr_disc, self.config.lr_gen]
-
-    def get_scheduler(self, optimizer) -> List:
-        """Set the schedulers for each optimizer.
-
-        Args:
-            optimizer (List[`torch.optim.Optimizer`]): List of optimizers.
-
-        Returns:
-            List: Schedulers, one for each optimizer.
-        """
-        scheduler_D = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
-        scheduler_G = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
-        return [scheduler_D, scheduler_G]
 
     def get_criterion(self):
         """Get criterions for each optimizer. The index in the output list matches the optimizer idx used in

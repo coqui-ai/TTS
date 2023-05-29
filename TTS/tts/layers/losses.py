@@ -893,9 +893,8 @@ class Naturalspeech2Loss(nn.Module):
         self.ce_loss_alpha = c.ce_loss_alpha
 
         # use aligner if needed
-        if c.model_args.use_aligner:
-            self.aligner_loss = ForwardSumLoss()
-            self.aligner_loss_alpha = c.aligner_loss_alpha
+        self.aligner_loss = ForwardSumLoss()
+        self.aligner_loss_alpha = c.aligner_loss_alpha
 
     def forward(
         self,

@@ -16,18 +16,31 @@ class PositionalEncoding(nn.Module):
         self.pe = self.pe.unsqueeze(0).transpose(0, 1)
 
     def forward(self, x):
-        x = x + self.pe[: x.size(0), :]
+        x = x + self.pe[: x.size(0), :].to(x.device)
         return x
 
 
 class TransformerEncoder(nn.Module):
     def __init__(
-        self, d_model, nhead, num_layers, dim_feedforward, kernel_size, dropout, language_emb_dim=4, max_len=250
+        self,
+        d_model,
+        nhead,
+        num_layers,
+        dim_feedforward,
+        kernel_size,
+        dropout,
+        language_emb_dim=4,
+        max_len=250,
+        n_vocab=100,
+        encoder_type="phoneme",
     ):
         super().__init__()
         if language_emb_dim:
             d_model += language_emb_dim
-        self.embedding = nn.Embedding(d_model, d_model)
+        if encoder_type == "phoneme":
+            self.pre = nn.Embedding(n_vocab, d_model)
+        else:
+            self.pre = nn.Conv1d(128, d_model, kernel_size, padding=kernel_size // 2)
         self.pos_enc = PositionalEncoding(d_model, max_len=max_len)
         self.transformer = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout), num_layers
@@ -38,8 +51,13 @@ class TransformerEncoder(nn.Module):
             nn.Conv1d(dim_feedforward, d_model, kernel_size, padding=kernel_size // 2),
         )
 
-    def forward(self, x, lang_emb):
-        x = self.embedding(x)
+    def forward(self, x, lang_emb=None):
+        x = self.pre(x)
+        print(x.shape, x.dim())
+        if x.dim() == 4:
+            x = x.squeeze(2)
+        else:
+            x = x.transpose(1, 2)
         # concat the lang emb in embedding chars
         if lang_emb is not None:
             x = torch.cat((x, lang_emb.transpose(2, 1).expand(x.size(0), x.size(1), -1)), dim=-1)

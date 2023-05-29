@@ -22,25 +22,14 @@ class Naturalspeech2Config(BaseTTSConfig):
         grad_clip (List):
             Gradient clipping thresholds for each optimizer. Defaults to `[1000.0, 1000.0]`.
 
-        lr_gen (float):
+        lr (float):
             Initial learning rate for the generator. Defaults to 0.0002.
-
-        lr_disc (float):
-            Initial learning rate for the discriminator. Defaults to 0.0002.
-
-        lr_scheduler_gen (str):
+        lr_scheduler (str):
             Name of the learning rate scheduler for the generator. One of the `torch.optim.lr_scheduler.*`. Defaults to
             `ExponentialLR`.
 
-        lr_scheduler_gen_params (dict):
-            Parameters for the learning rate scheduler of the generator. Defaults to `{'gamma': 0.999875, "last_epoch":-1}`.
-
-        lr_scheduler_disc (str):
-            Name of the learning rate scheduler for the discriminator. One of the `torch.optim.lr_scheduler.*`. Defaults to
-            `ExponentialLR`.
-
-        lr_scheduler_disc_params (dict):
-            Parameters for the learning rate scheduler of the discriminator. Defaults to `{'gamma': 0.999875, "last_epoch":-1}`.
+        lr_scheduler_params (dict):
+            Parameters for the learning rate scheduler of the generator. Defaults to `{'gamma': 0.999875, "last_epoch":-1}`
 
         scheduler_after_epoch (bool):
             If true, step the schedulers after each epoch else after each step. Defaults to `False`.
@@ -49,20 +38,6 @@ class Naturalspeech2Config(BaseTTSConfig):
             Name of the optimizer to use with both the generator and the discriminator networks. One of the
             `torch.optim.*`. Defaults to `AdamW`.
 
-        kl_loss_alpha (float):
-            Loss weight for KL loss. Defaults to 1.0.
-
-        disc_loss_alpha (float):
-            Loss weight for the discriminator loss. Defaults to 1.0.
-
-        gen_loss_alpha (float):
-            Loss weight for the generator loss. Defaults to 1.0.
-
-        feat_loss_alpha (float):
-            Loss weight for the feature matching loss. Defaults to 1.0.
-
-        mel_loss_alpha (float):
-            Loss weight for the mel loss. Defaults to 45.0.
 
         return_wav (bool):
             If true, data loader returns the waveform as well as the other outputs. Do not change. Defaults to `True`.
@@ -112,25 +87,16 @@ class Naturalspeech2Config(BaseTTSConfig):
     audio: Naturalspeech2AudioConfig = Naturalspeech2AudioConfig()
 
     # optimizer
-    grad_clip: List[float] = field(default_factory=lambda: [1000, 1000])
-    lr_gen: float = 0.0002
-    lr_disc: float = 0.0002
-    lr_scheduler_gen: str = "ExponentialLR"
-    lr_scheduler_gen_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
-    lr_scheduler_disc: str = "ExponentialLR"
-    lr_scheduler_disc_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
+    lr: float = 0.0002
+    lr_scheduler: str = "ExponentialLR"
+    lr_scheduler_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
     scheduler_after_epoch: bool = True
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
 
     # loss params
-    kl_loss_alpha: float = 1.0
-    disc_loss_alpha: float = 1.0
-    gen_loss_alpha: float = 1.0
-    feat_loss_alpha: float = 1.0
-    mel_loss_alpha: float = 45.0
-    dur_loss_alpha: float = 1.0
-    speaker_encoder_loss_alpha: float = 1.0
+    ce_loss_alpha: float = 1.0
+    aligner_loss_alpha: float = 1.0
 
     # data loader params
     return_wav: bool = True
@@ -155,12 +121,3 @@ class Naturalspeech2Config(BaseTTSConfig):
             ["Prior to November 22, 1963."],
         ]
     )
-
-    # multi-lingual settings
-    language_ids_file: str = None
-    use_language_embedding: bool = False
-
-    def __post_init__(self):
-        for key, val in self.model_args.items():
-            if hasattr(self, key):
-                self[key] = val
