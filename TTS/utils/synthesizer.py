@@ -252,7 +252,7 @@ class Synthesizer(object):
             style_wav ([type], optional): style waveform for GST. Defaults to None.
             style_text ([type], optional): transcription of style_wav for Capacitron. Defaults to None.
             reference_wav ([type], optional): reference waveform for voice conversion. Defaults to None.
-            reference_speaker_name ([type], optional): spekaer id of reference waveform. Defaults to None.
+            reference_speaker_name ([type], optional): speaker id of reference waveform. Defaults to None.
         Returns:
             List[int]: [description]
         """
