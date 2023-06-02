@@ -193,7 +193,9 @@ class Denoiser(torch.nn.Module):
         pre_attention_head: int = 8,
     ):
         super().__init__()
-
+        self.wavenet_stack = wavenet_stack
+        self.pre_attention_query_token = pre_attention_query_token
+        self.pre_attention_query_size = pre_attention_query_size
         self.prenet = torch.nn.Sequential(
             torch.nn.Conv1d(in_channels=audio_codec_size, out_channels=diffusion_size, kernel_size=1), torch.nn.SiLU()
         )
@@ -205,15 +207,9 @@ class Denoiser(torch.nn.Module):
         )
 
         self.step_ffn = DiffusionFFN(diffusion_size=diffusion_size)
+        self.pre_attention = nn.MultiheadAttention(diffusion_size, pre_attention_head)
 
-        self.pre_attention = Attend(causal=True)
-
-        self.pre_attention_query = torch.nn.Parameter(
-            torch.empty(1, pre_attention_query_size, pre_attention_query_token)
-        )
-
-        query_variance = math.sqrt(3.0) * math.sqrt(2.0 / (pre_attention_query_size + pre_attention_query_token))
-        self.pre_attention_query.data.uniform_(-query_variance, query_variance)
+        self.pre_attention_query = nn.MultiheadAttention(diffusion_size, pre_attention_head)
 
         self.wavenets = torch.nn.ModuleList(
             [
@@ -238,12 +234,13 @@ class Denoiser(torch.nn.Module):
         )
 
     def forward(
-            self,
-            latents: torch.Tensor,
-            encodings: torch.Tensor,
-            lengths: torch.Tensor,
-            speech_prompts: torch.Tensor,
-            diffusion_steps: torch.Tensor):
+        self,
+        latents: torch.Tensor,
+        encodings: torch.Tensor,
+        lengths: torch.Tensor,
+        speech_prompts: torch.Tensor,
+        diffusion_steps: torch.Tensor,
+    ):
         """
         latents: [Batch, Codec_d, Audio_ct]
         encodings: [Batch, Enc_d, Audio_ct]
@@ -254,14 +251,18 @@ class Denoiser(torch.nn.Module):
 
         x = self.prenet(latents)  # [Batch, Diffusion_d, Audio_ct]
         encodings = self.encoding_ffn(encodings)  # [Batch, Diffusion_d, Audio_ct]
+        print("wavenet in -->>", x.shape, encodings.shape)
         diffusion_steps = self.step_ffn(diffusion_steps)  # [Batch, Diffusion_d, 1]
+        speech_prompts = speech_prompts.permute(1, 0, 2)
+        query_embeddings = torch.randn(
+            self.pre_attention_query_token, speech_prompts.shape[1], self.pre_attention_query_size
+        ).to(speech_prompts.device)
+        print(query_embeddings.shape, speech_prompts.shape)
+        pre_att, _ = self.pre_attention_query(query_embeddings, speech_prompts, speech_prompts)
 
-        speech_prompts = self.pre_attention(
-            q=self.pre_attention_query.expand(speech_prompts.size(0), -1, -1),
-            k=speech_prompts,
-            v=speech_prompts,
-        )  # [Batch, Diffusion_d, Token_n]
-
+        print(pre_att.shape, speech_prompts.shape)
+        speech_prompts, _ = self.pre_attention(pre_att, speech_prompts, speech_prompts)  # [Batch, Diffusion_d, Token_n]
+        print(speech_prompts.shape)
         skips_list = []
         for wavenet in self.wavenets:
             x, skips = wavenet(
@@ -273,7 +274,7 @@ class Denoiser(torch.nn.Module):
             )  # [Batch, Diffusion_d, Audio_ct]
             skips_list.append(skips)
 
-        x = torch.stack(skips_list, dim=0).sum(dim=0) / math.sqrt(wavenet_stack)
+        x = torch.stack(skips_list, dim=0).sum(dim=0) / math.sqrt(self.wavenet_stack)
         x = self.postnet(x) * masks
 
         return x
@@ -344,7 +345,7 @@ class WaveNet(torch.nn.Module):
         self.diffusion_step = nn.Conv1d(in_channels=diffusion_step_channels, out_channels=channels, kernel_size=1)
 
         if apply_film:
-            self.attention = Attend(causal=True)
+            self.attention = nn.MultiheadAttention(speech_prompt_channels, speech_prompt_attention_head)
             self.film = FilM(
                 channels=channels * 2,
                 condition_channels=channels,
@@ -360,14 +361,17 @@ class WaveNet(torch.nn.Module):
     ):
         residuals = x
         queries = x = x + self.diffusion_step(diffusion_steps)  # [Batch, Calc_d, Time]
+        cond = self.condition(conditions)
+        conv = self.conv(x)
+        print(cond.shape, conv.shape)
 
-        x = self.conv(x) + self.condition(conditions)  # [Batch, Calc_d * 2, Time]
+        x = conv + cond  # torch.cat([conv,cond],dim=2) # [Batch, Calc_d * 2, Time]
 
         if self.apply_film:
             prompt_conditions = self.attention(
-                q=queries,
-                k=speech_prompts,
-                v=speech_prompts,
+                queries,
+                speech_prompts,
+                speech_prompts,
             )  # [Batch, Diffusion_d, Time]
             x = self.film(x, prompt_conditions, masks)
 

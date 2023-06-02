@@ -395,7 +395,7 @@ class Naturalspeech2Args(Coqpit):
     dp_n_attentions: int = 10
     dp_attention_head: int = 8
     dp_dropout: float = 0.5
-    dp_use_flash_attn: bool = True
+    dp_use_flash_attn: bool = False
 
     # PitchPredictor params
     pp_hidden_dim: int = 512
@@ -403,7 +403,7 @@ class Naturalspeech2Args(Coqpit):
     pp_n_attentions: int = 10
     pp_attention_head: int = 8
     pp_dropout: float = 0.2
-    pp_use_flash_attn: bool = True
+    pp_use_flash_attn: bool = False
 
     # PromptEncoder params
     pre_hidden_dim: int = 512
@@ -671,7 +671,7 @@ class Naturalspeech2(BaseTTS):
         continuous_vector = torch.sum(latents.transpose(1, 2), dim=1)
         # use latents as a prompt while inference use prompt as a input to latents
         prompt_enc = self.prompt_encoder(latents)
-
+        print(phoneme_enc.transpose(1, 2).shape, mel.transpose(1, 2).shape, tokens_mask.shape, mel_mask.shape)
         alignment_hard, alignment_soft, alignment_logprob, alignment_mas = self._forward_aligner(
             phoneme_enc.transpose(1, 2), mel.transpose(1, 2), tokens_mask, mel_mask
         )
@@ -686,13 +686,11 @@ class Naturalspeech2(BaseTTS):
         pitch_pred = self.pitch_predictor(phoneme_enc.transpose(1, 2), prompt_enc.transpose(1, 2))
         pitch = average_over_durations(pitch, alignment_hard)
         outputs["pitch_loss"] = torch.sum(torch.sum((pitch - pitch_pred) ** 2, [1, 2]) / torch.sum(tokens_mask))
-        # print(phoneme_enc.shape, durations.shape)
-        phoneme_with_durations = phoneme_enc.transpose(1,2) + durations
-        print(phoneme_with_durations.shape, pitch.shape)
+        phoneme_with_durations = phoneme_enc.transpose(1, 2) + durations
         expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
 
         # [TODO] write a logic to choose a random segments
-        print(expanded_encodings.shape , latents_lengths.shape, continuous_vector.shape , latents.shape, prompt_enc.shape)
+        print(expanded_encodings.shape, latents_lengths.shape, continuous_vector.shape, latents.shape, prompt_enc.shape)
         latents_hat, _, _ = self.diffusion(
             encodings=expanded_encodings,
             lengths=latents_lengths,

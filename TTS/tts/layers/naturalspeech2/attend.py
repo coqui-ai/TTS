@@ -127,7 +127,7 @@ class Attend(nn.Module):
         kv_einsum_eq = "b j d" if k.ndim == 3 else "b h j d"
 
         # similarity
-        sim = einsum(f"b h i d, {kv_einsum_eq} -> b h i j", q, k) * scale
+        sim = torch.einsum("bft,btf->bt", q, k) * scale
 
         # key padding mask
         if exists(mask):
