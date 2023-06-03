@@ -871,6 +871,7 @@ class ForwardTTSLoss(nn.Module):
             return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
 
         if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
+            print(alignment_hard.shape, alignment_soft.shape)
             binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
             loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
             if binary_loss_weight:
@@ -890,15 +891,24 @@ class Naturalspeech2Loss(nn.Module):
     def __init__(self, c):
         super().__init__()
         # init loss alpha
-        self.ce_loss_alpha = c.ce_loss_alpha
-
+        self.data_loss_alpha = c.data_loss_alpha
+        self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
         # use aligner if needed
         self.aligner_loss = ForwardSumLoss()
         self.aligner_loss_alpha = c.aligner_loss_alpha
 
+    @staticmethod
+    def _binary_alignment_loss(alignment_hard, alignment_soft):
+        """Binary loss that forces soft alignments to match the hard alignments as
+        explained in `https://arxiv.org/pdf/2108.10447.pdf`.
+        """
+        log_sum = torch.log(torch.clamp(alignment_soft[alignment_hard == 1], min=1e-12)).sum()
+        return -log_sum / alignment_hard.sum()
+
     def forward(
         self,
-        ce_loss=None,
+        latents=None,
+        latent_z_hat=None,
         input_lens=None,
         spec_lens=None,
         alignment_logprob=None,
@@ -908,9 +918,9 @@ class Naturalspeech2Loss(nn.Module):
     ):
         loss = 0
         return_dict = {}
-        if ce_loss:
-            loss += ce_loss * self.ce_loss_alpha
-
+        if self.data_loss_alpha > 0:
+            data_loss = functional.mse_loss(latents, latent_z_hat)
+            return_dict["data_loss"] = data_loss * self.data_loss_alpha
         if hasattr(self, "aligner_loss") and self.aligner_loss_alpha > 0:
             aligner_loss = self.aligner_loss(alignment_logprob, input_lens, spec_lens)
             loss = loss + self.aligner_loss_alpha * aligner_loss
@@ -925,3 +935,5 @@ class Naturalspeech2Loss(nn.Module):
                 )
             else:
                 return_dict["loss_binary_alignment"] = self.binary_alignment_loss_alpha * binary_alignment_loss
+        return_dict["loss"] = loss
+        return return_dict

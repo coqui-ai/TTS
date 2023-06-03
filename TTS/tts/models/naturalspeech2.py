@@ -636,8 +636,6 @@ class Naturalspeech2(BaseTTS):
         """
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         alignment_soft, alignment_logprob = self.aligner(y.transpose(1, 2), x, x_mask, None)
-        print(alignment_soft.squeeze(1).transpose(1, 2).contiguous().shape)
-        print(attn_mask.squeeze(1).contiguous().shape)
         alignment_mas = maximum_path(
             alignment_soft.squeeze(1).transpose(1, 2).contiguous(), attn_mask.squeeze(1).contiguous()
         )
@@ -671,14 +669,12 @@ class Naturalspeech2(BaseTTS):
         continuous_vector = torch.sum(latents.transpose(1, 2), dim=1)
         # use latents as a prompt while inference use prompt as a input to latents
         prompt_enc = self.prompt_encoder(latents)
-        print(phoneme_enc.transpose(1, 2).shape, mel.transpose(1, 2).shape, tokens_mask.shape, mel_mask.shape)
         alignment_hard, alignment_soft, alignment_logprob, alignment_mas = self._forward_aligner(
             phoneme_enc.transpose(1, 2), mel.transpose(1, 2), tokens_mask, mel_mask
         )
 
         alignment_soft = alignment_soft.transpose(1, 2)
         alignment_mas = alignment_mas.transpose(1, 2)
-
         durations = self.duration_predictor(phoneme_enc.transpose(1, 2), prompt_enc.transpose(1, 2))
         loss_duration = torch.sum((durations - alignment_hard.unsqueeze(1)) ** 2, [1, 2]) / torch.sum(tokens_mask)
         outputs["loss_duration"] = loss_duration
@@ -690,15 +686,14 @@ class Naturalspeech2(BaseTTS):
         expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
 
         # [TODO] write a logic to choose a random segments
-        print(expanded_encodings.shape, latents_lengths.shape, continuous_vector.shape, latents.shape, prompt_enc.shape)
-        latents_hat, _, _ = self.diffusion(
+        latents_hat, diffusion_predictions, _ = self.diffusion(
             encodings=expanded_encodings,
             lengths=latents_lengths,
             speech_prompts=prompt_enc,
             latents=latents,
         )
 
-        predictions = self.encodec.decode(latents_hat)
+        predictions = self.encodec.decode(latents_hat.transpose(1, 2))
 
         outputs.update(
             {
@@ -708,7 +703,7 @@ class Naturalspeech2(BaseTTS):
                 "latent_hat": latents_hat,
                 "durations": durations,
                 "pitch": pitch,
-                "alignment_hard": alignment_hard,
+                "alignment_hard": alignment_mas,
                 "alignment_soft": alignment_soft,
                 "alignment_logprob": alignment_logprob,
             }
@@ -740,9 +735,6 @@ class Naturalspeech2(BaseTTS):
             mel_lens,
             waveform,
         )
-        latents = segment(latents.float(), outputs["slice_ids"], self.segment_size, pad_short=True)
-        latent_z_hat = outputs["latent_hat"]
-        ce_loss = self.encodec.rq(latents, latent_z_hat)
         audio_hat = outputs["audio_hat"]
         audio = self.encodec.decode(latents.transpose(1, 2)).squeeze(1)  # [Batch, Audio_t]
         # [TODO] compute mel_loss from audio and audio_hat not according to the paper
@@ -750,7 +742,8 @@ class Naturalspeech2(BaseTTS):
         # compute losses
         with autocast(enabled=False):  # use float32 for the criterion
             loss_dict = criterion(
-                ce_loss=ce_loss,
+                latents=latents,
+                latent_z_hat=outputs["latent_hat"],
                 input_lens=token_lenghts,
                 spec_lens=latents_lens,
                 alignment_logprob=outputs["alignment_logprob"],
@@ -758,7 +751,7 @@ class Naturalspeech2(BaseTTS):
                 alignment_soft=outputs["alignment_soft"],
             )
 
-        return self.model_outputs_cache, loss_dict
+        return outputs, loss_dict
 
         raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
@@ -1038,7 +1031,7 @@ class Naturalspeech2(BaseTTS):
         `train_step()`"""
         from TTS.tts.layers.losses import Naturalspeech2Loss  # pylint: disable=import-outside-toplevel
 
-        return [Naturalspeech2Loss(self.config)]
+        return Naturalspeech2Loss(self.config)
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False, strict=True, cache=False

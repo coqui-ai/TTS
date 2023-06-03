@@ -95,9 +95,9 @@ class Naturalspeech2Config(BaseTTSConfig):
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
 
     # loss params
-    ce_loss_alpha: float = 1.0
+    data_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
-
+    binary_align_loss_alpha: float = 1.0
     # data loader params
     return_wav: bool = True
     compute_linear_spec: bool = True

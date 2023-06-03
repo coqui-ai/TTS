@@ -4,8 +4,6 @@ from typing import Dict, List, Optional, Union
 import torch
 import torch.nn as nn
 
-from TTS.tts.layers.naturalspeech2.attend import Attend
-
 
 class Diffusion(nn.Module):
     def __init__(
@@ -251,18 +249,14 @@ class Denoiser(torch.nn.Module):
 
         x = self.prenet(latents)  # [Batch, Diffusion_d, Audio_ct]
         encodings = self.encoding_ffn(encodings)  # [Batch, Diffusion_d, Audio_ct]
-        print("wavenet in -->>", x.shape, encodings.shape)
         diffusion_steps = self.step_ffn(diffusion_steps)  # [Batch, Diffusion_d, 1]
         speech_prompts = speech_prompts.permute(1, 0, 2)
         query_embeddings = torch.randn(
             self.pre_attention_query_token, speech_prompts.shape[1], self.pre_attention_query_size
         ).to(speech_prompts.device)
-        print(query_embeddings.shape, speech_prompts.shape)
         pre_att, _ = self.pre_attention_query(query_embeddings, speech_prompts, speech_prompts)
 
-        print(pre_att.shape, speech_prompts.shape)
         speech_prompts, _ = self.pre_attention(pre_att, speech_prompts, speech_prompts)  # [Batch, Diffusion_d, Token_n]
-        print(speech_prompts.shape)
         skips_list = []
         for wavenet in self.wavenets:
             x, skips = wavenet(
@@ -363,17 +357,18 @@ class WaveNet(torch.nn.Module):
         queries = x = x + self.diffusion_step(diffusion_steps)  # [Batch, Calc_d, Time]
         cond = self.condition(conditions)
         conv = self.conv(x)
-        print(cond.shape, conv.shape)
+
+        cond = torch.nn.functional.interpolate(cond, size=conv.size(2), mode="nearest")
 
         x = conv + cond  # torch.cat([conv,cond],dim=2) # [Batch, Calc_d * 2, Time]
 
         if self.apply_film:
-            prompt_conditions = self.attention(
-                queries,
+            prompt_conditions, _ = self.attention(
+                queries.permute(2, 0, 1),
                 speech_prompts,
                 speech_prompts,
             )  # [Batch, Diffusion_d, Time]
-            x = self.film(x, prompt_conditions, masks)
+            x = self.film(x, prompt_conditions.permute(1, 2, 0), masks)
 
         x = Fused_Gate(x)  # [Batch, Calc_d, Time]
         x = self.dropout(x) * masks  # [Batch, Calc_d, Time]
@@ -396,13 +391,8 @@ class FilM(nn.Conv1d):
     ):
         super().__init__(in_channels=condition_channels, out_channels=channels * 2, kernel_size=1)
 
-    def forward(
-        self,
-        x: torch.Tensor,
-        conditions: torch.Tensor,
-        masks: torch.Tensor,
-    ):
-        betas, gammas = super().forward(conditions * masks).chunk(chunks=2, dim=1)
+    def forward(self, x: torch.Tensor, conditions: torch.Tensor, masks: torch.Tensor):
+        betas, gammas = super().forward(conditions * masks).chunk(2, dim=1)
         x = gammas * x + betas
 
         return x * masks

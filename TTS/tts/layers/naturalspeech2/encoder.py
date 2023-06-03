@@ -53,7 +53,6 @@ class TransformerEncoder(nn.Module):
 
     def forward(self, x, lang_emb=None):
         x = self.pre(x)
-        print(x.shape, x.dim())
         if x.dim() == 4:
             x = x.squeeze(2)
         else:
