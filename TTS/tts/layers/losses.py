@@ -892,6 +892,7 @@ class Naturalspeech2Loss(nn.Module):
         super().__init__()
         # init loss alpha
         self.data_loss_alpha = c.data_loss_alpha
+        self.ce_loss_alpha = c.ce_loss_alpha
         self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
         # use aligner if needed
         self.aligner_loss = ForwardSumLoss()
@@ -907,6 +908,7 @@ class Naturalspeech2Loss(nn.Module):
 
     def forward(
         self,
+        ce_loss=None,
         latents=None,
         latent_z_hat=None,
         input_lens=None,
@@ -918,17 +920,22 @@ class Naturalspeech2Loss(nn.Module):
     ):
         loss = 0
         return_dict = {}
+        if self.ce_loss_alpha > 0:
+            return_dict["ce_loss"] = ce_loss * self.ce_loss_alpha
+            loss += ce_loss * self.ce_loss_alpha
         if self.data_loss_alpha > 0:
             data_loss = functional.mse_loss(latents, latent_z_hat)
+            loss += data_loss * self.data_loss_alpha
             return_dict["data_loss"] = data_loss * self.data_loss_alpha
+
         if hasattr(self, "aligner_loss") and self.aligner_loss_alpha > 0:
             aligner_loss = self.aligner_loss(alignment_logprob, input_lens, spec_lens)
-            loss = loss + self.aligner_loss_alpha * aligner_loss
+            loss += self.aligner_loss_alpha * aligner_loss
             return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
 
         if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
             binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
-            loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
+            loss += self.binary_alignment_loss_alpha * binary_alignment_loss
             if binary_loss_weight:
                 return_dict["loss_binary_alignment"] = (
                     self.binary_alignment_loss_alpha * binary_alignment_loss * binary_loss_weight

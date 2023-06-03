@@ -264,7 +264,7 @@ class Naturalspeech2Dataset(TTSDataset):
         super().__init__(*args, **kwargs)
         self.pad_id = self.tokenizer.characters.pad_id
         self.model_args = model_args
-        self.ecodec = EncodecWrapper()
+        self.encodec = EncodecWrapper().eval()
 
     def __getitem__(self, idx):
         item = self.samples[idx]
@@ -272,9 +272,6 @@ class Naturalspeech2Dataset(TTSDataset):
 
         wav, _ = load_audio(item["audio_file"])
 
-        # Extract discrete codes from EnCodec
-        emb, codes, _ = self.ecodec(wav, return_encoded=True)
-        emb = emb.transpose(1, 2)
         wav_filename = os.path.basename(item["audio_file"])
 
         token_ids = self.get_token_ids(idx, item["text"])
@@ -294,7 +291,6 @@ class Naturalspeech2Dataset(TTSDataset):
             "wav_file": wav_filename,
             "language_name": item["language"],
             "audio_unique_name": item["audio_unique_name"],
-            "latents": emb,
         }
 
     @property
@@ -337,19 +333,18 @@ class Naturalspeech2Dataset(TTSDataset):
         wav_lens_max = torch.max(wav_lens)
         wav_rel_lens = wav_lens / wav_lens_max
 
-        latents_lens = [w.shape[2] for w in batch["latents"]]
-        latents_lens = torch.LongTensor(latents_lens)
-        latents_lens_max = torch.max(latents_lens)
-        latents_rel_lens = latents_lens / latents_lens_max
+        # latents_lens = [w.shape[2] for w in batch["latents"]]
+        # latents_lens = torch.LongTensor(latents_lens)
+        # latents_lens_max = torch.max(latents_lens)
+        # latents_rel_lens = latents_lens / latents_lens_max
 
         token_padded = torch.LongTensor(B, max_text_len)
         wav_padded = torch.FloatTensor(B, 1, wav_lens_max)
         token_padded = token_padded.zero_() + self.pad_id
         wav_padded = wav_padded.zero_() + self.pad_id
 
-        latents_padded = torch.FloatTensor(B, 128, latents_lens_max)
-        latents_padded = latents_padded.zero_() + self.pad_id
-
+        # latents_padded = torch.FloatTensor(B, 128, latents_lens_max)
+        # latents_padded = latents_padded.zero_() + self.pad_id
         for i in range(len(ids_sorted_decreasing)):
             token_ids = batch["token_ids"][i]
             token_padded[i, : batch["token_len"][i]] = torch.LongTensor(token_ids)
@@ -357,9 +352,12 @@ class Naturalspeech2Dataset(TTSDataset):
             wav = batch["wav"][i]
             wav_padded[i, :, : wav.size(1)] = torch.FloatTensor(wav)
 
-            latents_emb = batch["latents"][i]
-            latents_padded[i, :, : latents_emb.size(2)] = torch.FloatTensor(latents_emb)
-
+            # latents_emb = batch["latents"][i]
+            # latents_padded[i, :, : latents_emb.size(2)] = torch.FloatTensor(latents_emb)
+        # Extract discrete codes from EnCodec
+        emb, codes, _ = self.encodec(wav_padded, return_encoded=True)
+        emb = emb.squeeze(1)
+        emb = emb.transpose(1, 2)
         return {
             "tokens": token_padded,
             "token_lens": token_lens,
@@ -371,8 +369,8 @@ class Naturalspeech2Dataset(TTSDataset):
             "audio_files": batch["wav_file"],
             "raw_text": batch["raw_text"],
             "audio_unique_names": batch["audio_unique_name"],
-            "latents": latents_padded,
-            "latents_rel_lens": latents_rel_lens,
+            "latents": emb,
+            "codes": codes.squeeze(1),
         }
 
 
@@ -490,7 +488,7 @@ class Naturalspeech2(BaseTTS):
         language_manager: LanguageManager = None,
     ):
         super().__init__(config, ap, tokenizer)
-        self.encodec = EncodecWrapper()
+        self.encodec = EncodecWrapper().eval()
         # self.init_multilingual(config)
         self.embedded_language_dim = 0
         self.segment_size = self.args.segment_size
@@ -738,10 +736,11 @@ class Naturalspeech2(BaseTTS):
         audio_hat = outputs["audio_hat"]
         audio = self.encodec.decode(latents.transpose(1, 2)).squeeze(1)  # [Batch, Audio_t]
         # [TODO] compute mel_loss from audio and audio_hat not according to the paper
-
+        _, ce_loss = self.encodec.rq(outputs["latent_hat"].transpose(1, 2), batch["codes"].squeeze(1))
         # compute losses
         with autocast(enabled=False):  # use float32 for the criterion
             loss_dict = criterion(
+                ce_loss=ce_loss,
                 latents=latents,
                 latent_z_hat=outputs["latent_hat"],
                 input_lens=token_lenghts,
