@@ -434,9 +434,7 @@ class Naturalspeech2Args(Coqpit):
     wavenet_attention_head: int = 8
     num_cervq_sample: int = 4
     noise_schedule: str = "sigmoid"  # you might want to add this, wasn't clear from your code
-
-    # Train param
-    segment_size: int = 64
+    diff_segment_size: int = 64
 
     # Freeze layers
     freeze_phoneme_encoder: bool = False
@@ -491,7 +489,7 @@ class Naturalspeech2(BaseTTS):
         self.encodec = EncodecWrapper().eval()
         # self.init_multilingual(config)
         self.embedded_language_dim = 0
-        self.segment_size = self.args.segment_size
+        self.diff_segment_size = self.args.segment_size
 
         self.phoneme_encoder = TransformerEncoder(
             self.args.phe_hidden_dim,
@@ -684,11 +682,15 @@ class Naturalspeech2(BaseTTS):
         expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
 
         # [TODO] write a logic to choose a random segments
-        latents_hat, diffusion_predictions, _ = self.diffusion(
+        # select a random feature segment for the waveform decoder
+        lat_slice, slice_ids = rand_segments(latents, latents_lengths, self.diff_segment_size, let_short_samples=True, pad_short=True)
+        lat_slice_len = torch.tensor(lat_slice.shape[1:2]).to(x.device)
+        
+        latents_hat, diffusion_predictions, diffusion_starts = self.diffusion(
             encodings=expanded_encodings,
-            lengths=latents_lengths,
+            lengths=lat_slice_len,
             speech_prompts=prompt_enc,
-            latents=latents,
+            latents=lat_slice,
         )
 
         predictions = self.encodec.decode(latents_hat.transpose(1, 2))
