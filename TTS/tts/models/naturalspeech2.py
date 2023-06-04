@@ -489,7 +489,7 @@ class Naturalspeech2(BaseTTS):
         self.encodec = EncodecWrapper().eval()
         # self.init_multilingual(config)
         self.embedded_language_dim = 0
-        self.diff_segment_size = self.args.segment_size
+        self.diff_segment_size = self.args.diff_segment_size
 
         self.phoneme_encoder = TransformerEncoder(
             self.args.phe_hidden_dim,
@@ -549,7 +549,7 @@ class Naturalspeech2(BaseTTS):
             noise_schedule=self.args.noise_schedule,
         )
 
-        self.aligner = AlignmentNetwork(in_query_channels=80, in_key_channels=self.args.phe_hidden_dim)
+        self.aligner = AlignmentNetwork(in_query_channels=128, in_key_channels=self.args.phe_hidden_dim)
 
     @property
     def device(self):
@@ -660,52 +660,71 @@ class Naturalspeech2(BaseTTS):
     ) -> Dict:
         outputs = {}
         tokens_mask = torch.unsqueeze(sequence_mask(tokens_lens, tokens.shape[1]), 1).float()
-        mel_mask = torch.unsqueeze(sequence_mask(mel_lens, mel.shape[2]), 1).float()
         phoneme_enc = self.phoneme_encoder(tokens.unsqueeze(2))
-        continuous_vector = torch.sum(latents.transpose(1, 2), dim=1)
-        # use latents as a prompt while inference use prompt as a input to latents
-        prompt_enc = self.prompt_encoder(latents)
+        latent_lens = torch.tensor(latents.shape[1:2]).to(latents.device)
+        latents_mask = torch.unsqueeze(sequence_mask(latent_lens, latents.shape[2]), 1).float()
+        # create masks for the segments and remaining parts
+        remaining_mask = torch.ones_like(latents, dtype=torch.bool)
+
+        # Get random segment for the speech prompt
+        speech_prompts, segment_indices = rand_segments(
+            latents, latents_lengths, self.diff_segment_size, let_short_samples=True, pad_short=True
+        )
+
+        # iterate over the batch dimension
+        for i in range(latents.size(0)):
+            remaining_mask[i, :, segment_indices[i] : segment_indices[i] + self.diff_segment_size] = 0
+
+        # apply masks to get remaining parts
+        remaining_latents = latents.masked_select(remaining_mask).view(latents.shape[0], latents.shape[1], -1)
+        remaining_latents_lengths = torch.tensor(remaining_latents.shape[1:2]).to(remaining_latents.device)
+
+        # Encode speech prompt
+        speech_prompts_enc = self.prompt_encoder(speech_prompts)
+
         alignment_hard, alignment_soft, alignment_logprob, alignment_mas = self._forward_aligner(
-            phoneme_enc.transpose(1, 2), mel.transpose(1, 2), tokens_mask, mel_mask
+            phoneme_enc.transpose(1, 2), latents.transpose(1, 2), tokens_mask, latents_mask
         )
 
         alignment_soft = alignment_soft.transpose(1, 2)
         alignment_mas = alignment_mas.transpose(1, 2)
-        durations = self.duration_predictor(phoneme_enc.transpose(1, 2), prompt_enc.transpose(1, 2))
-        loss_duration = torch.sum((durations - alignment_hard.unsqueeze(1)) ** 2, [1, 2]) / torch.sum(tokens_mask)
+
+        durations = self.duration_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
+        loss_duration = torch.sum(
+            torch.sum((durations - alignment_hard.unsqueeze(1)) ** 2, [1, 2]) / torch.sum(tokens_mask)
+        )
         outputs["loss_duration"] = loss_duration
 
-        pitch_pred = self.pitch_predictor(phoneme_enc.transpose(1, 2), prompt_enc.transpose(1, 2))
+        pitch_pred = self.pitch_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
         pitch = average_over_durations(pitch, alignment_hard)
         outputs["pitch_loss"] = torch.sum(torch.sum((pitch - pitch_pred) ** 2, [1, 2]) / torch.sum(tokens_mask))
+
         phoneme_with_durations = phoneme_enc.transpose(1, 2) + durations
         expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
 
-        # [TODO] write a logic to choose a random segments
-        # select a random feature segment for the waveform decoder
-        lat_slice, slice_ids = rand_segments(latents, latents_lengths, self.diff_segment_size, let_short_samples=True, pad_short=True)
-        lat_slice_len = torch.tensor(lat_slice.shape[1:2]).to(x.device)
-        
         latents_hat, diffusion_predictions, diffusion_starts = self.diffusion(
             encodings=expanded_encodings,
-            lengths=lat_slice_len,
-            speech_prompts=prompt_enc,
-            latents=lat_slice,
+            lengths=remaining_latents_lengths,
+            speech_prompts=speech_prompts_enc,
+            latents=remaining_latents,
         )
 
-        predictions = self.encodec.decode(latents_hat.transpose(1, 2))
+        predictions = self.encodec.decode(diffusion_predictions.transpose(1, 2))
 
         outputs.update(
             {
                 "input_lens": tokens_lens,
                 "spec_lens": mel_lens,
                 "audio_hat": predictions,
-                "latent_hat": latents_hat,
+                "latent_hat": diffusion_predictions,
+                "speech_prompts": speech_prompts,
                 "durations": durations,
                 "pitch": pitch,
                 "alignment_hard": alignment_mas,
                 "alignment_soft": alignment_soft,
                 "alignment_logprob": alignment_logprob,
+                "segment_indices": segment_indices,
+                "remaining_mask": remaining_mask,
             }
         )
 
@@ -738,12 +757,25 @@ class Naturalspeech2(BaseTTS):
         audio_hat = outputs["audio_hat"]
         audio = self.encodec.decode(latents.transpose(1, 2)).squeeze(1)  # [Batch, Audio_t]
         # [TODO] compute mel_loss from audio and audio_hat not according to the paper
-        _, ce_loss = self.encodec.rq(outputs["latent_hat"].transpose(1, 2), batch["codes"].squeeze(1))
+        # Create remaining latents for the diffusion model
+
+        latents_slice = latents.masked_select(outputs["remaining_mask"]).view(latents.shape[0], latents.shape[1], -1)
+        codes = batch["codes"].transpose(1, 2)
+        # create masks for the segments and remaining parts
+        codes_mask = torch.ones_like(codes, dtype=torch.bool)
+        # iterate over the batch dimension
+        for i in range(latents.size(0)):
+            codes_mask[i, :, outputs["segment_indices"][i] : outputs["segment_indices"][i] + self.diff_segment_size] = 0
+        codes_slice = codes.masked_select(codes_mask).view(codes.shape[0], codes.shape[1], -1)
+        if self.config.ce_loss_alpha > 0:
+            _, ce_loss = self.encodec.rq(outputs["latent_hat"].transpose(1, 2), codes_slice.transpose(1, 2))
         # compute losses
         with autocast(enabled=False):  # use float32 for the criterion
             loss_dict = criterion(
                 ce_loss=ce_loss,
-                latents=latents,
+                duration_loss=outputs["loss_duration"],
+                pitch_loss=outputs["pitch_loss"],
+                latents=latents_slice,
                 latent_z_hat=outputs["latent_hat"],
                 input_lens=token_lenghts,
                 spec_lens=latents_lens,

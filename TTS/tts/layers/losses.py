@@ -894,6 +894,8 @@ class Naturalspeech2Loss(nn.Module):
         self.data_loss_alpha = c.data_loss_alpha
         self.ce_loss_alpha = c.ce_loss_alpha
         self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
+        self.duration_loss_alpha = c.duration_loss_alpha
+        self.pitch_loss_alpha = c.pitch_loss_alpha
         # use aligner if needed
         self.aligner_loss = ForwardSumLoss()
         self.aligner_loss_alpha = c.aligner_loss_alpha
@@ -909,6 +911,8 @@ class Naturalspeech2Loss(nn.Module):
     def forward(
         self,
         ce_loss=None,
+        duration_loss=None,
+        pitch_loss=None,
         latents=None,
         latent_z_hat=None,
         input_lens=None,
@@ -927,7 +931,12 @@ class Naturalspeech2Loss(nn.Module):
             data_loss = functional.mse_loss(latents, latent_z_hat)
             loss += data_loss * self.data_loss_alpha
             return_dict["data_loss"] = data_loss * self.data_loss_alpha
-
+        if self.duration_loss_alpha > 0:
+            loss += duration_loss * self.duration_loss_alpha
+            return_dict["duration_loss"] = duration_loss * self.duration_loss_alpha
+        if self.pitch_loss_alpha > 0:
+            loss += pitch_loss * self.pitch_loss_alpha
+            return_dict["pitch_loss"] = pitch_loss * self.pitch_loss_alpha
         if hasattr(self, "aligner_loss") and self.aligner_loss_alpha > 0:
             aligner_loss = self.aligner_loss(alignment_logprob, input_lens, spec_lens)
             loss += self.aligner_loss_alpha * aligner_loss
