@@ -356,7 +356,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
             vc_config_path = config_path
 
         # tts model with multiple files to be loaded from the directory path
-        if "fairseq" == model_item["author"] or isinstance(model_item["github_rls_url"], list):
+        if model_item["author"] == "fairseq" or isinstance(model_item["github_rls_url"], list):
             model_dir = model_path
             tts_path = None
             tts_config_path = None
