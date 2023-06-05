@@ -60,7 +60,7 @@ if is_coqui_available:
             self.assertIsNone(tts.languages)
 
         def test_studio_model(self):
-            tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio")
+            tts = TTS(model_name="coqui_studio/en/Zacharie Aimilios/coqui_studio")
             tts.tts_to_file(text="This is a test.")
 
             # check speed > 2.0 raises error

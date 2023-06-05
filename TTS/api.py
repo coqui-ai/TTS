@@ -130,7 +130,7 @@ class CS_API:
         for speaker in self.speakers:
             if speaker.name == name:
                 return speaker
-        raise ValueError(f"Speaker {name} not found.")
+        raise ValueError(f"Speaker {name} not found in {self.speakers}")
 
     def id_to_speaker(self, speaker_id):
         for speaker in self.speakers:
@@ -346,7 +346,7 @@ class TTS:
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
-        if "fairseq" in model_name or isinstance(model_item["github_rls_url"], list):
+        if "fairseq" in model_name or (model_item is not None and isinstance(model_item["github_rls_url"], list)):
             # return model directory if there are multiple files
             # we assume that the model knows how to load itself
             return None, None, None, None, model_path
