@@ -130,7 +130,7 @@ class CS_API:
         for speaker in self.speakers:
             if speaker.name == name:
                 return speaker
-        raise ValueError(f"Speaker {name} not found.")
+        raise ValueError(f"Speaker {name} not found in {self.speakers}")
 
     def id_to_speaker(self, speaker_id):
         for speaker in self.speakers:
@@ -264,6 +264,10 @@ class TTS:
             >>> tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr", file_path="thisisit.wav")
             >>> tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt", file_path="thisisit.wav")
 
+        Example Fairseq TTS models (uses ISO language codes in https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html):
+            >>> tts = TTS(model_name="tts_models/eng/fairseq/vits", progress_bar=False, gpu=True)
+            >>> tts.tts_to_file("This is a test.", file_path="output.wav")
+
         Args:
             model_name (str, optional): Model name to load. You can list models by ```tts.models```. Defaults to None.
             model_path (str, optional): Path to the model checkpoint. Defaults to None.
@@ -342,7 +346,7 @@ class TTS:
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
-        if isinstance(model_item["github_rls_url"], list):
+        if "fairseq" in model_name or (model_item is not None and isinstance(model_item["github_rls_url"], list)):
             # return model directory if there are multiple files
             # we assume that the model knows how to load itself
             return None, None, None, None, model_path

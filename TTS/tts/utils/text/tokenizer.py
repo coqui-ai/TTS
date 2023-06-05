@@ -108,11 +108,12 @@ class TTSTokenizer:
             text = self.text_cleaner(text)
         if self.use_phonemes:
             text = self.phonemizer.phonemize(text, separator="", language=language)
+        text = self.encode(text)
         if self.add_blank:
             text = self.intersperse_blank_char(text, True)
         if self.use_eos_bos:
             text = self.pad_with_bos_eos(text)
-        return self.encode(text)
+        return text
 
     def ids_to_text(self, id_sequence: List[int]) -> str:
         """Converts a sequence of token IDs to a string of text."""
@@ -120,14 +121,14 @@ class TTSTokenizer:
 
     def pad_with_bos_eos(self, char_sequence: List[str]):
         """Pads a sequence with the special BOS and EOS characters."""
-        return [self.characters.bos] + list(char_sequence) + [self.characters.eos]
+        return [self.characters.bos_id] + list(char_sequence) + [self.characters.eos_id]
 
     def intersperse_blank_char(self, char_sequence: List[str], use_blank_char: bool = False):
         """Intersperses the blank character between characters in a sequence.
 
         Use the ```blank``` character if defined else use the ```pad``` character.
         """
-        char_to_use = self.characters.blank if use_blank_char else self.characters.pad
+        char_to_use = self.characters.blank_id if use_blank_char else self.characters.pad
         result = [char_to_use] * (len(char_sequence) * 2 + 1)
         result[1::2] = char_sequence
         return result

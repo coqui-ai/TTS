@@ -7,7 +7,9 @@ import pysbd
 import torch
 
 from TTS.config import load_config
+from TTS.tts.configs.vits_config import VitsConfig
 from TTS.tts.models import setup_model as setup_tts_model
+from TTS.tts.models.vits import Vits
 
 # pylint: disable=unused-wildcard-import
 # pylint: disable=wildcard-import
@@ -98,8 +100,12 @@ class Synthesizer(object):
             self.output_sample_rate = self.vc_config.audio["output_sample_rate"]
 
         if model_dir:
-            self._load_tts_from_dir(model_dir, use_cuda)
-            self.output_sample_rate = self.tts_config.audio["output_sample_rate"]
+            if "fairseq" in model_dir:
+                self._load_fairseq_from_dir(model_dir, use_cuda)
+                self.output_sample_rate = self.tts_config.audio["sample_rate"]
+            else:
+                self._load_tts_from_dir(model_dir, use_cuda)
+                self.output_sample_rate = self.tts_config.audio["output_sample_rate"]
 
     @staticmethod
     def _get_segmenter(lang: str):
@@ -133,12 +139,23 @@ class Synthesizer(object):
         if use_cuda:
             self.vc_model.cuda()
 
+    def _load_fairseq_from_dir(self, model_dir: str, use_cuda: bool) -> None:
+        """Load the fairseq model from a directory.
+
+        We assume it is VITS and the model knows how to load itself from the directory and there is a config.json file in the directory.
+        """
+        self.tts_config = VitsConfig()
+        self.tts_model = Vits.init_from_config(self.tts_config)
+        self.tts_model.load_fairseq_checkpoint(self.tts_config, checkpoint_dir=model_dir, eval=True)
+        self.tts_config = self.tts_model.config
+        if use_cuda:
+            self.tts_model.cuda()
+
     def _load_tts_from_dir(self, model_dir: str, use_cuda: bool) -> None:
         """Load the TTS model from a directory.
 
         We assume the model knows how to load itself from the directory and there is a config.json file in the directory.
         """
-
         config = load_config(os.path.join(model_dir, "config.json"))
         self.tts_config = config
         self.tts_model = setup_tts_model(config)

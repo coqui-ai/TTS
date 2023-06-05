@@ -60,7 +60,7 @@ if is_coqui_available:
             self.assertIsNone(tts.languages)
 
         def test_studio_model(self):
-            tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio")
+            tts = TTS(model_name="coqui_studio/en/Zacharie Aimilios/coqui_studio")
             tts.tts_to_file(text="This is a test.")
 
             # check speed > 2.0 raises error
@@ -82,6 +82,10 @@ if is_coqui_available:
             # check valid call
             wav = tts.tts(text="This is a test.", speed=2.0, emotion="Sad")
             self.assertGreater(len(wav), 0)
+
+        def test_fairseq_model(self):  # pylint: disable=no-self-use
+            tts = TTS(model_name="tts_models/eng/fairseq/vits")
+            tts.tts_to_file(text="This is a test.")
 
         def test_multi_speaker_multi_lingual_model(self):
             tts = TTS()
