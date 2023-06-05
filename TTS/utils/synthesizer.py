@@ -246,13 +246,13 @@ class Synthesizer(object):
 
         Args:
             text (str): input text.
-            speaker_name (str, optional): spekaer id for multi-speaker models. Defaults to "".
+            speaker_name (str, optional): speaker id for multi-speaker models. Defaults to "".
             language_name (str, optional): language id for multi-language models. Defaults to "".
             speaker_wav (Union[str, List[str]], optional): path to the speaker wav for voice cloning. Defaults to None.
             style_wav ([type], optional): style waveform for GST. Defaults to None.
             style_text ([type], optional): transcription of style_wav for Capacitron. Defaults to None.
             reference_wav ([type], optional): reference waveform for voice conversion. Defaults to None.
-            reference_speaker_name ([type], optional): spekaer id of reference waveform. Defaults to None.
+            reference_speaker_name ([type], optional): speaker id of reference waveform. Defaults to None.
         Returns:
             List[int]: [description]
         """
