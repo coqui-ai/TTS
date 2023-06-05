@@ -490,7 +490,7 @@ class Naturalspeech2(BaseTTS):
         # self.init_multilingual(config)
         self.embedded_language_dim = 0
         self.diff_segment_size = self.args.diff_segment_size
-
+        self.binary_loss_weight = 0.0
         self.phoneme_encoder = TransformerEncoder(
             self.args.phe_hidden_dim,
             self.args.phe_nhead,
@@ -755,11 +755,13 @@ class Naturalspeech2(BaseTTS):
             waveform,
         )
         audio_hat = outputs["audio_hat"]
-        audio = self.encodec.decode(latents.transpose(1, 2)).squeeze(1)  # [Batch, Audio_t]
+
         # [TODO] compute mel_loss from audio and audio_hat not according to the paper
         # Create remaining latents for the diffusion model
 
         latents_slice = latents.masked_select(outputs["remaining_mask"]).view(latents.shape[0], latents.shape[1], -1)
+        audio = self.encodec.decode(latents_slice.transpose(1, 2)).squeeze(1)  # [Batch, Audio_t]
+        outputs["waveform_seg"] = audio
         codes = batch["codes"].transpose(1, 2)
         # create masks for the segments and remaining parts
         codes_mask = torch.ones_like(codes, dtype=torch.bool)
@@ -782,6 +784,7 @@ class Naturalspeech2(BaseTTS):
                 alignment_logprob=outputs["alignment_logprob"],
                 alignment_hard=outputs["alignment_hard"],
                 alignment_soft=outputs["alignment_soft"],
+                binary_loss_weight=self.binary_loss_weight,
             )
 
         return outputs, loss_dict
@@ -789,13 +792,13 @@ class Naturalspeech2(BaseTTS):
         raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
     def _log(self, ap, batch, outputs, name_prefix="train"):  # pylint: disable=unused-argument,no-self-use
-        y_hat = outputs[1]["model_outputs"]
-        y = outputs[1]["waveform_seg"]
+        y_hat = outputs["audio_hat"]
+        y = outputs["waveform_seg"]
         figures = plot_results(y_hat, y, ap, name_prefix)
         sample_voice = y_hat[0].squeeze(0).detach().cpu().numpy()
         audios = {f"{name_prefix}/audio": sample_voice}
 
-        alignments = outputs[1]["alignments"]
+        alignments = outputs["alignment_hard"]
         align_img = alignments[0].data.cpu().numpy().T
 
         figures.update(
@@ -1065,6 +1068,10 @@ class Naturalspeech2(BaseTTS):
         from TTS.tts.layers.losses import Naturalspeech2Loss  # pylint: disable=import-outside-toplevel
 
         return Naturalspeech2Loss(self.config)
+
+    def on_train_step_start(self, trainer):
+        """Schedule binary loss weight."""
+        self.binary_loss_weight = min(trainer.epochs_done / self.config.binary_loss_warmup_epochs, 1.0) * 1.0
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False, strict=True, cache=False

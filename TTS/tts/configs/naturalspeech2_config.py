@@ -99,6 +99,7 @@ class Naturalspeech2Config(BaseTTSConfig):
     ce_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
     binary_align_loss_alpha: float = 1.0
+    binary_loss_warmup_epochs: int = 150
     duration_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 1.0
     # data loader params
