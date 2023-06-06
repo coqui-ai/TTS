@@ -471,7 +471,7 @@ class Naturalspeech2Args(Coqpit):
     pre_attention_head: int = 8
     wavenet_kernel_size: int = 3
     wavenet_dilation: int = 2
-    wavenet_stack: int = 40
+    wavenet_stack: int = 5
     wavenet_dropout_rate: float = 0.2
     wavenet_attention_apply_in_stack: int = 3
     wavenet_attention_head: int = 8
@@ -746,7 +746,7 @@ class Naturalspeech2(BaseTTS):
 
         latents_hat, diffusion_predictions, diffusion_starts = self.diffusion(
             encodings=expanded_encodings.transpose(1, 2),
-            lengths=remaining_latents_lengths,
+            lengths=tokens_lens,
             speech_prompts=speech_prompts_enc,
             latents=remaining_latents,
         )
@@ -775,12 +775,12 @@ class Naturalspeech2(BaseTTS):
         return outputs
 
     @torch.no_grad()
-    def inference(self, tokens, tokens_lens, voice_prompt):  # pylint: disable=dangerous-default-value
+    def inference(self, tokens, tokens_lens, voice_prompt , ddim_steps=100):  # pylint: disable=dangerous-default-value
         outputs = {}
         tokens_mask = torch.unsqueeze(sequence_mask(tokens_lens, tokens.shape[1]), 1).float()
 
         phoneme_enc = self.phoneme_encoder(tokens.unsqueeze(2))
-        remaining_latents_lengths = torch.tensor(voice_prompt.shape[1:2]).to(voice_prompt.device)
+        
         # Encode speech prompt
         speech_prompts_enc = self.prompt_encoder(voice_prompt)
 
@@ -794,12 +794,13 @@ class Naturalspeech2(BaseTTS):
         pitch_emb = self.pitch_embedding(pitch_pred)
         expanded_encodings = expanded_dur + pitch_emb.transpose(1, 2)
 
-        latents_hat, diffusion_predictions, diffusion_starts = self.diffusion.ddim(
+        audio, diffusion_predictions, diffusion_starts = self.diffusion.ddim(
             encodings=expanded_encodings.transpose(1, 2),
-            lengths=remaining_latents_lengths,
+            lengths=tokens_lens,
             speech_prompts=speech_prompts_enc,
+            ddim_steps = ddim_steps
         )
-
+        outputs["wav"] = audio
         return outputs
 
     def train_step(self, batch: dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
