@@ -35,8 +35,6 @@ class TransformerEncoder(nn.Module):
         encoder_type="phoneme",
     ):
         super().__init__()
-        if language_emb_dim:
-            d_model += language_emb_dim
         if encoder_type == "phoneme":
             self.pre = nn.Embedding(n_vocab, d_model)
         else:
@@ -57,9 +55,6 @@ class TransformerEncoder(nn.Module):
             x = x.squeeze(2)
         else:
             x = x.transpose(1, 2)
-        # concat the lang emb in embedding chars
-        if lang_emb is not None:
-            x = torch.cat((x, lang_emb.transpose(2, 1).expand(x.size(0), x.size(1), -1)), dim=-1)
         x = self.pos_enc(x)
         x = self.transformer(x)
         x = x.transpose(1, 2)

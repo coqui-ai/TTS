@@ -5,6 +5,7 @@ from itertools import chain
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
+import pyworld as pw
 import torch
 import torch.distributed as dist
 import torchaudio
@@ -26,6 +27,7 @@ from TTS.tts.layers.naturalspeech2.encodec import EncodecWrapper
 from TTS.tts.layers.naturalspeech2.encoder import TransformerEncoder
 from TTS.tts.layers.naturalspeech2.predictor import ConvBlockWithPrompting
 from TTS.tts.models.base_tts import BaseTTS
+from TTS.tts.utils.data import prepare_data
 from TTS.tts.utils.helpers import (
     average_over_durations,
     generate_path,
@@ -228,6 +230,8 @@ class Naturalspeech2AudioConfig(Coqpit):
     num_mels: int = 80
     mel_fmin: int = 0
     mel_fmax: int = None
+    pitch_fmax: int = 640
+    pitch_fmin: int = 1
 
 
 ##############################
@@ -259,6 +263,39 @@ def get_attribute_balancer_weights(items: list, attr_name: str, multi_dict: dict
     )
 
 
+def compute_f0(x: np.ndarray, pitch_fmax: int = None, hop_length: int = None, sample_rate: int = None) -> np.ndarray:
+    """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
+
+    Args:
+        x (np.ndarray): Waveform.
+
+    Returns:
+        np.ndarray: Pitch.
+
+    Examples:
+        >>> WAV_FILE = filename = librosa.util.example_audio_file()
+        >>> from TTS.config import BaseAudioConfig
+        >>> from TTS.utils.audio import AudioProcessor
+        >>> conf = BaseAudioConfig(pitch_fmax=8000)
+        >>> ap = AudioProcessor(**conf)
+        >>> wav = ap.load_wav(WAV_FILE, sr=22050)[:5 * 22050]
+        >>> pitch = ap.compute_f0(wav)
+    """
+    # assert self.pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
+    # align F0 length to the spectrogram length
+    if len(x) % hop_length == 0:
+        x = np.pad(x, (0, hop_length // 2), mode="reflect")
+
+    f0, t = pw.dio(
+        x.astype(np.double),
+        fs=sample_rate,
+        f0_ceil=pitch_fmax,
+        frame_period=1000 * hop_length / sample_rate,
+    )
+    f0 = pw.stonemask(x.astype(np.double), f0, t, sample_rate)
+    return f0
+
+
 class Naturalspeech2Dataset(TTSDataset):
     def __init__(self, model_args, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -270,12 +307,14 @@ class Naturalspeech2Dataset(TTSDataset):
         item = self.samples[idx]
         raw_text = item["text"]
 
-        wav, _ = load_audio(item["audio_file"])
+        wav = self.ap.load_wav(item["audio_file"])
 
         wav_filename = os.path.basename(item["audio_file"])
 
         token_ids = self.get_token_ids(idx, item["text"])
-
+        pitch = compute_f0(wav, self.ap.pitch_fmax, self.ap.hop_length, self.ap.sample_rate)
+        pitch = torch.from_numpy(pitch)
+        wav = torch.FloatTensor(wav[None, :])
         # after phonemization the text length may change
         # this is a shameful 🤭 hack to prevent longer phonemes
         # TODO: find a better fix
@@ -291,6 +330,7 @@ class Naturalspeech2Dataset(TTSDataset):
             "wav_file": wav_filename,
             "language_name": item["language"],
             "audio_unique_name": item["audio_unique_name"],
+            "pitch": pitch,
         }
 
     @property
@@ -333,6 +373,10 @@ class Naturalspeech2Dataset(TTSDataset):
         wav_lens_max = torch.max(wav_lens)
         wav_rel_lens = wav_lens / wav_lens_max
 
+        # format F0
+        pitch = prepare_data(batch["pitch"])
+        pitch = torch.FloatTensor(pitch)[:, None, :].contiguous()  # B x 1 xT
+
         # latents_lens = [w.shape[2] for w in batch["latents"]]
         # latents_lens = torch.LongTensor(latents_lens)
         # latents_lens_max = torch.max(latents_lens)
@@ -342,9 +386,6 @@ class Naturalspeech2Dataset(TTSDataset):
         wav_padded = torch.FloatTensor(B, 1, wav_lens_max)
         token_padded = token_padded.zero_() + self.pad_id
         wav_padded = wav_padded.zero_() + self.pad_id
-
-        # latents_padded = torch.FloatTensor(B, 128, latents_lens_max)
-        # latents_padded = latents_padded.zero_() + self.pad_id
         for i in range(len(ids_sorted_decreasing)):
             token_ids = batch["token_ids"][i]
             token_padded[i, : batch["token_len"][i]] = torch.LongTensor(token_ids)
@@ -358,6 +399,7 @@ class Naturalspeech2Dataset(TTSDataset):
         emb, codes, _ = self.encodec(wav_padded, return_encoded=True)
         emb = emb.squeeze(1)
         emb = emb.transpose(1, 2)
+
         return {
             "tokens": token_padded,
             "token_lens": token_lens,
@@ -371,6 +413,7 @@ class Naturalspeech2Dataset(TTSDataset):
             "audio_unique_names": batch["audio_unique_name"],
             "latents": emb,
             "codes": codes.squeeze(1),
+            "pitch": pitch,
         }
 
 
@@ -386,7 +429,7 @@ class Naturalspeech2Args(Coqpit):
     Args:
     """
 
-    num_chars: int = 100
+    num_chars: int = 150
     # DurationPredictor params
     dp_hidden_dim: int = 512
     dp_n_layers: int = 30
@@ -490,7 +533,7 @@ class Naturalspeech2(BaseTTS):
         # self.init_multilingual(config)
         self.embedded_language_dim = 0
         self.diff_segment_size = self.args.diff_segment_size
-        self.binary_loss_weight = 0.0
+
         self.phoneme_encoder = TransformerEncoder(
             self.args.phe_hidden_dim,
             self.args.phe_nhead,
@@ -498,7 +541,6 @@ class Naturalspeech2(BaseTTS):
             self.args.phe_dim_feedforward,
             self.args.phe_kernel_size,
             self.args.phe_dropout,
-            language_emb_dim=self.embedded_language_dim,
             n_vocab=self.args.num_chars,
             encoder_type="phoneme",
         )
@@ -510,7 +552,6 @@ class Naturalspeech2(BaseTTS):
             self.args.pre_dim_feedforward,
             self.args.pre_kernel_size,
             self.args.pre_dropout,
-            language_emb_dim=self.embedded_language_dim,
             max_len=5000,
             encoder_type="prompt",
         )
@@ -549,7 +590,7 @@ class Naturalspeech2(BaseTTS):
             noise_schedule=self.args.noise_schedule,
         )
 
-        self.aligner = AlignmentNetwork(in_query_channels=128, in_key_channels=self.args.phe_hidden_dim)
+        self.aligner = AlignmentNetwork(in_query_channels=80, in_key_channels=self.args.phe_hidden_dim)
 
     @property
     def device(self):
@@ -632,6 +673,8 @@ class Naturalspeech2(BaseTTS):
         """
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         alignment_soft, alignment_logprob = self.aligner(y.transpose(1, 2), x, x_mask, None)
+        assert not torch.isnan(alignment_soft).any()
+
         alignment_mas = maximum_path(
             alignment_soft.squeeze(1).transpose(1, 2).contiguous(), attn_mask.squeeze(1).contiguous()
         )
@@ -643,9 +686,6 @@ class Naturalspeech2(BaseTTS):
     def _set_cond_input(aux_input: Dict):
         # [TODO] use this
         return None
-
-    def add_pitch_information(self, expanded_sequence, pitch_prediction):
-        return expanded_sequence + pitch_prediction
 
     def forward(  # pylint: disable=dangerous-default-value
         self,
@@ -661,8 +701,10 @@ class Naturalspeech2(BaseTTS):
         outputs = {}
         tokens_mask = torch.unsqueeze(sequence_mask(tokens_lens, tokens.shape[1]), 1).float()
         phoneme_enc = self.phoneme_encoder(tokens.unsqueeze(2))
+
         latent_lens = torch.tensor(latents.shape[1:2]).to(latents.device)
-        latents_mask = torch.unsqueeze(sequence_mask(latent_lens, latents.shape[2]), 1).float()
+        mel_mask = torch.unsqueeze(sequence_mask(mel_lens, None), 1).float()
+        latents_mask = torch.unsqueeze(sequence_mask(latent_lens, None), 1).float()
         # create masks for the segments and remaining parts
         remaining_mask = torch.ones_like(latents, dtype=torch.bool)
 
@@ -683,27 +725,27 @@ class Naturalspeech2(BaseTTS):
         speech_prompts_enc = self.prompt_encoder(speech_prompts)
 
         alignment_hard, alignment_soft, alignment_logprob, alignment_mas = self._forward_aligner(
-            phoneme_enc.transpose(1, 2), latents.transpose(1, 2), tokens_mask, latents_mask
+            phoneme_enc.transpose(1, 2), mel.transpose(1, 2), tokens_mask, mel_mask
         )
 
         alignment_soft = alignment_soft.transpose(1, 2)
         alignment_mas = alignment_mas.transpose(1, 2)
 
-        durations = self.duration_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
-        loss_duration = torch.sum(
-            torch.sum((durations - alignment_hard.unsqueeze(1)) ** 2, [1, 2]) / torch.sum(tokens_mask)
-        )
-        outputs["loss_duration"] = loss_duration
+        durations_pred = self.duration_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
+        durations_pred = durations_pred.squeeze(1)
 
-        pitch_pred = self.pitch_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
         pitch = average_over_durations(pitch, alignment_hard)
-        outputs["pitch_loss"] = torch.sum(torch.sum((pitch - pitch_pred) ** 2, [1, 2]) / torch.sum(tokens_mask))
+        pitch_pred = self.pitch_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
 
-        phoneme_with_durations = phoneme_enc.transpose(1, 2) + durations
-        expanded_encodings = self.add_pitch_information(phoneme_with_durations, pitch)
+        durations_pred_exp = durations_pred.unsqueeze(2)
+        expanded_dur = durations_pred_exp.expand_as(phoneme_enc)
+
+        pitch_emb = self.pitch_embedding(pitch_pred)
+        expanded_encodings = expanded_dur + pitch_emb.transpose(1, 2)
+        # expanded_encodings = torch.cat([expanded_dur, pitch_pred.transpose(1, 2)], dim=2)
 
         latents_hat, diffusion_predictions, diffusion_starts = self.diffusion(
-            encodings=expanded_encodings,
+            encodings=expanded_encodings.transpose(1, 2),
             lengths=remaining_latents_lengths,
             speech_prompts=speech_prompts_enc,
             latents=remaining_latents,
@@ -718,8 +760,10 @@ class Naturalspeech2(BaseTTS):
                 "audio_hat": predictions,
                 "latent_hat": diffusion_predictions,
                 "speech_prompts": speech_prompts,
-                "durations": durations,
+                "durations": alignment_hard,
+                "durations_pred": durations_pred,
                 "pitch": pitch,
+                "pitch_pred": pitch_pred,
                 "alignment_hard": alignment_mas,
                 "alignment_soft": alignment_soft,
                 "alignment_logprob": alignment_logprob,
@@ -731,8 +775,31 @@ class Naturalspeech2(BaseTTS):
         return outputs
 
     @torch.no_grad()
-    def inference(self, x, prompt):  # pylint: disable=dangerous-default-value
+    def inference(self, tokens, tokens_lens, voice_prompt):  # pylint: disable=dangerous-default-value
         outputs = {}
+        tokens_mask = torch.unsqueeze(sequence_mask(tokens_lens, tokens.shape[1]), 1).float()
+
+        phoneme_enc = self.phoneme_encoder(tokens.unsqueeze(2))
+        remaining_latents_lengths = torch.tensor(voice_prompt.shape[1:2]).to(voice_prompt.device)
+        # Encode speech prompt
+        speech_prompts_enc = self.prompt_encoder(voice_prompt)
+
+        durations_pred = self.duration_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
+
+        pitch_pred = self.pitch_predictor(phoneme_enc.transpose(1, 2), speech_prompts_enc.transpose(1, 2))
+
+        durations_pred_exp = durations_pred.unsqueeze(2)
+        expanded_dur = durations_pred_exp.expand_as(phoneme_enc)
+
+        pitch_emb = self.pitch_embedding(pitch_pred)
+        expanded_encodings = expanded_dur + pitch_emb.transpose(1, 2)
+
+        latents_hat, diffusion_predictions, diffusion_starts = self.diffusion.ddim(
+            encodings=expanded_encodings.transpose(1, 2),
+            lengths=remaining_latents_lengths,
+            speech_prompts=speech_prompts_enc,
+        )
+
         return outputs
 
     def train_step(self, batch: dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
@@ -745,6 +812,7 @@ class Naturalspeech2(BaseTTS):
         waveform = batch["waveform"]
         mel_lens = batch["mel_lens"]
         mel = batch["mel"]
+        pitch = batch["pitch"]
         outputs = self.forward(
             tokens,
             token_lenghts,
@@ -752,10 +820,10 @@ class Naturalspeech2(BaseTTS):
             latents_lens,
             mel,
             mel_lens,
-            waveform,
+            pitch,
         )
         audio_hat = outputs["audio_hat"]
-
+        audio = self.encodec.decode(latents.transpose(1, 2)).squeeze(1)  # [Batch, Audio_t]
         # [TODO] compute mel_loss from audio and audio_hat not according to the paper
         # Create remaining latents for the diffusion model
 
@@ -771,12 +839,15 @@ class Naturalspeech2(BaseTTS):
         codes_slice = codes.masked_select(codes_mask).view(codes.shape[0], codes.shape[1], -1)
         if self.config.ce_loss_alpha > 0:
             _, ce_loss = self.encodec.rq(outputs["latent_hat"].transpose(1, 2), codes_slice.transpose(1, 2))
+
         # compute losses
         with autocast(enabled=False):  # use float32 for the criterion
             loss_dict = criterion(
                 ce_loss=ce_loss,
-                duration_loss=outputs["loss_duration"],
-                pitch_loss=outputs["pitch_loss"],
+                duration=outputs["durations"],
+                duration_pred=outputs["durations_pred"],
+                pitch=outputs["pitch"],
+                pitch_pred=outputs["pitch_pred"],
                 latents=latents_slice,
                 latent_z_hat=outputs["latent_hat"],
                 input_lens=token_lenghts,
@@ -784,12 +855,9 @@ class Naturalspeech2(BaseTTS):
                 alignment_logprob=outputs["alignment_logprob"],
                 alignment_hard=outputs["alignment_hard"],
                 alignment_soft=outputs["alignment_soft"],
-                binary_loss_weight=self.binary_loss_weight,
             )
 
         return outputs, loss_dict
-
-        raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
     def _log(self, ap, batch, outputs, name_prefix="train"):  # pylint: disable=unused-argument,no-self-use
         y_hat = outputs["audio_hat"]
@@ -829,8 +897,8 @@ class Naturalspeech2(BaseTTS):
         logger.train_audios(steps, audios, self.ap.sample_rate)
 
     @torch.no_grad()
-    def eval_step(self, batch: dict, criterion: nn.Module, optimizer_idx: int):
-        return self.train_step(batch, criterion, optimizer_idx)
+    def eval_step(self, batch: dict, criterion: nn.Module):
+        return self.train_step(batch, criterion)
 
     def eval_log(self, batch: dict, outputs: dict, logger: "Logger", assets: dict, steps: int) -> None:
         figures, audios = self._log(self.ap, batch, outputs, "eval")
@@ -1019,8 +1087,8 @@ class Naturalspeech2(BaseTTS):
                 verbose=verbose,
                 tokenizer=self.tokenizer,
                 start_by_longest=config.start_by_longest,
-                compute_f0=config.get("compute_f0", False),
-                f0_cache_path=config.get("f0_cache_path", None),
+                compute_f0=config.compute_f0,
+                f0_cache_path=config.f0_cache_path,
             )
 
             # wait all the DDP process to be ready
@@ -1068,10 +1136,6 @@ class Naturalspeech2(BaseTTS):
         from TTS.tts.layers.losses import Naturalspeech2Loss  # pylint: disable=import-outside-toplevel
 
         return Naturalspeech2Loss(self.config)
-
-    def on_train_step_start(self, trainer):
-        """Schedule binary loss weight."""
-        self.binary_loss_weight = min(trainer.epochs_done / self.config.binary_loss_warmup_epochs, 1.0) * 1.0
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False, strict=True, cache=False

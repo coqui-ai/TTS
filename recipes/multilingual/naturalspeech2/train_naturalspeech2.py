@@ -22,7 +22,7 @@ dataset_config = BaseDatasetConfig(
 )
 
 audio_config = Naturalspeech2AudioConfig(
-    sample_rate=16000,
+    sample_rate=22050,
     win_length=1024,
     hop_length=256,
     num_mels=80,
@@ -30,14 +30,14 @@ audio_config = Naturalspeech2AudioConfig(
     mel_fmax=None,
 )
 
-naturalspeech2Args = Naturalspeech2Args(segment_size=32)
+naturalspeech2Args = Naturalspeech2Args(diff_segment_size=32)
 
 config = Naturalspeech2Config(
     model_args=naturalspeech2Args,
     audio=audio_config,
     run_name="naturalspeech2_mailabs",
     batch_size=32,
-    eval_batch_size=2,
+    eval_batch_size=16,
     batch_group_size=0,
     num_loader_workers=12,
     num_eval_loader_workers=12,

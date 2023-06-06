@@ -29,6 +29,7 @@ class ConvBlockWithPrompting(nn.Module):
                 ]
             )
         self.layers = nn.Sequential(*layers)
+        self.proj = nn.Conv1d(in_channels=hidden_dim, out_channels=1, kernel_size=3, padding=1)
 
     def forward(self, x, prompt_enc):
         for layer in self.layers:
@@ -39,4 +40,5 @@ class ConvBlockWithPrompting(nn.Module):
                 x = x.permute(1, 2, 0)
             else:
                 x = layer(x)
+        x = self.proj(x)
         return x

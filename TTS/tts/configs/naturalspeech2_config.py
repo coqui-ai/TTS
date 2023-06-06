@@ -93,9 +93,10 @@ class Naturalspeech2Config(BaseTTSConfig):
     scheduler_after_epoch: bool = True
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
+    grad_clip: float = 5.0
 
     # loss params
-    data_loss_alpha: float = 10.0
+    data_loss_alpha: float = 1.0
     ce_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
     binary_align_loss_alpha: float = 1.0
@@ -114,6 +115,10 @@ class Naturalspeech2Config(BaseTTSConfig):
     # overrides
     r: int = 1  # DO NOT CHANGE
     add_blank: bool = True
+
+    # dataset configs
+    compute_f0: bool = False
+    f0_cache_path: str = None
 
     # testing
     test_sentences: List[List] = field(
