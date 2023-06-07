@@ -185,8 +185,7 @@ def ljspeech_test(root_path, meta_file, **kwargs):  # pylint: disable=unused-arg
 
 
 def ljspeech_custom(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
-    """Normalizes the LJSpeech meta data file to TTS format
-    https://keithito.com/LJ-Speech-Dataset/"""
+    """Normalizes the LJSpeech meta data file to TTS format where the first column after the split is the wav filepath and the second is the transcription."""
     txt_file = os.path.join(root_path, meta_file)
     items = []
     speaker_name = "ljspeech"

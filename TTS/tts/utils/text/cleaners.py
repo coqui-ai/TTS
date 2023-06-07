@@ -160,8 +160,7 @@ def chinese_mandarin_cleaners(text: str) -> str:
 
 
 def spanish_cleaners(text):
-    """Basic pipeline for Portuguese text. There is no need to expand abbreviation and
-    numbers, phonemizer already does that"""
+    """Basic pipeline for Spanish text, mainly based on the method used for Portuguese language"""
     text = lowercase(text)
     text = replace_symbols(text, lang="es")
     text = remove_aux_symbols(text)
