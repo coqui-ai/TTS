@@ -105,7 +105,7 @@ class CS_API:
         """List built-in Coqui Studio speakers."""
         self._check_token()
         conn = http.client.HTTPSConnection("app.coqui.ai")
-        conn.request("GET", f"{self.api_prefix}/speakers", headers=self.headers)
+        conn.request("GET", f"{self.api_prefix}/speakers?per_page=100", headers=self.headers)
         res = conn.getresponse()
         data = res.read()
         return [Speaker(s) for s in json.loads(data)["result"]]
@@ -130,7 +130,7 @@ class CS_API:
         for speaker in self.speakers:
             if speaker.name == name:
                 return speaker
-        raise ValueError(f"Speaker {name} not found.")
+        raise ValueError(f"Speaker {name} not found in {self.speakers}")
 
     def id_to_speaker(self, speaker_id):
         for speaker in self.speakers:
@@ -264,6 +264,10 @@ class TTS:
             >>> tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr", file_path="thisisit.wav")
             >>> tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt", file_path="thisisit.wav")
 
+        Example Fairseq TTS models (uses ISO language codes in https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html):
+            >>> tts = TTS(model_name="tts_models/eng/fairseq/vits", progress_bar=False, gpu=True)
+            >>> tts.tts_to_file("This is a test.", file_path="output.wav")
+
         Args:
             model_name (str, optional): Model name to load. You can list models by ```tts.models```. Defaults to None.
             model_path (str, optional): Path to the model checkpoint. Defaults to None.
@@ -342,10 +346,14 @@ class TTS:
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
+        if "fairseq" in model_name or (model_item is not None and isinstance(model_item["github_rls_url"], list)):
+            # return model directory if there are multiple files
+            # we assume that the model knows how to load itself
+            return None, None, None, None, model_path
         if model_item.get("default_vocoder") is None:
-            return model_path, config_path, None, None
+            return model_path, config_path, None, None, None
         vocoder_path, vocoder_config_path, _ = self.manager.download_model(model_item["default_vocoder"])
-        return model_path, config_path, vocoder_path, vocoder_config_path
+        return model_path, config_path, vocoder_path, vocoder_config_path, None
 
     def load_vc_model_by_name(self, model_name: str, gpu: bool = False):
         """Load one of the voice conversion models by name.
@@ -355,7 +363,7 @@ class TTS:
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
         self.model_name = model_name
-        model_path, config_path, _, _ = self.download_model_by_name(model_name)
+        model_path, config_path, _, _, _ = self.download_model_by_name(model_name)
         self.voice_converter = Synthesizer(vc_checkpoint=model_path, vc_config=config_path, use_cuda=gpu)
 
     def load_tts_model_by_name(self, model_name: str, gpu: bool = False):
@@ -374,7 +382,9 @@ class TTS:
         if "coqui_studio" in model_name:
             self.csapi = CS_API()
         else:
-            model_path, config_path, vocoder_path, vocoder_config_path = self.download_model_by_name(model_name)
+            model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(
+                model_name
+            )
 
             # init synthesizer
             # None values are fetch from the model
@@ -387,6 +397,7 @@ class TTS:
                 vocoder_config=vocoder_config_path,
                 encoder_checkpoint=None,
                 encoder_config=None,
+                model_dir=model_dir,
                 use_cuda=gpu,
             )
 
@@ -422,6 +433,7 @@ class TTS:
         speaker_wav: str = None,
         emotion: str = None,
         speed: float = None,
+        **kwargs,
     ) -> None:
         """Check if the arguments are valid for the model."""
         if not self.is_coqui_studio:
@@ -430,7 +442,7 @@ class TTS:
                 raise ValueError("Model is multi-speaker but no `speaker` is provided.")
             if self.is_multi_lingual and language is None:
                 raise ValueError("Model is multi-lingual but no `language` is provided.")
-            if not self.is_multi_speaker and speaker is not None:
+            if not self.is_multi_speaker and speaker is not None and "voice_dir" not in kwargs:
                 raise ValueError("Model is not multi-speaker but `speaker` is provided.")
             if not self.is_multi_lingual and language is not None:
                 raise ValueError("Model is not multi-lingual but `language` is provided.")
@@ -499,6 +511,7 @@ class TTS:
         speaker_wav: str = None,
         emotion: str = None,
         speed: float = None,
+        **kwargs,
     ):
         """Convert text to speech.
 
@@ -520,12 +533,13 @@ class TTS:
                 Speed factor to use for 🐸Coqui Studio models, between 0 and 2.0. If None, Studio models use 1.0.
                 Defaults to None.
         """
-        self._check_arguments(speaker=speaker, language=language, speaker_wav=speaker_wav, emotion=emotion, speed=speed)
+        self._check_arguments(
+            speaker=speaker, language=language, speaker_wav=speaker_wav, emotion=emotion, speed=speed, **kwargs
+        )
         if self.csapi is not None:
             return self.tts_coqui_studio(
                 text=text, speaker_name=speaker, language=language, emotion=emotion, speed=speed
             )
-
         wav = self.synthesizer.tts(
             text=text,
             speaker_name=speaker,
@@ -535,6 +549,7 @@ class TTS:
             style_wav=None,
             style_text=None,
             reference_speaker_name=None,
+            **kwargs,
         )
         return wav
 
@@ -547,6 +562,7 @@ class TTS:
         emotion: str = "Neutral",
         speed: float = 1.0,
         file_path: str = "output.wav",
+        **kwargs,
     ):
         """Convert text to speech.
 
@@ -569,13 +585,13 @@ class TTS:
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
         """
-        self._check_arguments(speaker=speaker, language=language, speaker_wav=speaker_wav)
+        self._check_arguments(speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
 
         if self.csapi is not None:
             return self.tts_coqui_studio(
                 text=text, speaker_name=speaker, language=language, emotion=emotion, speed=speed, file_path=file_path
             )
-        wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav)
+        wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
         self.synthesizer.save_wav(wav=wav, path=file_path)
         return file_path
 

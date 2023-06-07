@@ -50,6 +50,6 @@ jobs:
           python3 -m pip install .[all]
           python3 setup.py egg_info
       - name: Unit tests
-        run: |
-          export COQUI_STUDIO_TOKEN=${{ secrets.COQUI_STUDIO_TOKEN }}
-          make inference_tests
+        run: make inference_tests
+        env:
+          COQUI_STUDIO_TOKEN: ${{ secrets.COQUI_STUDIO_TOKEN }}

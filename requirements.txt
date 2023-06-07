@@ -36,7 +36,7 @@ pypinyin
 mecab-python3==1.0.5
 unidic-lite==1.0.8
 # gruut+supported langs
-gruut[de]==2.2.3
+gruut[de,es,fr]==2.2.3
 # deps for korean
 jamo
 nltk
@@ -45,3 +45,8 @@ g2pkk>=0.1.1
 bangla==0.0.2
 bnnumerizer
 bnunicodenormalizer==0.1.1
+
+#deps for tortoise
+k_diffusion
+einops
+transformers

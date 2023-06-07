@@ -1,5 +1,6 @@
 import json
 import os
+import tarfile
 import zipfile
 from pathlib import Path
 from shutil import copyfile, rmtree
@@ -245,6 +246,30 @@ class ModelManager(object):
         else:
             print(" > Model's license - No license information available")
 
+    def download_fairseq_model(self, model_name, output_path):
+        URI_PREFIX = "https://coqui.gateway.scarf.sh/fairseq/"
+        _, lang, _, _ = model_name.split("/")
+        model_download_uri = os.path.join(URI_PREFIX, f"{lang}.tar.gz")
+        self._download_tar_file(model_download_uri, output_path, self.progress_bar)
+
+    def _set_model_item(self, model_name):
+        # fetch model info from the dict
+        model_type, lang, dataset, model = model_name.split("/")
+        model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
+        if "fairseq" in model_name:
+            model_item = {
+                "model_type": "tts_models",
+                "license": "CC BY-NC 4.0",
+                "default_vocoder": None,
+                "author": "fairseq",
+                "description": "this model is released by Meta under Fairseq repo. Visit https://github.com/facebookresearch/fairseq/tree/main/examples/mms for more info.",
+            }
+        else:
+            # get model from models.json
+            model_item = self.models_dict[model_type][lang][dataset][model]
+            model_item["model_type"] = model_type
+        return model_item, model_full_name, model
+
     def download_model(self, model_name):
         """Download model files given the full model name.
         Model name is in the format
@@ -259,11 +284,7 @@ class ModelManager(object):
         Args:
             model_name (str): model name as explained above.
         """
-        # fetch model info from the dict
-        model_type, lang, dataset, model = model_name.split("/")
-        model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
-        model_item = self.models_dict[model_type][lang][dataset][model]
-        model_item["model_type"] = model_type
+        model_item, model_full_name, model = self._set_model_item(model_name)
         # set the model specific output path
         output_path = os.path.join(self.output_prefix, model_full_name)
         if os.path.exists(output_path):
@@ -271,11 +292,21 @@ class ModelManager(object):
         else:
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
-            # download from github release
-            self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
+            # download from fairseq
+            if "fairseq" in model_name:
+                self.download_fairseq_model(model_name, output_path)
+            else:
+                # download from github release
+                if isinstance(model_item["github_rls_url"], list):
+                    self._download_model_files(model_item["github_rls_url"], output_path, self.progress_bar)
+                else:
+                    self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
             self.print_model_license(model_item=model_item)
         # find downloaded files
-        output_model_path, output_config_path = self._find_files(output_path)
+        output_model_path = output_path
+        output_config_path = None
+        if model != "tortoise-v2" and "fairseq" not in model_name:
+            output_model_path, output_config_path = self._find_files(output_path)
         # update paths in the config.json
         self._update_paths(output_path, output_config_path)
         return output_model_path, output_config_path, model_item
@@ -414,6 +445,58 @@ class ModelManager(object):
                 copyfile(src_path, dst_path)
         # remove the extracted folder
         rmtree(os.path.join(output_folder, z.namelist()[0]))
+
+    @staticmethod
+    def _download_tar_file(file_url, output_folder, progress_bar):
+        """Download the github releases"""
+        # download the file
+        r = requests.get(file_url, stream=True)
+        # extract the file
+        try:
+            total_size_in_bytes = int(r.headers.get("content-length", 0))
+            block_size = 1024  # 1 Kibibyte
+            if progress_bar:
+                progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+            temp_tar_name = os.path.join(output_folder, file_url.split("/")[-1])
+            with open(temp_tar_name, "wb") as file:
+                for data in r.iter_content(block_size):
+                    if progress_bar:
+                        progress_bar.update(len(data))
+                    file.write(data)
+            with tarfile.open(temp_tar_name) as t:
+                t.extractall(output_folder)
+                tar_names = t.getnames()
+            os.remove(temp_tar_name)  # delete tar after extract
+        except tarfile.ReadError:
+            print(f" > Error: Bad tar file - {file_url}")
+            raise tarfile.ReadError  # pylint: disable=raise-missing-from
+        # move the files to the outer path
+        for file_path in os.listdir(os.path.join(output_folder, tar_names[0])):
+            src_path = os.path.join(output_folder, tar_names[0], file_path)
+            dst_path = os.path.join(output_folder, os.path.basename(file_path))
+            if src_path != dst_path:
+                copyfile(src_path, dst_path)
+        # remove the extracted folder
+        rmtree(os.path.join(output_folder, tar_names[0]))
+
+    @staticmethod
+    def _download_model_files(file_urls, output_folder, progress_bar):
+        """Download the github releases"""
+        for file_url in file_urls:
+            # download the file
+            r = requests.get(file_url, stream=True)
+            # extract the file
+            bease_filename = file_url.split("/")[-1]
+            temp_zip_name = os.path.join(output_folder, bease_filename)
+            total_size_in_bytes = int(r.headers.get("content-length", 0))
+            block_size = 1024  # 1 Kibibyte
+            with open(temp_zip_name, "wb") as file:
+                if progress_bar:
+                    progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+                for data in r.iter_content(block_size):
+                    if progress_bar:
+                        progress_bar.update(len(data))
+                    file.write(data)
 
     @staticmethod
     def _check_dict_key(my_dict, key):
