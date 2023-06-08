@@ -4,7 +4,7 @@
 - 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
 - 📣 🐸TTS now supports 🐢Tortoise with faster inference.
 - 📣 **Coqui Studio API** is landed on 🐸TTS. - [Example](https://github.com/coqui-ai/TTS/blob/dev/README.md#-python-api)
-- 📣 [**Coqui Sudio API**](https://docs.coqui.ai/docs) is live.
+- 📣 [**Coqui Studio API**](https://docs.coqui.ai/docs) is live.
 - 📣 Voice generation with prompts - **Prompt to Voice** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin)!! - [Blog Post](https://coqui.ai/blog/tts/prompt-to-voice)
 - 📣 Voice generation with fusion - **Voice fusion** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
 - 📣 Voice cloning is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
