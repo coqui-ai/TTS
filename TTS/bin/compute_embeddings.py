@@ -17,6 +17,7 @@ def compute_embeddings(
     config_path,
     output_path,
     old_speakers_file=None,
+    old_append=False,
     config_dataset_path=None,
     formatter_name=None,
     dataset_name=None,
@@ -57,11 +58,20 @@ def compute_embeddings(
     class_name_key = encoder_manager.encoder_config.class_name_key
 
     # compute speaker embeddings
-    speaker_mapping = {}
+    if old_speakers_file is not None and old_append:
+        speaker_mapping = encoder_manager.embeddings
+    else:
+        speaker_mapping = {}
+
     for fields in tqdm(samples):
         class_name = fields[class_name_key]
         audio_file = fields["audio_file"]
         embedding_key = fields["audio_unique_name"]
+
+        # Only update the speaker name when the embedding is already in the old file.
+        if embedding_key in speaker_mapping:
+            speaker_mapping[embedding_key]["name"] = class_name
+            continue
 
         if old_speakers_file is not None and embedding_key in encoder_manager.clip_ids:
             # get the embedding from the old file
@@ -93,11 +103,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="""Compute embedding vectors for each audio file in a dataset and store them keyed by `{dataset_name}#{file_path}` in a .pth file\n\n"""
         """
-        Example runs:
-        python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --config_dataset_path dataset_config.json
-
-        python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --formatter_name coqui --dataset_path /path/to/vctk/dataset --dataset_name my_vctk --meta_file_train /path/to/vctk/metafile_train.csv --meta_file_val /path/to/vctk/metafile_eval.csv
-        """,
+                    Example runs:
+                    python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --config_dataset_path dataset_config.json
+            
+                    python TTS/bin/compute_embeddings.py --model_path speaker_encoder_model.pth --config_path speaker_encoder_config.json  --formatter_name coqui --dataset_path /path/to/vctk/dataset --dataset_name my_vctk --meta_file_train /path/to/vctk/metafile_train.csv --meta_file_val /path/to/vctk/metafile_eval.csv
+                    """,
         formatter_class=RawTextHelpFormatter,
     )
     parser.add_argument(
@@ -127,16 +137,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--old_file",
         type=str,
-        help="The old existing embedding file, into which the embedding of new audio clips will be computed and inserted.",
+        help="The old existing embedding file, from which the embeddings will be directly loaded for already computed audio clips.",
         default=None,
     )
-    parser.add_argument("--disable_cuda", type=bool, help="Flag to disable cuda.", default=False)
     parser.add_argument(
-        "--no_eval",
-        type=bool,
-        help="Do not compute eval?. Default False",
+        "--old_append",
+        help="Append new audio clip embeddings to the old embedding file, generate a new non-duplicated merged embedding file. Default False",
         default=False,
+        action="store_true",
     )
+    parser.add_argument("--disable_cuda", type=bool, help="Flag to disable cuda.", default=False)
+    parser.add_argument("--no_eval", help="Do not compute eval?. Default False", default=False, action="store_true")
     parser.add_argument(
         "--formatter_name",
         type=str,
@@ -174,6 +185,7 @@ if __name__ == "__main__":
         args.config_path,
         args.output_path,
         old_speakers_file=args.old_file,
+        old_append=args.old_append,
         config_dataset_path=args.config_dataset_path,
         formatter_name=args.formatter_name,
         dataset_name=args.dataset_name,
