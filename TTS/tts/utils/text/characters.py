@@ -1,3 +1,4 @@
+import logging
 from dataclasses import replace
 from typing import Dict
 
@@ -132,7 +133,12 @@ class BaseVocabulary:
 
     def id_to_char(self, idx: int) -> str:
         """Map an token ID to a character."""
-        return self._id_to_char[idx]
+        try:
+            return self._id_to_char[idx]
+        except KeyError as e:
+            if idx == len(self.vocab):
+                logging.warning(f" [!] {idx} is not in the vocabulary, returning <BOS>/<EOS> token.")
+                return "<BOS>/<EOS>"
 
 
 class BaseCharacters:
