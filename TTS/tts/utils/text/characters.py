@@ -137,7 +137,7 @@ class BaseVocabulary:
             return self._id_to_char[idx]
         except KeyError as e:
             if idx == len(self.vocab):
-                logging.warning(f" [!] {idx} is not in the vocabulary, returning <BOS>/<EOS> token.")
+                logging.debug(" [!] %d is not in the vocabulary, returning <BOS>/<EOS> token.", idx)
                 return "<BOS>/<EOS>"
             raise e
 
@@ -313,7 +313,7 @@ class BaseCharacters:
             return self._id_to_char[idx]
         except KeyError as e:
             if idx == len(self.vocab):
-                logging.warning(f" [!] {idx} is not in the vocabulary, returning <BOS>/<EOS> token.")
+                logging.debug(f" [!] %d is not in the vocabulary, returning <BOS>/<EOS> token.", idx)
                 return "<BOS>/<EOS>"
             raise e
 
