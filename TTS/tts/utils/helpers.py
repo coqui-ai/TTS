@@ -50,11 +50,10 @@ def sequence_mask(sequence_length, max_len=None):
         - mask: :math:`[B, T_max]`
     """
     if max_len is None:
-        max_len = sequence_length.data.max()
+        max_len = sequence_length.max()
     seq_range = torch.arange(max_len, dtype=sequence_length.dtype, device=sequence_length.device)
     # B x T_max
-    mask = seq_range.unsqueeze(0) < sequence_length.unsqueeze(1)
-    return mask
+    return seq_range.unsqueeze(0) < sequence_length.unsqueeze(1)
 
 
 def segment(x: torch.tensor, segment_indices: torch.tensor, segment_size=4, pad_short=False):
@@ -158,10 +157,8 @@ def generate_path(duration, mask):
         - mask: :math:'[B, T_en, T_de]`
         - path: :math:`[B, T_en, T_de]`
     """
-    device = duration.device
     b, t_x, t_y = mask.shape
     cum_duration = torch.cumsum(duration, 1)
-    path = torch.zeros(b, t_x, t_y, dtype=mask.dtype).to(device=device)
 
     cum_duration_flat = cum_duration.view(b * t_x)
     path = sequence_mask(cum_duration_flat, t_y).to(mask.dtype)

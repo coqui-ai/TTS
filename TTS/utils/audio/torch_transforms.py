@@ -78,6 +78,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         power=None,
         use_htk=False,
         mel_norm="slaney",
+        normalized=False,
     ):
         super().__init__()
         self.n_fft = n_fft
@@ -96,6 +97,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
         self.mel_norm = mel_norm
         self.window = nn.Parameter(getattr(torch, window)(win_length), requires_grad=False)
         self.mel_basis = None
+        self.normalized = normalized
         if use_mel:
             self._build_mel_basis()
 
@@ -125,7 +127,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
             self.window,
             center=True,
             pad_mode="reflect",  # compatible with audio.py
-            normalized=False,
+            normalized=self.normalized,
             onesided=True,
             return_complex=False,
         )

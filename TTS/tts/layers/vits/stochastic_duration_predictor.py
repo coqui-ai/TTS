@@ -150,7 +150,7 @@ class ConvFlow(nn.Module):
 class StochasticDurationPredictor(nn.Module):
     """Stochastic duration predictor with Spline Flows.
 
-    It applies Variational Dequantization and Variationsl Data Augmentation.
+    It applies Variational Dequantization and Variational Data Augmentation.
 
     Paper:
         SDP: https://arxiv.org/pdf/2106.06103.pdf
