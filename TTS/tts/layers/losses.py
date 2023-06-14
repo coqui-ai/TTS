@@ -896,6 +896,8 @@ class Naturalspeech2Loss(nn.Module):
         self.binary_alignment_loss_alpha = c.binary_align_loss_alpha
         self.duration_loss_alpha = c.duration_loss_alpha
         self.pitch_loss_alpha = c.pitch_loss_alpha
+        self.mel_loss_alpha = c.mel_loss_alpha
+        self.diffusion_loss_alpha = c.diffusion_loss_alpha
         # use aligner if needed
         self.aligner_loss = ForwardSumLoss()
         self.aligner_loss_alpha = c.aligner_loss_alpha
@@ -911,12 +913,16 @@ class Naturalspeech2Loss(nn.Module):
     def forward(
         self,
         ce_loss=None,
+        mel_slice=None,
+        mel_slice_hat=None,
         duration=None,
         duration_pred=None,
         pitch=None,
         pitch_pred=None,
         latents=None,
+        diffusion_targets=None,
         latent_z_hat=None,
+        diffusion_predictions=None,
         input_lens=None,
         spec_lens=None,
         alignment_logprob=None,
@@ -926,13 +932,21 @@ class Naturalspeech2Loss(nn.Module):
     ):
         loss = 0
         return_dict = {}
-        if self.ce_loss_alpha > 0:
-            return_dict["ce_loss"] = ce_loss * self.ce_loss_alpha
-            loss += ce_loss * self.ce_loss_alpha
-        if self.data_loss_alpha > 0:
-            data_loss = functional.mse_loss(latents, latent_z_hat)
-            loss += data_loss * self.data_loss_alpha
-            return_dict["data_loss"] = data_loss * self.data_loss_alpha
+
+        loss_mel = torch.nn.functional.l1_loss(mel_slice, mel_slice_hat) * self.mel_loss_alpha
+        return_dict["mel_loss"] = loss_mel
+
+        ce_loss = ce_loss * self.ce_loss_alpha
+        return_dict["ce_loss"] = ce_loss
+        loss += ce_loss
+
+        data_loss = functional.mse_loss(latents, latent_z_hat) * self.data_loss_alpha
+        loss += data_loss
+        return_dict["data_loss"] = data_loss
+
+        diffusion_loss = functional.mse_loss(diffusion_targets, diffusion_predictions) * self.diffusion_loss_alpha
+        loss += diffusion_loss
+        return_dict["diffusion_loss"] = diffusion_loss
 
         if self.duration_loss_alpha > 0:
             duration_loss = functional.l1_loss(duration_pred, duration)
