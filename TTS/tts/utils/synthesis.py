@@ -174,7 +174,9 @@ def synthesis(
     if CONFIG.has("capacitron_vae") and CONFIG.use_capacitron_vae and style_wav is not None:
         style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
         style_mel = style_mel.transpose(1, 2)  # [1, time, depth]
-
+    if CONFIG.use_voice_prompt:
+        style_mel = model.ap.load_wav(style_wav, sr=model.ap.sample_rate)
+        style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
     language_name = None
     if language_id is not None:
         language = [k for k, v in model.language_manager.name_to_id.items() if v == language_id]
@@ -196,7 +198,7 @@ def synthesis(
     if language_id is not None:
         language_id = id_to_torch(language_id, cuda=use_cuda)
 
-    if not isinstance(style_mel, dict):
+    if not isinstance(style_mel, dict) and not CONFIG.use_voice_prompt:
         # GST or Capacitron style mel
         style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
         if style_text is not None:
