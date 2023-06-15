@@ -119,7 +119,7 @@ class Naturalspeech2Config(BaseTTSConfig):
     add_blank: bool = True
 
     # dataset configs
-    compute_f0: bool = True
+    compute_f0: bool = False
     f0_cache_path: str = None
     use_voice_prompt: bool = True
     # testing

@@ -461,7 +461,7 @@ class Naturalspeech2Args(Coqpit):
     pre_attention_head: int = 8
     wavenet_kernel_size: int = 3
     wavenet_dilation: int = 2
-    wavenet_stack: int = 40
+    wavenet_stack: int = 5
     wavenet_dropout_rate: float = 0.2
     wavenet_attention_apply_in_stack: int = 3
     wavenet_attention_head: int = 8
