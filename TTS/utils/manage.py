@@ -251,7 +251,7 @@ class ModelManager(object):
         else:
             self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
 
-    def _download_hf_model(self, model_item:Dict, output_path: str):
+    def _download_hf_model(self, model_item: Dict, output_path: str):
         if isinstance(model_item["hf_url"], list):
             self._download_model_files(model_item["hf_url"], output_path, self.progress_bar)
         else:

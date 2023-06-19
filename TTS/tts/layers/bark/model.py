@@ -4,10 +4,10 @@ Much of this code is adapted from Andrej Karpathy's NanoGPT
 """
 import math
 from dataclasses import dataclass
-from coqpit import Coqpit
 
 import torch
 import torch.nn as nn
+from coqpit import Coqpit
 from torch.nn import functional as F
 
 
