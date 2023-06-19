@@ -4,6 +4,7 @@ Much of this code is adapted from Andrej Karpathy's NanoGPT
 """
 import math
 from dataclasses import dataclass
+from coqpit import Coqpit
 
 import torch
 import torch.nn as nn
@@ -131,7 +132,7 @@ class Block(nn.Module):
 
 
 @dataclass
-class GPTConfig:
+class GPTConfig(Coqpit):
     block_size: int = 1024
     input_vocab_size: int = 10_048
     output_vocab_size: int = 10_048

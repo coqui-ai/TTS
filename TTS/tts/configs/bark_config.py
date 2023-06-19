@@ -5,11 +5,14 @@ from typing import Dict
 from TTS.tts.configs.shared_configs import BaseTTSConfig
 from TTS.tts.layers.bark.model import GPTConfig
 from TTS.tts.layers.bark.model_fine import FineGPTConfig
+from TTS.tts.models.bark import BarkAudioConfig
 from TTS.utils.generic_utils import get_user_data_dir
 
 
 @dataclass
 class BarkConfig(BaseTTSConfig):
+    model: str = "bark"
+    audio: BarkAudioConfig = BarkAudioConfig()
     num_chars: int = 0
     semantic_config: GPTConfig = GPTConfig()
     fine_config: FineGPTConfig = FineGPTConfig()
@@ -31,7 +34,7 @@ class BarkConfig(BaseTTSConfig):
     COARSE_SEMANTIC_PAD_TOKEN: int = 12_048
     COARSE_INFER_TOKEN: int = 12_050
 
-    REMOTE_BASE_URL = "https://dl.suno-models.io/bark/models/v0/"
+    REMOTE_BASE_URL = "https://huggingface.co/erogol/bark/tree/main/"
     REMOTE_MODEL_PATHS: Dict = None
     LOCAL_MODEL_PATHS: Dict = None
     SMALL_REMOTE_MODEL_PATHS: Dict = None

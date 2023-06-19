@@ -52,7 +52,7 @@ def load_voice(voice: str, extra_voice_dirs: List[str] = []):
         return semantic, coarse, fine
 
     if voice == "random":
-        return None, None
+        return None, None, None
 
     voices = get_voices(extra_voice_dirs)
     try:
@@ -183,7 +183,7 @@ def generate_text_semantic(
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
     assert len(text.strip()) > 0
-    if history_prompt is not None or base is not None:
+    if all(v is not None for v in history_prompt) or base is not None:
         if history_prompt is not None:
             semantic_history = history_prompt[0]
         if base is not None:
@@ -327,7 +327,7 @@ def generate_coarse(
         model.config.COARSE_RATE_HZ / model.config.SEMANTIC_RATE_HZ * model.config.N_COARSE_CODEBOOKS
     )
     max_semantic_history = int(np.floor(max_coarse_history / semantic_to_coarse_ratio))
-    if history_prompt is not None or base is not None:
+    if all(v is not None for v in history_prompt) or base is not None:
         if history_prompt is not None:
             x_history = history_prompt
             x_semantic_history = x_history[0]
@@ -477,7 +477,7 @@ def generate_fine(
         and x_coarse_gen.min() >= 0
         and x_coarse_gen.max() <= model.config.CODEBOOK_SIZE - 1
     )
-    if history_prompt is not None or base is not None:
+    if all(v is not None for v in history_prompt) or base is not None:
         if history_prompt is not None:
             x_fine_history = history_prompt[2]
         if base is not None:
@@ -572,4 +572,4 @@ def codec_decode(fine_tokens, model):
     emb = model.encodec.quantizer.decode(arr)
     out = model.encodec.decoder(emb)
     audio_arr = out.detach().cpu().numpy().squeeze()
-    save_wav(path="test.wav", wav=audio_arr, sample_rate=model.config.sample_rate)
+    return audio_arr
