@@ -349,7 +349,7 @@ class Synthesizer(object):
                         text=sen,
                         config=self.tts_config,
                         speaker_id=sp_name,
-                        extra_voice_dirs=self.voice_dir,
+                        voice_dirs=self.voice_dir,
                         **kwargs,
                     )
                 else:
