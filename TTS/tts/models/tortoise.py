@@ -1,8 +1,8 @@
 import os
 import random
+import re
 from contextlib import contextmanager
 from dataclasses import dataclass
-import re
 from time import time
 
 import torch
