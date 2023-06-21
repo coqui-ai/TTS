@@ -33,7 +33,7 @@ def _normalize_whitespace(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def get_voices(extra_voice_dirs: List[str] = []):
+def get_voices(extra_voice_dirs: List[str] = []):  # pylint: disable=dangerous-default-value
     dirs = extra_voice_dirs
     voices: Dict[str, List[str]] = {}
     for d in dirs:
@@ -74,12 +74,12 @@ def load_voice(model, voice: str, extra_voice_dirs: List[str] = []):  # pylint: 
 
     if len(paths) == 1 and paths[0].endswith(".npz"):
         return load_npz(path[0])
-    else:
-        audio_path = paths[0]
-        # replace the file extension with .npz
-        output_path = os.path.splitext(audio_path)[0] + ".npz"
-        generate_voice(audio=audio_path, model=model, output_path=output_path)
-        return load_voice(model, voice, extra_voice_dirs)
+
+    audio_path = paths[0]
+    # replace the file extension with .npz
+    output_path = os.path.splitext(audio_path)[0] + ".npz"
+    generate_voice(audio=audio_path, model=model, output_path=output_path)
+    return load_voice(model, voice, extra_voice_dirs)
 
 
 def zero_crossing_rate(audio, frame_length=1024, hop_length=512):
