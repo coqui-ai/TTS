@@ -872,7 +872,7 @@ class Tortoise(BaseTTS):
         vocoder_checkpoint_path = vocoder_checkpoint_path or os.path.join(checkpoint_dir, "vocoder.pth")
 
         if os.path.exists(ar_path):
-            keys_to_ignore = self.autoregressive.gpt._keys_to_ignore_on_load_missing
+            keys_to_ignore = self.autoregressive.gpt._keys_to_ignore_on_load_missing  # pylint: disable=protected-access
             # remove keys from the checkpoint that are not in the model
             checkpoint = torch.load(ar_path, map_location=torch.device("cpu"))
             for key in list(checkpoint.keys()):
