@@ -341,7 +341,7 @@ class Synthesizer(object):
 
         use_gl = self.vocoder_model is None
 
-        if not reference_wav:
+        if not reference_wav:  # not voice conversion
             for sen in sens:
                 if hasattr(self.tts_model, "synthesize"):
                     sp_name = "random" if speaker_name is None else speaker_name

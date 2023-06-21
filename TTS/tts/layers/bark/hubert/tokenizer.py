@@ -16,7 +16,7 @@ from torch.serialization import MAP_LOCATION
 
 class HubertTokenizer(nn.Module):
     def __init__(self, hidden_size=1024, input_size=768, output_size=10000, version=0):
-        super(HubertTokenizer, self).__init__()
+        super().__init__()
         next_size = input_size
         if version == 0:
             self.lstm = nn.LSTM(input_size, hidden_size, 2, batch_first=True)
@@ -181,7 +181,7 @@ def auto_train(data_path, save_path="model.pth", load_model: str = None, save_ep
     epoch = 1
 
     while 1:
-        for i in range(save_epochs):
+        for _ in range(save_epochs):
             j = 0
             for x, y in zip(data_x, data_y):
                 model_training.train_step(

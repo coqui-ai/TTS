@@ -17,6 +17,7 @@ class HubertManager:
             urllib.request.urlretrieve(download_url, model_path)
             print("Downloaded HuBERT")
             return model_path
+        return None
 
     @staticmethod
     def make_sure_tokenizer_installed(
@@ -31,3 +32,4 @@ class HubertManager:
             shutil.move(os.path.join(model_dir, model), model_path)
             print("Downloaded tokenizer")
             return model_path
+        return None

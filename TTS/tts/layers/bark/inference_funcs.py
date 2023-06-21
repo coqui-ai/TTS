@@ -16,7 +16,7 @@ from torch.nn import functional as F
 from TTS.tts.layers.bark.hubert.hubert_manager import HubertManager
 from TTS.tts.layers.bark.hubert.kmeans_hubert import CustomHubert
 from TTS.tts.layers.bark.hubert.tokenizer import HubertTokenizer
-from TTS.tts.layers.bark.load_model import _clear_cuda_cache, _inference_mode
+from TTS.tts.layers.bark.load_model import clear_cuda_cache, inference_mode
 
 logger = logging.getLogger(__name__)
 
@@ -34,34 +34,53 @@ def _normalize_whitespace(text):
 
 
 def get_voices(extra_voice_dirs: List[str] = []):
-    voices = {}
-    for dir in extra_voice_dirs:
-        paths = list(glob(f"{dir}/*.npz"))
-        for path in paths:
-            name = os.path.basename(path).replace(".npz", "")
-            voices[name] = path
+    dirs = extra_voice_dirs
+    voices: Dict[str, List[str]] = {}
+    for d in dirs:
+        subs = os.listdir(d)
+        for sub in subs:
+            subj = os.path.join(d, sub)
+            if os.path.isdir(subj):
+                voices[sub] = list(glob(f"{subj}/*.npz"))
+                # fetch audio files if no npz files are found
+                if len(voices[sub]) == 0:
+                    voices[sub] = list(glob(f"{subj}/*.wav")) + list(glob(f"{subj}/*.mp3"))
     return voices
 
 
-def load_voice(voice: str, extra_voice_dirs: List[str] = []):
-    def load_npz(npz_file):
+def load_npz(npz_file):
         x_history = np.load(npz_file)
         semantic = x_history["semantic_prompt"]
         coarse = x_history["coarse_prompt"]
         fine = x_history["fine_prompt"]
         return semantic, coarse, fine
 
+
+def load_voice(model, voice: str, extra_voice_dirs: List[str] = []):  # pylint: disable=dangerous-default-value
     if voice == "random":
         return None, None, None
 
     voices = get_voices(extra_voice_dirs)
+    paths = voices[voice]
+
+    # bark only uses a single sample for cloning
+    if len(paths) > 1:
+        raise ValueError(f"Voice {voice} has multiple paths: {paths}")
+
     try:
         path = voices[voice]
-    except KeyError:
-        raise KeyError(f"Voice {voice} not found in {extra_voice_dirs}")
-    prompt = load_npz(path)
-    return prompt
+    except KeyError as e:
+        raise KeyError(f"Voice {voice} not found in {extra_voice_dirs}") from e
 
+    if len(paths) == 1 and paths[0].endswith(".npz"):
+        return load_npz(path[0])
+    else:
+        audio_path = paths[0]
+        # replace the file extension with .npz
+        output_path = os.path.splitext(audio_path)[0] + ".npz"
+        generate_voice(audio=audio_path, model=model, output_path=output_path)
+        breakpoint()
+        return load_voice(model, voice, extra_voice_dirs)
 
 def zero_crossing_rate(audio, frame_length=1024, hop_length=512):
     zero_crossings = np.sum(np.abs(np.diff(np.sign(audio))) / 2)
@@ -85,7 +104,6 @@ def compute_average_bass_energy(audio_data, sample_rate, max_bass_freq=250):
 
 def generate_voice(
     audio,
-    text,
     model,
     output_path,
 ):
@@ -105,9 +123,6 @@ def generate_voice(
     with torch.no_grad():
         encoded_frames = model.encodec.encode(audio)
     codes = torch.cat([encoded[0] for encoded in encoded_frames], dim=-1).squeeze()  # [n_q, T]
-
-    # get seconds of audio
-    seconds = audio.shape[-1] / model.config.sample_rate
 
     # move codes to cpu
     codes = codes.cpu().numpy()
@@ -132,36 +147,6 @@ def generate_voice(
     semantic_tokens = semantic_tokens.cpu().numpy()
 
     np.savez(output_path, fine_prompt=codes, coarse_prompt=codes[:2, :], semantic_prompt=semantic_tokens)
-
-    # while attempts < max_attempts:
-    #     if attempts > 0 and base is not None:
-    #         # Reset the base model token
-    #         print(f"Reset the base model token Regenerating...")
-    #         base = None
-
-    #     audio_array, x = model.generate_audio(text, history_promp=None, base=base, **kwargs)
-    #     zcr = zero_crossing_rate(audio_array)
-    #     spectral_contrast = compute_spectral_contrast(audio_array, model.config.sample_rate)
-    #     bass_energy = compute_average_bass_energy(audio_array, model.config.sample_rate)
-    #     print(f"Attempt {attempts + 1}: ZCR = {zcr}, Spectral Contrast = {spectral_contrast:.2f}, Bass Energy = {bass_energy:.2f}")
-
-    #     # Save the audio array to the output_array directory with a random name for debugging
-    #     #output_file = os.path.join(output_directory, f"audio_{zcr:.2f}_sc{spectral_contrast:.2f}_be{bass_energy:.2f}.wav")
-    #     #wavfile.write(output_file, sample_rate, audio_array)
-    #     #print(f"Saved audio array to {output_file}")
-
-    #     if zcr < zcr_threshold and spectral_contrast < spectral_threshold and bass_energy < bass_energy_threshold:
-    #         print(f"Audio passed ZCR, Spectral Contrast, and Bass Energy thresholds. No need to regenerate.")
-    #         break
-    #     else:
-    #         print(f"Audio failed ZCR, Spectral Contrast, and/or Bass Energy thresholds. Regenerating...")
-
-    #     attempts += 1
-
-    # if attempts == max_attempts:
-    #     print("Reached maximum attempts. Returning the last generated audio.")
-
-    # return audio_array, x, zcr, spectral_contrast, bass_energy
 
 
 def generate_text_semantic(
@@ -224,7 +209,7 @@ def generate_text_semantic(
         np.hstack([encoded_text, semantic_history, np.array([model.config.SEMANTIC_INFER_TOKEN])]).astype(np.int64)
     )[None]
     assert x.shape[1] == 256 + 256 + 1
-    with _inference_mode():
+    with inference_mode():
         x = x.to(model.device)
         n_tot_steps = 768
         # custom tqdm updates since we don't know when eos will occur
@@ -285,8 +270,8 @@ def generate_text_semantic(
             pbar_state = req_pbar_state
         pbar.close()
         out = x.detach().cpu().numpy().squeeze()[256 + 256 + 1 :]
-    assert all(0 <= out) and all(out < model.config.SEMANTIC_VOCAB_SIZE)
-    _clear_cuda_cache()
+    assert all(out >= 0) and all(out < model.config.SEMANTIC_VOCAB_SIZE)
+    clear_cuda_cache()
     return out
 
 
@@ -382,7 +367,7 @@ def generate_coarse(
     x_semantic = np.hstack([x_semantic_history, x_semantic]).astype(np.int32)
     x_coarse = x_coarse_history.astype(np.int32)
     base_semantic_idx = len(x_semantic_history)
-    with _inference_mode():
+    with inference_mode():
         x_semantic_in = torch.from_numpy(x_semantic)[None].to(model.device)
         x_coarse_in = torch.from_numpy(x_coarse)[None].to(model.device)
         n_window_steps = int(np.ceil(n_steps / sliding_window_len))
@@ -456,7 +441,7 @@ def generate_coarse(
     )
     for n in range(1, model.config.N_COARSE_CODEBOOKS):
         gen_coarse_audio_arr[n, :] -= n * model.config.CODEBOOK_SIZE
-    _clear_cuda_cache()
+    clear_cuda_cache()
     return gen_coarse_audio_arr
 
 
@@ -526,7 +511,7 @@ def generate_fine(
         )
     # we can be lazy about fractional loop and just keep overwriting codebooks
     n_loops = np.max([0, int(np.ceil((x_coarse_gen.shape[1] - (1024 - n_history)) / 512))]) + 1
-    with _inference_mode():
+    with inference_mode():
         in_arr = torch.tensor(in_arr.T).to(model.device)
         for n in tqdm.tqdm(range(n_loops), disable=silent):
             start_idx = np.min([n * 512, in_arr.shape[0] - 1024])
@@ -558,14 +543,12 @@ def generate_fine(
     if n_remove_from_end > 0:
         gen_fine_arr = gen_fine_arr[:, :-n_remove_from_end]
     assert gen_fine_arr.shape[-1] == x_coarse_gen.shape[-1]
-    _clear_cuda_cache()
+    clear_cuda_cache()
     return gen_fine_arr
 
 
 def codec_decode(fine_tokens, model):
     """Turn quantized audio codes into audio array using encodec."""
-    from TTS.utils.audio.numpy_transforms import save_wav
-
     arr = torch.from_numpy(fine_tokens)[None]
     arr = arr.to(model.device)
     arr = arr.transpose(0, 1)
