@@ -49,11 +49,11 @@ def get_voices(extra_voice_dirs: List[str] = []):
 
 
 def load_npz(npz_file):
-        x_history = np.load(npz_file)
-        semantic = x_history["semantic_prompt"]
-        coarse = x_history["coarse_prompt"]
-        fine = x_history["fine_prompt"]
-        return semantic, coarse, fine
+    x_history = np.load(npz_file)
+    semantic = x_history["semantic_prompt"]
+    coarse = x_history["coarse_prompt"]
+    fine = x_history["fine_prompt"]
+    return semantic, coarse, fine
 
 
 def load_voice(model, voice: str, extra_voice_dirs: List[str] = []):  # pylint: disable=dangerous-default-value
@@ -79,8 +79,8 @@ def load_voice(model, voice: str, extra_voice_dirs: List[str] = []):  # pylint: 
         # replace the file extension with .npz
         output_path = os.path.splitext(audio_path)[0] + ".npz"
         generate_voice(audio=audio_path, model=model, output_path=output_path)
-        breakpoint()
         return load_voice(model, voice, extra_voice_dirs)
+
 
 def zero_crossing_rate(audio, frame_length=1024, hop_length=512):
     zero_crossings = np.sum(np.abs(np.diff(np.sign(audio))) / 2)

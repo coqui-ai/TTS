@@ -11,7 +11,7 @@ from TTS.utils.generic_utils import get_user_data_dir
 
 @dataclass
 class BarkConfig(BaseTTSConfig):
-    """ Bark TTS configuration
+    """Bark TTS configuration
 
     Args:
         model (str): model name that registers the model.
