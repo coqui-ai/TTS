@@ -53,3 +53,4 @@ transformers
 
 #deps for bark
 encodec
+fairseq
