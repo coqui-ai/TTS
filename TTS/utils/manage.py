@@ -327,7 +327,9 @@ class ModelManager(object):
         # find downloaded files
         output_model_path = output_path
         output_config_path = None
-        if model not in ["tortoise-v2", "bark"] and "fairseq" not in model_name:  # TODO:This is stupid but don't care for now.
+        if (
+            model not in ["tortoise-v2", "bark"] and "fairseq" not in model_name
+        ):  # TODO:This is stupid but don't care for now.
             output_model_path, output_config_path = self._find_files(output_path)
         # update paths in the config.json
         self._update_paths(output_path, output_config_path)

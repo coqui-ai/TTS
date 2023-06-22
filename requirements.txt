@@ -1,14 +1,15 @@
 # core deps
-numpy==1.21.6;python_version<"3.10"
-numpy;python_version=="3.10"
-cython==0.29.28
+numpy==1.22.0
+numpy==1.22.0
+cython==0.29.30
 scipy>=1.4.0
 torch>=1.7
 torchaudio
 soundfile
 librosa==0.10.0.*
 numba==0.55.1;python_version<"3.9"
-numba==0.56.4;python_version>="3.9"
+numba==0.56.4;python_version<="3.10"
+numba==0.57.1;python_version>"3.10"
 inflect==5.6.0
 tqdm
 anyascii
@@ -26,14 +27,14 @@ pandas
 # deps for training
 matplotlib
 # coqui stack
-trainer==0.0.20
+trainer
 # config management
 coqpit>=0.0.16
 # chinese g2p deps
 jieba
 pypinyin
 # japanese g2p deps
-mecab-python3==1.0.5
+mecab-python3==1.0.6
 unidic-lite==1.0.8
 # gruut+supported langs
 gruut[de,es,fr]==2.2.3
