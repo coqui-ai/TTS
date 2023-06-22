@@ -264,19 +264,21 @@ class ModelManager(object):
         model_download_uri = os.path.join(URI_PREFIX, f"{lang}.tar.gz")
         self._download_tar_file(model_download_uri, output_path, self.progress_bar)
 
-    def set_model_url(self, model_item: Dict):
+    @staticmethod
+    def set_model_url(model_item: Dict):
         model_item["model_url"] = None
         if "github_rls_url" in model_item:
             model_item["model_url"] = model_item["github_rls_url"]
         elif "hf_url" in model_item:
             model_item["model_url"] = model_item["hf_url"]
+        elif "fairseq" in model_item["model_name"]:
+            model_item["model_url"] = "https://coqui.gateway.scarf.sh/fairseq/"
         return model_item
-    
+
     def _set_model_item(self, model_name):
         # fetch model info from the dict
         model_type, lang, dataset, model = model_name.split("/")
         model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
-        model_item = self.set_model_url(model_item)
         if "fairseq" in model_name:
             model_item = {
                 "model_type": "tts_models",
@@ -289,6 +291,7 @@ class ModelManager(object):
             # get model from models.json
             model_item = self.models_dict[model_type][lang][dataset][model]
             model_item["model_type"] = model_type
+        model_item = self.set_model_url(model_item)
         return model_item, model_full_name, model
 
     def download_model(self, model_name):
