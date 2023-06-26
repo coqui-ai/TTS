@@ -10,11 +10,11 @@ License: MIT
 import logging
 from pathlib import Path
 
-import fairseq
 import torch
 from einops import pack, unpack
 from torch import nn
 from torchaudio.functional import resample
+from transformers import HubertModel
 
 logging.root.setLevel(logging.ERROR)
 
@@ -49,22 +49,11 @@ class CustomHubert(nn.Module):
         self.target_sample_hz = target_sample_hz
         self.seq_len_multiple_of = seq_len_multiple_of
         self.output_layer = output_layer
-
         if device is not None:
             self.to(device)
-
-        model_path = Path(checkpoint_path)
-
-        assert model_path.exists(), f"path {checkpoint_path} does not exist"
-
-        checkpoint = torch.load(checkpoint_path)
-        load_model_input = {checkpoint_path: checkpoint}
-        model, *_ = fairseq.checkpoint_utils.load_model_ensemble_and_task(load_model_input)
-
+        self.model = HubertModel.from_pretrained("facebook/hubert-base-ls960")
         if device is not None:
-            model[0].to(device)
-
-        self.model = model[0]
+            self.model.to(device)
         self.model.eval()
 
     @property
@@ -81,19 +70,13 @@ class CustomHubert(nn.Module):
         if exists(self.seq_len_multiple_of):
             wav_input = curtail_to_multiple(wav_input, self.seq_len_multiple_of)
 
-        embed = self.model(
+        outputs = self.model.forward(
             wav_input,
-            features_only=True,
-            mask=False,  # thanks to @maitycyrus for noticing that mask is defaulted to True in the fairseq code
-            output_layer=self.output_layer,
+            output_hidden_states=True,
         )
-
-        embed, packed_shape = pack([embed["x"]], "* d")
-
-        # codebook_indices = self.kmeans.predict(embed.cpu().detach().numpy())
-
-        codebook_indices = torch.from_numpy(embed.cpu().detach().numpy()).to(device)  # .long()
-
+        embed = outputs["hidden_states"][self.output_layer]
+        embed, packed_shape = pack([embed], "* d")
+        codebook_indices = torch.from_numpy(embed.cpu().detach().numpy()).to(device)
         if flatten:
             return codebook_indices
 
