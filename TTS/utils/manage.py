@@ -287,6 +287,7 @@ class ModelManager(object):
                 "author": "fairseq",
                 "description": "this model is released by Meta under Fairseq repo. Visit https://github.com/facebookresearch/fairseq/tree/main/examples/mms for more info.",
             }
+            model_item["model_name"] = model_name
         else:
             # get model from models.json
             model_item = self.models_dict[model_type][lang][dataset][model]
