@@ -165,7 +165,7 @@ class BCELossMasked(nn.Module):
 
     def __init__(self, pos_weight: float = None):
         super().__init__()
-        self.pos_weight = nn.Parameter(torch.tensor([pos_weight]), requires_grad=False)
+        self.register_buffer("pos_weight", torch.tensor([pos_weight]))
 
     def forward(self, x, target, length):
         """
@@ -191,10 +191,15 @@ class BCELossMasked(nn.Module):
             mask = sequence_mask(sequence_length=length, max_len=target.size(1))
             num_items = mask.sum()
             loss = functional.binary_cross_entropy_with_logits(
-                x.masked_select(mask), target.masked_select(mask), pos_weight=self.pos_weight, reduction="sum"
+                x.masked_select(mask),
+                target.masked_select(mask),
+                pos_weight=self.pos_weight.to(x.device),
+                reduction="sum",
             )
         else:
-            loss = functional.binary_cross_entropy_with_logits(x, target, pos_weight=self.pos_weight, reduction="sum")
+            loss = functional.binary_cross_entropy_with_logits(
+                x, target, pos_weight=self.pos_weight.to(x.device), reduction="sum"
+            )
             num_items = torch.numel(x)
         loss = loss / num_items
         return loss
