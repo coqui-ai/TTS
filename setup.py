@@ -32,8 +32,8 @@ from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 
 python_version = sys.version.split()[0]
-if Version(python_version) < Version("3.8") or Version(python_version) >= Version("3.12"):
-    raise RuntimeError("TTS requires python >= 3.8 and < 3.12 " "but your Python version is {}".format(sys.version))
+if Version(python_version) < Version("3.9") or Version(python_version) >= Version("3.12"):
+    raise RuntimeError("TTS requires python >= 3.9 and < 3.12 " "but your Python version is {}".format(sys.version))
 
 
 cwd = os.path.dirname(os.path.abspath(__file__))
@@ -114,12 +114,11 @@ setup(
         "dev": requirements_dev,
         "notebooks": requirements_notebooks,
     },
-    python_requires=">=3.8.0, <3.12",
+    python_requires=">=3.9.0, <3.12",
     entry_points={"console_scripts": ["tts=TTS.bin.synthesize:main", "tts-server = TTS.server.server:main"]},
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
