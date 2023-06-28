@@ -279,7 +279,6 @@ class ModelManager(object):
         # fetch model info from the dict
         model_type, lang, dataset, model = model_name.split("/")
         model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
-        model_item = self.set_model_url(model_item)
         if "fairseq" in model_name:
             model_item = {
                 "model_type": "tts_models",
