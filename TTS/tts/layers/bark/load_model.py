@@ -37,32 +37,12 @@ if not hasattr(torch.nn.functional, "scaled_dot_product_attention"):
     )
 
 
-# def _string_md5(s):
-#     m = hashlib.md5()
-#     m.update(s.encode("utf-8"))
-#     return m.hexdigest()
-
-
 def _md5(fname):
     hash_md5 = hashlib.md5()
     with open(fname, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
-
-
-# def _get_ckpt_path(model_type, CACHE_DIR):
-#     model_name = _string_md5(REMOTE_MODEL_PATHS[model_type]["path"])
-#     return os.path.join(CACHE_DIR, f"{model_name}.pt")
-
-
-# S3_BUCKET_PATH_RE = r"s3\:\/\/(.+?)\/"
-
-
-# def _parse_s3_filepath(s3_filepath):
-#     bucket_name = re.search(S3_BUCKET_PATH_RE, s3_filepath).group(1)
-#     rel_s3_filepath = re.sub(S3_BUCKET_PATH_RE, "", s3_filepath)
-#     return bucket_name, rel_s3_filepath
 
 
 def _download(from_s3_path, to_local_path, CACHE_DIR):
@@ -109,15 +89,6 @@ def clear_cuda_cache():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         torch.cuda.synchronize()
-
-
-# def clean_models(model_key=None):
-#     global models
-#     model_keys = [model_key] if model_key is not None else models.keys()
-#     for k in model_keys:
-#         if k in models:
-#             del models[k]
-#     clear_cuda_cache()
 
 
 def load_model(ckpt_path, device, config, model_type="text"):
@@ -187,61 +158,3 @@ def load_model(ckpt_path, device, config, model_type="text"):
     del checkpoint, state_dict
     clear_cuda_cache()
     return model, config
-
-
-# def _load_codec_model(device):
-#     model = EncodecModel.encodec_model_24khz()
-#     model.set_target_bandwidth(6.0)
-#     model.eval()
-#     model.to(device)
-#     clear_cuda_cache()
-#     return model
-
-
-# def load_model(ckpt_path=None, use_gpu=True, force_reload=False, model_type="text"):
-#     _load_model_f = functools.partial(_load_model, model_type=model_type)
-#     if model_type not in ("text", "coarse", "fine"):
-#         raise NotImplementedError()
-#     global models
-#     if torch.cuda.device_count() == 0 or not use_gpu:
-#         device = "cpu"
-#     else:
-#         device = "cuda"
-#     model_key = str(device) + f"__{model_type}"
-#     if model_key not in models or force_reload:
-#         if ckpt_path is None:
-#             ckpt_path = _get_ckpt_path(model_type)
-#         clean_models(model_key=model_key)
-#         model = _load_model_f(ckpt_path, device)
-#         models[model_key] = model
-#     return models[model_key]
-
-
-# def load_codec_model(use_gpu=True, force_reload=False):
-#     global models
-#     if torch.cuda.device_count() == 0 or not use_gpu:
-#         device = "cpu"
-#     else:
-#         device = "cuda"
-#     model_key = str(device) + f"__codec"
-#     if model_key not in models or force_reload:
-#         clean_models(model_key=model_key)
-#         model = _load_codec_model(device)
-#         models[model_key] = model
-#     return models[model_key]
-
-
-# def preload_models(
-#     text_ckpt_path=None, coarse_ckpt_path=None, fine_ckpt_path=None, use_gpu=True, use_smaller_models=False
-# ):
-#     global USE_SMALLER_MODELS
-#     global REMOTE_MODEL_PATHS
-#     if use_smaller_models:
-#         USE_SMALLER_MODELS = True
-#         logger.info("Using smaller models generation.py")
-#         REMOTE_MODEL_PATHS = SMALL_REMOTE_MODEL_PATHS
-
-#     _ = load_model(ckpt_path=text_ckpt_path, model_type="text", use_gpu=use_gpu, force_reload=True)
-#     _ = load_model(ckpt_path=coarse_ckpt_path, model_type="coarse", use_gpu=use_gpu, force_reload=True)
-#     _ = load_model(ckpt_path=fine_ckpt_path, model_type="fine", use_gpu=use_gpu, force_reload=True)
-#     _ = load_codec_model(use_gpu=use_gpu, force_reload=True)
