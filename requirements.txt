@@ -45,8 +45,11 @@ g2pkk>=0.1.1
 bangla==0.0.2
 bnnumerizer
 bnunicodenormalizer==0.1.1
-
 #deps for tortoise
 k_diffusion
 einops
 transformers
+#deps for bark
+encodec
+#deps for fairseq models
+fairseq

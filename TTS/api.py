@@ -346,7 +346,7 @@ class TTS:
 
     def download_model_by_name(self, model_name: str):
         model_path, config_path, model_item = self.manager.download_model(model_name)
-        if "fairseq" in model_name or (model_item is not None and isinstance(model_item["github_rls_url"], list)):
+        if "fairseq" in model_name or (model_item is not None and isinstance(model_item["model_url"], list)):
             # return model directory if there are multiple files
             # we assume that the model knows how to load itself
             return None, None, None, None, model_path
@@ -584,6 +584,8 @@ class TTS:
                 Speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0. Defaults to None.
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
+            kwargs (dict, optional):
+                Additional arguments for the model.
         """
         self._check_arguments(speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
 

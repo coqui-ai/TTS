@@ -246,16 +246,37 @@ class ModelManager(object):
         else:
             print(" > Model's license - No license information available")
 
+    def _download_github_model(self, model_item: Dict, output_path: str):
+        if isinstance(model_item["github_rls_url"], list):
+            self._download_model_files(model_item["github_rls_url"], output_path, self.progress_bar)
+        else:
+            self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
+
+    def _download_hf_model(self, model_item: Dict, output_path: str):
+        if isinstance(model_item["hf_url"], list):
+            self._download_model_files(model_item["hf_url"], output_path, self.progress_bar)
+        else:
+            self._download_zip_file(model_item["hf_url"], output_path, self.progress_bar)
+
     def download_fairseq_model(self, model_name, output_path):
         URI_PREFIX = "https://coqui.gateway.scarf.sh/fairseq/"
         _, lang, _, _ = model_name.split("/")
         model_download_uri = os.path.join(URI_PREFIX, f"{lang}.tar.gz")
         self._download_tar_file(model_download_uri, output_path, self.progress_bar)
 
+    def set_model_url(self, model_item: Dict):
+        model_item["model_url"] = None
+        if "github_rls_url" in model_item:
+            model_item["model_url"] = model_item["github_rls_url"]
+        elif "hf_url" in model_item:
+            model_item["model_url"] = model_item["hf_url"]
+        return model_item
+    
     def _set_model_item(self, model_name):
         # fetch model info from the dict
         model_type, lang, dataset, model = model_name.split("/")
         model_full_name = f"{model_type}--{lang}--{dataset}--{model}"
+        model_item = self.set_model_url(model_item)
         if "fairseq" in model_name:
             model_item = {
                 "model_type": "tts_models",
@@ -292,20 +313,18 @@ class ModelManager(object):
         else:
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
-            # download from fairseq
             if "fairseq" in model_name:
                 self.download_fairseq_model(model_name, output_path)
-            else:
-                # download from github release
-                if isinstance(model_item["github_rls_url"], list):
-                    self._download_model_files(model_item["github_rls_url"], output_path, self.progress_bar)
-                else:
-                    self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
-            self.print_model_license(model_item=model_item)
+            elif "github_rls_url" in model_item:
+                self._download_github_model(model_item, output_path)
+            elif "hf_url" in model_item:
+                self._download_hf_model(model_item, output_path)
+
+        self.print_model_license(model_item=model_item)
         # find downloaded files
         output_model_path = output_path
         output_config_path = None
-        if model != "tortoise-v2" and "fairseq" not in model_name:
+        if model not in ["tortoise-v2", "bark"] and "fairseq" not in model_name:  # TODO:This is stupid but don't care for now.
             output_model_path, output_config_path = self._find_files(output_path)
         # update paths in the config.json
         self._update_paths(output_path, output_config_path)
