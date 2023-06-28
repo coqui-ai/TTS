@@ -264,14 +264,17 @@ class ModelManager(object):
         model_download_uri = os.path.join(URI_PREFIX, f"{lang}.tar.gz")
         self._download_tar_file(model_download_uri, output_path, self.progress_bar)
 
-    def set_model_url(self, model_item: Dict):
+    @staticmethod
+    def set_model_url(model_item: Dict):
         model_item["model_url"] = None
         if "github_rls_url" in model_item:
             model_item["model_url"] = model_item["github_rls_url"]
         elif "hf_url" in model_item:
             model_item["model_url"] = model_item["hf_url"]
+        elif "fairseq" in model_item["model_name"]:
+            model_item["model_url"] = "https://coqui.gateway.scarf.sh/fairseq/"
         return model_item
-    
+
     def _set_model_item(self, model_name):
         # fetch model info from the dict
         model_type, lang, dataset, model = model_name.split("/")
@@ -285,10 +288,12 @@ class ModelManager(object):
                 "author": "fairseq",
                 "description": "this model is released by Meta under Fairseq repo. Visit https://github.com/facebookresearch/fairseq/tree/main/examples/mms for more info.",
             }
+            model_item["model_name"] = model_name
         else:
             # get model from models.json
             model_item = self.models_dict[model_type][lang][dataset][model]
             model_item["model_type"] = model_type
+        model_item = self.set_model_url(model_item)
         return model_item, model_full_name, model
 
     def download_model(self, model_name):
@@ -324,7 +329,9 @@ class ModelManager(object):
         # find downloaded files
         output_model_path = output_path
         output_config_path = None
-        if model not in ["tortoise-v2", "bark"] and "fairseq" not in model_name:  # TODO:This is stupid but don't care for now.
+        if (
+            model not in ["tortoise-v2", "bark"] and "fairseq" not in model_name
+        ):  # TODO:This is stupid but don't care for now.
             output_model_path, output_config_path = self._find_files(output_path)
         # update paths in the config.json
         self._update_paths(output_path, output_config_path)

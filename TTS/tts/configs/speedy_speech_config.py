@@ -103,26 +103,28 @@ class SpeedySpeechConfig(BaseTTSConfig):
     base_model: str = "forward_tts"
 
     # set model args as SpeedySpeech
-    model_args: ForwardTTSArgs = ForwardTTSArgs(
-        use_pitch=False,
-        encoder_type="residual_conv_bn",
-        encoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 13,
-        },
-        decoder_type="residual_conv_bn",
-        decoder_params={
-            "kernel_size": 4,
-            "dilations": 4 * [1, 2, 4, 8] + [1],
-            "num_conv_blocks": 2,
-            "num_res_blocks": 17,
-        },
-        out_channels=80,
-        hidden_channels=128,
-        positional_encoding=True,
-        detach_duration_predictor=True,
+    model_args: ForwardTTSArgs = field(
+        default_factory=lambda: ForwardTTSArgs(
+            use_pitch=False,
+            encoder_type="residual_conv_bn",
+            encoder_params={
+                "kernel_size": 4,
+                "dilations": 4 * [1, 2, 4] + [1],
+                "num_conv_blocks": 2,
+                "num_res_blocks": 13,
+            },
+            decoder_type="residual_conv_bn",
+            decoder_params={
+                "kernel_size": 4,
+                "dilations": 4 * [1, 2, 4, 8] + [1],
+                "num_conv_blocks": 2,
+                "num_res_blocks": 17,
+            },
+            out_channels=80,
+            hidden_channels=128,
+            positional_encoding=True,
+            detach_duration_predictor=True,
+        )
     )
 
     # multi-speaker settings

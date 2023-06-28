@@ -113,7 +113,7 @@ class FastPitchConfig(BaseTTSConfig):
     base_model: str = "forward_tts"
 
     # model specific params
-    model_args: ForwardTTSArgs = ForwardTTSArgs()
+    model_args: ForwardTTSArgs = field(default_factory=ForwardTTSArgs)
 
     # multi-speaker settings
     num_speakers: int = 0

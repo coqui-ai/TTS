@@ -70,7 +70,7 @@ class TortoiseConfig(BaseTTSConfig):
     model: str = "tortoise"
     # model specific params
     model_args: TortoiseArgs = field(default_factory=TortoiseArgs)
-    audio: TortoiseAudioConfig = TortoiseAudioConfig()
+    audio: TortoiseAudioConfig = field(default_factory=TortoiseAudioConfig)
     model_dir: str = None
 
     # settings

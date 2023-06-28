@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
@@ -46,11 +46,11 @@ class BarkConfig(BaseTTSConfig):
     """
 
     model: str = "bark"
-    audio: BarkAudioConfig = BarkAudioConfig()
+    audio: BarkAudioConfig = field(default_factory=BarkAudioConfig)
     num_chars: int = 0
-    semantic_config: GPTConfig = GPTConfig()
-    fine_config: FineGPTConfig = FineGPTConfig()
-    coarse_config: GPTConfig = GPTConfig()
+    semantic_config: GPTConfig = field(default_factory=GPTConfig)
+    fine_config: FineGPTConfig = field(default_factory=FineGPTConfig)
+    coarse_config: GPTConfig = field(default_factory=GPTConfig)
     CONTEXT_WINDOW_SIZE: int = 1024
     SEMANTIC_RATE_HZ: float = 49.9
     SEMANTIC_VOCAB_SIZE: int = 10_000
