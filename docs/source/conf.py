@@ -76,7 +76,7 @@ myst_enable_extensions = ['linkify',]
 # duplicated section names that are in different documents.
 autosectionlabel_prefix_document = True
 
-language = None
+language = 'en'
 
 autodoc_inherit_docstrings = False
 
