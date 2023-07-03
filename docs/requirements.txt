@@ -1,6 +1,6 @@
 furo
-myst-parser == 0.15.1
-sphinx == 4.0.2
+myst-parser == 2.0.0
+sphinx == 7.0.1
 sphinx_inline_tabs
 sphinx_copybutton
 linkify-it-py

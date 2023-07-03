@@ -16,7 +16,7 @@ from TTS.utils.audio import AudioProcessor
 
 torch.manual_seed(1)
 use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if use_cuda else "cpu")
 
 config_global = TacotronConfig(num_chars=32, num_speakers=5, out_channels=513, decoder_output_dim=80)
 
@@ -288,7 +288,6 @@ class TacotronCapacitronTrainTest(unittest.TestCase):
             batch["text_input"].shape[0], batch["stop_targets"].size(1) // config.r, -1
         )
         batch["stop_targets"] = (batch["stop_targets"].sum(2) > 0.0).unsqueeze(2).float().squeeze()
-
         model = Tacotron(config).to(device)
         criterion = model.get_criterion()
         optimizer = model.get_optimizer()

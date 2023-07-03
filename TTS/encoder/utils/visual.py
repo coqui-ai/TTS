@@ -23,7 +23,7 @@ colormap = (
             [0, 0, 0],
             [183, 183, 183],
         ],
-        dtype=np.float,
+        dtype=float,
     )
     / 255
 )

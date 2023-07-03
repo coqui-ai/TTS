@@ -1,5 +1,5 @@
 import unittest
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from coqpit import Coqpit
 
@@ -86,11 +86,11 @@ class TestTTSTokenizer(unittest.TestCase):
             enable_eos_bos_chars: bool = True
             use_phonemes: bool = True
             add_blank: bool = False
-            characters: str = Characters()
+            characters: str = field(default_factory=Characters)
             phonemizer: str = "espeak"
             phoneme_language: str = "tr"
             text_cleaner: str = "phoneme_cleaners"
-            characters = Characters()
+            characters = field(default_factory=Characters)
 
         tokenizer_ph, _ = TTSTokenizer.init_from_config(TokenizerConfig())
         tokenizer_ph.phonemizer.backend = "espeak"

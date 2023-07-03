@@ -540,7 +540,10 @@ class AudioProcessor(object):
 
     def _griffin_lim(self, S):
         angles = np.exp(2j * np.pi * np.random.rand(*S.shape))
-        S_complex = np.abs(S).astype(np.complex)
+        try:
+            S_complex = np.abs(S).astype(np.complex)
+        except AttributeError:  # np.complex is deprecated since numpy 1.20.0
+            S_complex = np.abs(S).astype(complex)
         y = self._istft(S_complex * angles)
         if not np.isfinite(y).all():
             print(" [!] Waveform is not finite everywhere. Skipping the GL.")

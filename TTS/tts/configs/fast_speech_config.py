@@ -107,7 +107,7 @@ class FastSpeechConfig(BaseTTSConfig):
     base_model: str = "forward_tts"
 
     # model specific params
-    model_args: ForwardTTSArgs = ForwardTTSArgs(use_pitch=False)
+    model_args: ForwardTTSArgs = field(default_factory=lambda: ForwardTTSArgs(use_pitch=False))
 
     # multi-speaker settings
     num_speakers: int = 0

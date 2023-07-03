@@ -794,8 +794,8 @@ class FreeVCConfig(BaseVCConfig):
 
     model: str = "freevc"
     # model specific params
-    model_args: FreeVCArgs = FreeVCArgs()
-    audio: FreeVCAudioConfig = FreeVCAudioConfig()
+    model_args: FreeVCArgs = field(default_factory=FreeVCArgs)
+    audio: FreeVCAudioConfig = field(default_factory=FreeVCAudioConfig)
 
     # optimizer
     # TODO with training support
