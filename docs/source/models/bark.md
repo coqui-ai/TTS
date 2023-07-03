@@ -6,6 +6,7 @@ It is architecturally very similar to Google's [AudioLM](https://arxiv.org/abs/2
 
 ## Acknowledgements
 - 👑[Suno-AI](https://www.suno.ai/) for training and open-sourcing this model.
+- 👑[gitmylo](https://github.com/gitmylo) for finding [the solution](https://github.com/gitmylo/bark-voice-cloning-HuBERT-quantizer/) to the semantic token generation for voice clones and finetunes.
 - 👑[serp-ai](https://github.com/serp-ai/bark-with-voice-clone) for controlled voice cloning.
 
 
