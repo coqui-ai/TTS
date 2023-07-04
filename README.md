@@ -225,7 +225,7 @@ tts = TTS("tts_models/de/thorsten/tacotron2-DDC")
 tts.tts_with_vc_to_file(
     "Wie sage ich auf Italienisch, dass ich dich liebe?",
     speaker_wav="target/speaker.wav",
-    file_path="ouptut.wav"
+    file_path="output.wav"
 )
 
 # Example text to speech using [🐸Coqui Studio](https://coqui.ai) models.
@@ -255,7 +255,7 @@ api = TTS("tts_models/deu/fairseq/vits")
 api.tts_with_vc_to_file(
     "Wie sage ich auf Italienisch, dass ich dich liebe?",
     speaker_wav="target/speaker.wav",
-    file_path="ouptut.wav"
+    file_path="output.wav"
 )
 ```
 
