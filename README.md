@@ -72,8 +72,7 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 ## 🥇 TTS Performance
 <p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
 
-Underlined "TTS*" and "Judy*" are 🐸TTS models
-<!-- [Details...](https://github.com/coqui-ai/TTS/wiki/Mean-Opinion-Score-Results) -->
+Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not released open-source. They are here to show the potential.
 
 ## Features
 - High-performance Deep Learning models for Text2Speech tasks.
