@@ -1875,7 +1875,7 @@ class Vits(BaseTTS):
     def load_onnx(self, model_path: str, cuda=False):
         import onnxruntime as ort
 
-        providers = ["CPUExecutionProvider" if cuda is False else "CUDAExecutionProvider"]
+        providers = ["CPUExecutionProvider" if cuda is False else ("CUDAExecutionProvider", {"cudnn_conv_algo_search": "DEFAULT"})]
         sess_options = ort.SessionOptions()
         self.onnx_sess = ort.InferenceSession(
             model_path,
@@ -1883,10 +1883,8 @@ class Vits(BaseTTS):
             providers=providers,
         )
 
-    def inference_onnx(self, x, x_lengths=None):
-        """ONNX inference (only single speaker models are supported)
-
-        TODO: implement multi speaker support.
+    def inference_onnx(self, x, x_lengths=None, speaker_id=None):
+        """ONNX inference
         """
 
         if isinstance(x, torch.Tensor):
@@ -1907,7 +1905,7 @@ class Vits(BaseTTS):
                 "input": x,
                 "input_lengths": x_lengths,
                 "scales": scales,
-                "sid": None,
+                "sid": torch.tensor([speaker_id]).cpu().numpy(),
             },
         )
         return audio[0][0]
