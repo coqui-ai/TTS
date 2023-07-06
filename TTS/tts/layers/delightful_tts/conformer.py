@@ -323,7 +323,7 @@ class ConformerMultiHeadedSelfAttention(nn.Module):
         mask: torch.Tensor,
         encoding: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        batch_size, seq_length, _ = key.size() # pylint: disable=unused-variable
+        batch_size, seq_length, _ = key.size()  # pylint: disable=unused-variable
         encoding = encoding[:, : key.shape[1]]
         encoding = encoding.repeat(batch_size, 1, 1)
         outputs, attn = self.attention(query, key, value, pos_embedding=encoding, mask=mask)
@@ -404,7 +404,7 @@ class RelativeMultiHeadAttention(nn.Module):
 
         return self.out_proj(context), attn
 
-    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor: # pylint: disable=no-self-use
+    def _relative_shift(self, pos_score: torch.Tensor) -> torch.Tensor:  # pylint: disable=no-self-use
         batch_size, num_heads, seq_length1, seq_length2 = pos_score.size()
         zeros = torch.zeros((batch_size, num_heads, seq_length1, 1), device=pos_score.device)
         padded_pos_score = torch.cat([zeros, pos_score], dim=-1)

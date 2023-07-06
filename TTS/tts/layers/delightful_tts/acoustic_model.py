@@ -128,9 +128,7 @@ class AcousticModel(torch.nn.Module):
             self.args.n_hidden_conformer_encoder,
         )
 
-        self.u_norm = nn.InstanceNorm1d(
-            self.args.bottleneck_size_u_reference_encoder
-        )
+        self.u_norm = nn.InstanceNorm1d(self.args.bottleneck_size_u_reference_encoder)
         self.p_bottle_out = nn.Linear(
             self.args.bottleneck_size_p_reference_encoder,
             self.args.n_hidden_conformer_encoder,
@@ -184,9 +182,9 @@ class AcousticModel(torch.nn.Module):
             if sid.ndim == 0:
                 sid = sid.unsqueeze_(0)
         if "d_vectors" in aux_input and aux_input["d_vectors"] is not None:
-            g = F.normalize(aux_input["d_vectors"])# .unsqueeze_(-1)
+            g = F.normalize(aux_input["d_vectors"])  # .unsqueeze_(-1)
             if g.ndim == 2:
-                g = g#  .unsqueeze_(0) # pylint: disable=self-assigning-variable
+                g = g  #  .unsqueeze_(0) # pylint: disable=self-assigning-variable
 
         if "durations" in aux_input and aux_input["durations"] is not None:
             durations = aux_input["durations"]
@@ -314,7 +312,9 @@ class AcousticModel(torch.nn.Module):
         aligner_mas = aligner_mas.transpose(1, 2)  # [B, T_max, T_max2] -> [B, T_max2, T_max]
         return aligner_durations, aligner_soft, aligner_logprob, aligner_mas
 
-    def average_utterance_prosody(self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor) -> torch.Tensor: # pylint: disable=no-self-use
+    def average_utterance_prosody(
+        self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor
+    ) -> torch.Tensor:  # pylint: disable=no-self-use
         lengths = ((~src_mask) * 1.0).sum(1)
         u_prosody_pred = u_prosody_pred.sum(1, keepdim=True) / lengths.view(-1, 1, 1)
         return u_prosody_pred
@@ -332,7 +332,7 @@ class AcousticModel(torch.nn.Module):
         d_vectors: torch.Tensor = None,
         speaker_idx: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
-        sid, g, lid, _ = self._set_cond_input( # pylint: disable=unused-variable
+        sid, g, lid, _ = self._set_cond_input(  # pylint: disable=unused-variable
             {"d_vectors": d_vectors, "speaker_ids": speaker_idx}
         )  # pylint: disable=unused-variable
 
@@ -467,7 +467,7 @@ class AcousticModel(torch.nn.Module):
     ) -> torch.Tensor:
         src_mask = get_mask_from_lengths(torch.tensor([tokens.shape[1]], dtype=torch.int64, device=tokens.device))
         src_lens = torch.tensor(tokens.shape[1:2]).to(tokens.device)  # pylint: disable=unused-variable
-        sid, g, lid, _ = self._set_cond_input( # pylint: disable=unused-variable
+        sid, g, lid, _ = self._set_cond_input(  # pylint: disable=unused-variable
             {"d_vectors": d_vectors, "speaker_ids": speaker_idx}
         )  # pylint: disable=unused-variable
 
@@ -516,7 +516,7 @@ class AcousticModel(torch.nn.Module):
             mask=src_mask,
             pitch_transform=pitch_transform,
             pitch_mean=self.pitch_mean if hasattr(self, "pitch_mean") else None,
-            pitch_std=self.pitch_std if hasattr(self, "pitch_std") else None
+            pitch_std=self.pitch_std if hasattr(self, "pitch_std") else None,
         )
 
         energy_emb_pred, energy_pred = self.energy_adaptor.get_energy_embedding(

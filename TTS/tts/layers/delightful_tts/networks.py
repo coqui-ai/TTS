@@ -3,7 +3,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-import torch.nn as nn # pylint: disable=consider-using-from-import
+import torch.nn as nn  # pylint: disable=consider-using-from-import
 import torch.nn.functional as F
 
 from TTS.tts.layers.delightful_tts.conv_layers import ConvNorm
@@ -42,6 +42,7 @@ class BottleneckLayer(nn.Module):
 
         - Output: :math:`[N, out_dim]` where `out_dim` is the number of output dimensions.
     """
+
     def __init__(
         self,
         in_dim,
@@ -51,7 +52,7 @@ class BottleneckLayer(nn.Module):
         kernel_size=3,
         use_partial_padding=False,  # pylint: disable=unused-argument
     ):
-        super(BottleneckLayer, self).__init__() # pylint: disable=super-with-arguments
+        super(BottleneckLayer, self).__init__()  # pylint: disable=super-with-arguments
 
         self.reduction_factor = reduction_factor
         reduced_dim = int(in_dim / reduction_factor)

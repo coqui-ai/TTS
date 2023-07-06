@@ -59,6 +59,7 @@ class DelightfulTTSConfig(BaseTTSConfig):
         speaker_embedding_channels (int): Number of channels for the speaker embedding.
         language_ids_file (str): Path to the language IDs file.
     """
+
     model: str = "delightful_tts"
 
     # model specific params

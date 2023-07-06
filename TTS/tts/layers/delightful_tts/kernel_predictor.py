@@ -1,4 +1,4 @@
-import torch.nn as nn # pylint: disable=consider-using-from-import
+import torch.nn as nn  # pylint: disable=consider-using-from-import
 
 
 class KernelPredictor(nn.Module):
@@ -12,7 +12,7 @@ class KernelPredictor(nn.Module):
 
     """
 
-    def __init__( # pylint: disable=dangerous-default-value
+    def __init__(  # pylint: disable=dangerous-default-value
         self,
         cond_channels,
         conv_in_channels,

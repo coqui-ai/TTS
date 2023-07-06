@@ -51,7 +51,7 @@ def test_acoustic_model():
         speaker_idx=None,
     )
     assert list(output["model_outputs"].shape) == [1, 207, 100]
-    output['model_outputs'].sum().backward()
+    output["model_outputs"].sum().backward()
 
 
 def test_hifi_decoder():
@@ -78,7 +78,7 @@ def test_hifi_decoder():
         conv_post_bias=False,
     ).to(device)
 
-    vocoder_input_slices, slice_ids = rand_segments( # pylint: disable=unused-variable
+    vocoder_input_slices, slice_ids = rand_segments(  # pylint: disable=unused-variable
         x=dummy_input.transpose(1, 2),
         x_lengths=dummy_spec_lens,
         segment_size=32,

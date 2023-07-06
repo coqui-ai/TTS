@@ -367,6 +367,7 @@ class Synthesizer(object):
                         config=self.tts_config,
                         speaker_id=sp_name,
                         voice_dirs=self.voice_dir,
+                        d_vector=speaker_embedding,
                         **kwargs,
                     )
                 else:
