@@ -1875,7 +1875,11 @@ class Vits(BaseTTS):
     def load_onnx(self, model_path: str, cuda=False):
         import onnxruntime as ort
 
-        providers = ["CPUExecutionProvider" if cuda is False else ("CUDAExecutionProvider", {"cudnn_conv_algo_search": "DEFAULT"})]
+        providers = [
+            "CPUExecutionProvider"
+            if cuda is False
+            else ("CUDAExecutionProvider", {"cudnn_conv_algo_search": "DEFAULT"})
+        ]
         sess_options = ort.SessionOptions()
         self.onnx_sess = ort.InferenceSession(
             model_path,
@@ -1884,8 +1888,7 @@ class Vits(BaseTTS):
         )
 
     def inference_onnx(self, x, x_lengths=None, speaker_id=None):
-        """ONNX inference
-        """
+        """ONNX inference"""
 
         if isinstance(x, torch.Tensor):
             x = x.cpu().numpy()
