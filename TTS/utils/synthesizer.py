@@ -1,3 +1,4 @@
+import math
 import os
 import time
 from typing import List
@@ -247,6 +248,93 @@ class Synthesizer(object):
         output_wav = self.vc_model.voice_conversion(source_wav, target_wav)
         return output_wav
 
+    def get_subtitle_time(
+        self,
+        subtitle_time
+    ):
+        milliseconds = str(math.floor((subtitle_time % 1) * 1000)).strip()
+        seconds = str(math.floor(subtitle_time % 60)).strip()
+        minutes = str(math.floor(subtitle_time / 60)).strip()
+        hours = str(math.floor(subtitle_time / 3600)).strip()
+        return hours + ":" + minutes + ":" + seconds + "," + milliseconds
+
+    def generate_subtitles(
+            self,
+            subtitles,
+            beforeTimeMargin = 0.5,
+            afterTimeMargin = 0.5,
+            subtitle_batch_time = 3,
+            subtitle_file_path = "output.srt"
+    ):
+        writables = [] # this is the list of writable object which is like the final processed subtitle which can be written in file
+        for subtitle in subtitles:
+            text = str(subtitle["text"]) # str cast for intellisense during development
+            start_time = subtitle["start_time"]
+            end_time = subtitle["end_time"]
+            duration = end_time - start_time
+
+            recom_parts_to_break = math.floor(duration / subtitle_batch_time) + 1
+
+            recom_char_count = math.floor(len(text) / recom_parts_to_break) + 1
+
+            print(f"recom_char_count: {recom_char_count}")
+
+            words = text.split(" ")
+
+            parts = []
+            buffer = ""
+            bufferLength = 0 # i can use len() but decided to go with a variable
+            for word in words:
+                if len(word) + bufferLength > recom_char_count:
+                    parts.append(buffer)
+                    buffer = ""
+                    bufferLength = 0
+                if buffer != "":
+                    buffer += " "
+                buffer += word
+                bufferLength += len(word)
+
+            if buffer != "": # TODO: refactor it in the loop only. this is here because sometimes the last buffer of subtitle doesnt exceed recom_char_count so parts count remains 0 and then duration calculation below throws division by zero error.
+                parts.append(buffer)
+                buffer = ""
+                bufferLength = 0
+
+
+            part_duration = duration / len(parts)
+
+            partindex = 0
+            for part in parts: # here, "part" is the text
+                part_start_time = start_time + part_duration * partindex
+                if part_start_time != 0:
+                    part_start_time -= beforeTimeMargin
+                part_end_time = start_time + part_duration * (partindex + 1) + afterTimeMargin
+
+                writable = {
+                    "text" : part,
+                    "part_start_time" : part_start_time,
+                    "part_end_time" : part_end_time
+                }
+
+                writables.append(writable)
+
+                partindex += 1
+
+        # TODO: find if there is a better way to make sure file is empty.
+        subtitle_file = open(subtitle_file_path, 'w', encoding="utf-8")
+        subtitle_file.write("")
+        subtitle_file.close()
+
+        subtitle_file = open(subtitle_file_path, 'a', encoding="utf-8")
+
+        writable_index = 1
+        for writable in writables:
+            subtitle_file.write(str(writable_index) + "\n")
+            subtitle_file.write(self.get_subtitle_time(writable["part_start_time"]) + " --> " + self.get_subtitle_time(writable["part_end_time"]) + "\n")
+            subtitle_file.write(writable["text"] + "\n\n")
+            writable_index += 1
+
+        subtitle_file.close()
+
     def tts(
         self,
         text: str = "",
@@ -257,6 +345,11 @@ class Synthesizer(object):
         style_text=None,
         reference_wav=None,
         reference_speaker_name=None,
+        generate_subtitles : bool = False,
+        subtitle_file_path : str = "output.srt",
+        subtitle_batch_time : int = 3, #basically text of how much time should be shown in one line (couldn't find a better name)
+        beforeTimeMargin = 0.5,
+        afterTimeMargin = 0.5,
         **kwargs,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
@@ -275,6 +368,8 @@ class Synthesizer(object):
         """
         start_time = time.time()
         wavs = []
+        subtitles = []
+        time_accounted_for = 0
 
         if not text and not reference_wav:
             raise ValueError(
@@ -414,8 +509,22 @@ class Synthesizer(object):
                 if "do_trim_silence" in self.tts_config.audio and self.tts_config.audio["do_trim_silence"]:
                     waveform = trim_silence(waveform, self.tts_model.ap)
 
+                if generate_subtitles:
+                    wave_time = len(waveform) / self.tts_config.audio["sample_rate"]
+                    subtitle = {
+                        "text" : sen,
+                        "start_time" : time_accounted_for,
+                        "end_time" : time_accounted_for + wave_time
+                    }
+                    subtitles.append(subtitle)
+
+
                 wavs += list(waveform)
                 wavs += [0] * 10000
+
+                if generate_subtitles:
+                    time_accounted_for += wave_time
+                    time_accounted_for += 10000 / self.tts_config.audio["sample_rate"]
         else:
             # get the speaker embedding or speaker id for the reference wav file
             reference_speaker_embedding = None
@@ -475,9 +584,15 @@ class Synthesizer(object):
                 waveform = waveform.numpy()
             wavs = waveform.squeeze()
 
+        if generate_subtitles:
+            self.generate_subtitles(subtitles, beforeTimeMargin, afterTimeMargin, subtitle_batch_time, subtitle_file_path)
+            print("Subtitles generated")
+
         # compute stats
         process_time = time.time() - start_time
         audio_time = len(wavs) / self.tts_config.audio["sample_rate"]
         print(f" > Processing time: {process_time}")
         print(f" > Real-time factor: {process_time / audio_time}")
         return wavs
+    
+    

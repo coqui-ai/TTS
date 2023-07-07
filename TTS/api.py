@@ -511,6 +511,11 @@ class TTS:
         speaker_wav: str = None,
         emotion: str = None,
         speed: float = None,
+        generate_subtitles : bool = False,
+        subtitle_file_path : str = "output.srt",
+        subtitle_batch_time : int = 3, #basically text of how much time should be shown in one line (couldn't find a better name)
+        beforeTimeMargin = 0.5,
+        afterTimeMargin = 0.5,
         **kwargs,
     ):
         """Convert text to speech.
@@ -549,6 +554,11 @@ class TTS:
             style_wav=None,
             style_text=None,
             reference_speaker_name=None,
+            generate_subtitles= generate_subtitles,
+            subtitle_file_path= subtitle_file_path,
+            subtitle_batch_time= subtitle_batch_time,
+            beforeTimeMargin= beforeTimeMargin,
+            afterTimeMargin= afterTimeMargin,
             **kwargs,
         )
         return wav
@@ -562,6 +572,11 @@ class TTS:
         emotion: str = "Neutral",
         speed: float = 1.0,
         file_path: str = "output.wav",
+        generate_subtitles : bool = False,
+        subtitle_file_path : str = "output.srt",
+        subtitle_batch_time : int = 3, #basically text of how much time should be shown in one line (couldn't find a better name)
+        beforeTimeMargin = 0.5,
+        afterTimeMargin = 0.5,
         **kwargs,
     ):
         """Convert text to speech.
@@ -593,7 +608,7 @@ class TTS:
             return self.tts_coqui_studio(
                 text=text, speaker_name=speaker, language=language, emotion=emotion, speed=speed, file_path=file_path
             )
-        wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
+        wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav, generate_subtitles=generate_subtitles, subtitle_file_path=subtitle_file_path, subtitle_batch_time=subtitle_batch_time, beforeTimeMargin=beforeTimeMargin, afterTimeMargin=afterTimeMargin, **kwargs)
         self.synthesizer.save_wav(wav=wav, path=file_path)
         return file_path
 
