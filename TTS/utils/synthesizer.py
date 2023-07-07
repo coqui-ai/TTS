@@ -527,9 +527,9 @@ class Synthesizer(object):
                     time_accounted_for += wave_time
                     time_accounted_for += 10000 / self.tts_config.audio["sample_rate"]
 
-                sen += 1
+                sen_index += 1
                 print(f"{sen_index} sentences computed out of {len(sens)} total sentences.") # i wanted to implement \r to keep console clean but sometimes the max decoder steps message will also log which will break it, that's why i didnt implement it. and i dont know how to deal with \r and logging in place of current line when another piece of code is logging too.
-                
+
         else:
             # get the speaker embedding or speaker id for the reference wav file
             reference_speaker_embedding = None
