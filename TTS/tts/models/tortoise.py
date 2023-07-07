@@ -497,14 +497,14 @@ class Tortoise(BaseTTS):
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
-    def synthesize(self, text, config, speaker_id="random", extra_voice_dirs=None, **kwargs):
+    def synthesize(self, text, config, speaker_id="random", voice_dirs=None, **kwargs):
         """Synthesize speech with the given input text.
 
         Args:
             text (str): Input text.
             config (TortoiseConfig): Config with inference parameters.
             speaker_id (str): One of the available speaker names. If `random`, it generates a random speaker.
-            extra_voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
+            voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
             **kwargs: Inference settings. See `inference()`.
 
         Returns:
@@ -513,9 +513,9 @@ class Tortoise(BaseTTS):
             as latents used at inference.
 
         """
-        if extra_voice_dirs is not None:
-            extra_voice_dirs = [extra_voice_dirs]
-            voice_samples, conditioning_latents = load_voice(speaker_id, extra_voice_dirs)
+        if voice_dirs is not None:
+            voice_dirs = [voice_dirs]
+            voice_samples, conditioning_latents = load_voice(speaker_id, voice_dirs)
         else:
             voice_samples, conditioning_latents = load_voice(speaker_id)
 
