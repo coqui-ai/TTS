@@ -514,8 +514,8 @@ class TTS:
         generate_subtitles : bool = False,
         subtitle_file_path : str = "output.srt",
         subtitle_batch_time : int = 3, #basically text of how much time should be shown in one line (couldn't find a better name)
-        beforeTimeMargin = 0.5,
-        afterTimeMargin = 0.5,
+        beforeTimeMargin = 0,
+        afterTimeMargin = 0,
         **kwargs,
     ):
         """Convert text to speech.
@@ -575,8 +575,8 @@ class TTS:
         generate_subtitles : bool = False,
         subtitle_file_path : str = "output.srt",
         subtitle_batch_time : int = 3, #basically text of how much time should be shown in one line (couldn't find a better name)
-        beforeTimeMargin = 0.5,
-        afterTimeMargin = 0.5,
+        beforeTimeMargin = 0,
+        afterTimeMargin = 0,
         **kwargs,
     ):
         """Convert text to speech.

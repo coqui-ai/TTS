@@ -261,8 +261,8 @@ class Synthesizer(object):
     def generate_subtitles(
             self,
             subtitles,
-            beforeTimeMargin = 0.5,
-            afterTimeMargin = 0.5,
+            beforeTimeMargin = 0,
+            afterTimeMargin = 0,
             subtitle_batch_time = 3,
             subtitle_file_path = "output.srt"
     ):
@@ -277,7 +277,7 @@ class Synthesizer(object):
 
             recom_char_count = math.floor(len(text) / recom_parts_to_break) + 1
 
-            print(f"recom_char_count: {recom_char_count}")
+            # print(f"recom_char_count: {recom_char_count}")
 
             words = text.split(" ")
 
@@ -348,8 +348,8 @@ class Synthesizer(object):
         generate_subtitles : bool = False,
         subtitle_file_path : str = "output.srt",
         subtitle_batch_time : int = 3, #basically text of how much time should be shown in one line (couldn't find a better name)
-        beforeTimeMargin = 0.5,
-        afterTimeMargin = 0.5,
+        beforeTimeMargin = 0,
+        afterTimeMargin = 0,
         **kwargs,
     ) -> List[int]:
         """🐸 TTS magic. Run all the models and generate speech.
@@ -454,6 +454,7 @@ class Synthesizer(object):
         use_gl = self.vocoder_model is None
 
         if not reference_wav:  # not voice conversion
+            sen_index = 0 #this is for development only, to see how many sentences have been processed because I am testing with very large piece of texts.
             for sen in sens:
                 if hasattr(self.tts_model, "synthesize"):
                     sp_name = "random" if speaker_name is None else speaker_name
@@ -525,6 +526,10 @@ class Synthesizer(object):
                 if generate_subtitles:
                     time_accounted_for += wave_time
                     time_accounted_for += 10000 / self.tts_config.audio["sample_rate"]
+
+                sen += 1
+                print(f"{sen_index} sentences computed out of {len(sens)} total sentences.") # i wanted to implement \r to keep console clean but sometimes the max decoder steps message will also log which will break it, that's why i didnt implement it. and i dont know how to deal with \r and logging in place of current line when another piece of code is logging too.
+                
         else:
             # get the speaker embedding or speaker id for the reference wav file
             reference_speaker_embedding = None
