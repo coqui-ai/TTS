@@ -25,16 +25,16 @@ class EncodecWrapper(nn.Module):
         self,
         target_sample_hz=24000,
         strides=(2, 4, 5, 8),
-        num_quantizers=8,
+        num_quantizers=32,
     ):
         super().__init__()
         # Instantiate a pretrained EnCodec model
-        self.model = EncodecModel.encodec_model_24khz()
+        self.model = EncodecModel.encodec_model_24khz().eval()
         self.model.normalize = False  # this means we don't need to scale codes e.g. when running model.encode(wav)
 
         # bandwidth affects num quantizers used: https://github.com/facebookresearch/encodec/pull/41
-        self.model.set_target_bandwidth(6.0)
-        assert num_quantizers == 8, "assuming 8 quantizers for now, see bandwidth comment above"
+        self.model.set_target_bandwidth(24.0)
+        # assert num_quantizers == 8, "assuming 8 quantizers for now, see bandwidth comment above"
 
         # Fields that SoundStream has that get used externally. We replicate them here.
         self.target_sample_hz = target_sample_hz
@@ -47,7 +47,7 @@ class EncodecWrapper(nn.Module):
 
         # cross entropy loss to indices passed in on l2 distance logits introduced in vector-quantize-pytorch 1.2.2
 
-        self.rq = ResidualVQ(dim=128, codebook_size=1024, num_quantizers=8)
+        self.rq = ResidualVQ(dim=128, codebook_size=1024, num_quantizers=32)
 
         # copy codebook over to ResidualVQ for cross entropy loss logic from naturalspeech2
         # luckily, it seems Meta AI basically used my ResidualVQ code verbatim. makes porting it over easy

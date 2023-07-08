@@ -5,7 +5,8 @@ import numpy as np
 import scipy
 import soundfile as sf
 from librosa import magphase, pyin
-
+import torchcrepe
+import torch
 # For using kwargs
 # pylint: disable=unused-argument
 
@@ -280,27 +281,24 @@ def compute_f0(
     assert pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
     assert pitch_fmin is not None, " [!] Set `pitch_fmin` before caling `compute_f0`."
 
-    f0, voiced_mask, _ = pyin(
-        y=x.astype(np.double),
-        fmin=pitch_fmin,
-        fmax=pitch_fmax,
-        sr=sample_rate,
-        frame_length=win_length,
-        win_length=win_length // 2,
-        hop_length=hop_length,
-        pad_mode=stft_pad_mode,
-        center=center,
-        n_thresholds=100,
-        beta_parameters=(2, 18),
-        boltzmann_parameter=2,
-        resolution=0.1,
-        max_transition_rate=35.92,
-        switch_prob=0.01,
-        no_trough_prob=0.01,
-    )
-    f0[~voiced_mask] = 0.0
-
-    return f0
+    if len(x) % hop_length == 0:
+        x = np.pad(x, (0, hop_length // 2), mode="reflect")
+    # Select a model capacity--one of "tiny" or "full"
+    model = 'tiny'
+    # Choose a device to use for inference
+    device = 'cpu'
+    # Pick a batch size that doesn't cause memory errors on your gpu
+    batch_size = 1
+    # Compute pitch using first gpu
+    pitch = torchcrepe.predict(torch.from_numpy(x).unsqueeze(0).float(),
+                            sample_rate,
+                            hop_length,
+                            pitch_fmin,
+                            pitch_fmax,
+                            model,
+                            batch_size=batch_size,
+                            device=device)
+    return pitch.squeeze(0).detach().cpu().numpy()
 
 
 def compute_energy(y: np.ndarray, **kwargs) -> np.ndarray:

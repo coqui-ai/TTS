@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union
 import torch
 import torch.nn as nn
 from tqdm import tqdm
-
+from einops import rearrange, reduce, repeat
 
 class Diffusion(nn.Module):
     def __init__(
@@ -22,11 +22,14 @@ class Diffusion(nn.Module):
         wavenet_attention_apply_in_stack: int,
         wavenet_attention_head: int,
         noise_schedule: str,
+        scale: float
     ):
         super().__init__()
         self.max_step = max_step
         self.size_ = size_
         self.audio_codec_size = audio_codec_size
+        self.scale = scale
+
         self.denoiser = Denoiser(
             audio_codec_size=audio_codec_size,
             diffusion_size=self.size_,
@@ -67,7 +70,7 @@ class Diffusion(nn.Module):
         diffusion_steps = torch.rand(size=(latents.size(0),), device=latents.device)
 
         gammas = self.gamma_schedule(diffusion_steps)
-        alphas, sigmas = self.gamma_to_alpha_sigma(gammas)
+        alphas, sigmas = self.gamma_to_alpha_sigma(gammas, scale=self.scale)
 
         noised_latents = latents * alphas[:, None, None] + noises * sigmas[:, None, None]
         diffusion_predictions = self.denoiser(
@@ -92,18 +95,16 @@ class Diffusion(nn.Module):
     ):
         steps = self.Get_Sampling_Steps(steps=self.max_step, references=encodings)
 
-        latents = torch.randn(
-            size=(encodings.size(0), self.audio_codec_size, encodings.size(2)), device=encodings.device
-        )
+        latents = torch.randn(size=(encodings.size(0), self.audio_codec_size, encodings.size(2)), device=encodings.device)
 
         for current_steps, next_steps in tqdm(steps):
             gammas = self.gamma_schedule(current_steps)
-            alphas, sigmas = self.gamma_to_alpha_sigma(gammas)
+            alphas, sigmas = self.gamma_to_alpha_sigma(gammas, scale=self.scale)
             log_snrs = self.gamma_to_log_snr(gammas)
             alphas, sigmas, log_snrs = alphas[:, None, None], sigmas[:, None, None], log_snrs[:, None, None]
 
             next_gammas = self.gamma_schedule(next_steps)
-            next_alphas, next_sigmas = self.gamma_to_alpha_sigma(next_gammas)
+            next_alphas, next_sigmas = self.gamma_to_alpha_sigma(next_gammas, scale=self.scale)
             next_log_snrs = self.gamma_to_log_snr(next_gammas)
             next_alphas, next_sigmas, next_log_snrs = (
                 next_alphas[:, None, None],
@@ -133,19 +134,17 @@ class Diffusion(nn.Module):
 
         return latents
 
-    def ddim(self, encodings: torch.Tensor, lengths: torch.Tensor, speech_prompts: torch.Tensor, ddim_steps: int):
+    def ddim(self, encodings: torch.Tensor, lengths: torch.Tensor, speech_prompts: torch.Tensor, ddim_steps: int, scale=1.0):
         steps = self.Get_Sampling_Steps(steps=ddim_steps, references=encodings)
 
-        latents = torch.randn(
-            size=(encodings.size(0), self.audio_codec_size, encodings.size(2)), device=encodings.device
-        )
+        latents = torch.randn(size=(encodings.size(0), self.audio_codec_size, encodings.size(2)), device=encodings.device)
         for current_steps, next_steps in tqdm(steps):
             gammas = self.gamma_schedule(current_steps)
-            alphas, sigmas = self.gamma_to_alpha_sigma(gammas)
+            alphas, sigmas = self.gamma_to_alpha_sigma(gammas, scale=self.scale)
             alphas, sigmas = alphas[:, None, None], sigmas[:, None, None]
 
             next_gammas = self.gamma_schedule(next_steps)
-            next_alphas, next_sigmas = self.gamma_to_alpha_sigma(next_gammas)
+            next_alphas, next_sigmas = self.gamma_to_alpha_sigma(next_gammas, scale=self.scale)
             next_alphas, next_sigmas = next_alphas[:, None, None], next_sigmas[:, None, None]
 
             noised_predictions = self.denoiser(
@@ -155,6 +154,7 @@ class Diffusion(nn.Module):
                 speech_prompts=speech_prompts,
                 diffusion_steps=current_steps,
             )
+            noised_predictions = noised_predictions 
             epsilons = latents * alphas - noised_predictions * sigmas
             # epsilons.clamp_(-1.0, 1.0)  # clipped
 
@@ -165,16 +165,15 @@ class Diffusion(nn.Module):
 
     def Get_Sampling_Steps(self, steps: int, references: torch.Tensor):
         steps = torch.linspace(start=1.0, end=0.0, steps=steps + 1, device=references.device)  # [Step + 1]
-        steps = torch.stack([steps[:-1], steps[1:]], dim=0)  # [2, Step]
-        steps = steps.unsqueeze(1).expand(-1, references.size(0), -1)  # [2, Batch, Step]
-        steps = steps.unbind(dim=2)
-
+        steps = torch.stack([steps[:-1], steps[1:]], dim= 0) # [2, Step]
+        steps = steps.unsqueeze(1).expand(-1, references.size(0), -1)    # [2, Batch, Step]
+        steps = steps.unbind(dim= 2)
         return steps
 
     def gamma_to_alpha_sigma(self, gamma, scale=1):
         return torch.sqrt(gamma) * scale, torch.sqrt(1 - gamma)
 
-    def gamma_to_log_snr(self, gamma, scale=1, eps=1e-7):
+    def gamma_to_log_snr(self, gamma, scale=1, eps=1e-10):
         return torch.log(torch.clamp(gamma * (scale**2) / (1 - gamma), min=eps))
 
 
@@ -200,19 +199,17 @@ class Denoiser(torch.nn.Module):
         self.pre_attention_query_token = pre_attention_query_token
         self.pre_attention_query_size = pre_attention_query_size
         self.prenet = torch.nn.Sequential(
-            torch.nn.Conv1d(in_channels=audio_codec_size, out_channels=diffusion_size, kernel_size=1), torch.nn.SiLU()
-        )
-
-        self.encoding_ffn = torch.nn.Sequential(
-            torch.nn.Conv1d(in_channels=encoder_size, out_channels=encoder_size * 4, kernel_size=1),
-            torch.nn.SiLU(),
-            torch.nn.Conv1d(in_channels=encoder_size * 4, out_channels=diffusion_size, kernel_size=1),
+            torch.nn.Conv1d(in_channels=audio_codec_size, out_channels=diffusion_size, kernel_size=1), torch.nn.ReLU()
         )
 
         self.step_ffn = DiffusionFFN(diffusion_size=diffusion_size)
+        # self.pre_attention = nn.MultiheadAttention(diffusion_size, pre_attention_head)
+        self.pre_attention_query = torch.nn.Parameter(
+            torch.empty(self.pre_attention_query_token, 1 , self.pre_attention_query_size)
+            )
+        query_variance = math.sqrt(3.0) * math.sqrt(2.0 / (self.pre_attention_query_token + self.pre_attention_query_token))
+        self.pre_attention_query.data.uniform_(-query_variance, query_variance)
         self.pre_attention = nn.MultiheadAttention(diffusion_size, pre_attention_head)
-
-        self.pre_attention_query = nn.MultiheadAttention(diffusion_size, pre_attention_head)
 
         self.wavenets = torch.nn.ModuleList(
             [
@@ -233,9 +230,8 @@ class Denoiser(torch.nn.Module):
         )
 
         self.postnet = torch.nn.Sequential(
-            torch.nn.SiLU(), torch.nn.Conv1d(in_channels=diffusion_size, out_channels=audio_codec_size, kernel_size=1)
+            torch.nn.ReLU(), torch.nn.Conv1d(diffusion_size, audio_codec_size, 1)
         )
-
     def forward(
         self,
         latents: torch.Tensor,
@@ -252,16 +248,12 @@ class Denoiser(torch.nn.Module):
         """
         masks = (~Mask_Generate(lengths, max_length=latents.size(2))).unsqueeze(1).float()  # [Batch, 1, Audio_ct]
         x = self.prenet(latents)  # [Batch, Diffusion_d, Audio_ct]
-        encodings = self.encoding_ffn(encodings)  # [Batch, Diffusion_d, Audio_ct]
         diffusion_steps = self.step_ffn(diffusion_steps)  # [Batch, Diffusion_d, 1]
         speech_prompts = speech_prompts.permute(2, 0, 1)
-        query_embeddings = torch.randn(
-            self.pre_attention_query_token, speech_prompts.shape[1], self.pre_attention_query_size
-        ).to(speech_prompts.device)
 
-        pre_att, _ = self.pre_attention_query(query_embeddings, speech_prompts, speech_prompts)
+        pre_att, _ = self.pre_attention(self.pre_attention_query.expand(-1, speech_prompts.shape[1], -1), speech_prompts, speech_prompts)
 
-        speech_prompts, _ = self.pre_attention(pre_att, speech_prompts, speech_prompts)  # [Batch, Diffusion_d, Token_n]
+        # speech_prompts, _ = self.pre_attention(pre_att, speech_prompts, speech_prompts)  # [Batch, Diffusion_d, Token_n]
         skips_list = []
         for wavenet in self.wavenets:
             x, skips = wavenet(
@@ -269,14 +261,34 @@ class Denoiser(torch.nn.Module):
                 masks=masks,
                 conditions=encodings,
                 diffusion_steps=diffusion_steps,
-                speech_prompts=speech_prompts,
+                speech_prompts=pre_att,
             )  # [Batch, Diffusion_d, Audio_ct]
             skips_list.append(skips)
 
         x = torch.stack(skips_list, dim=0).sum(dim=0) / math.sqrt(self.wavenet_stack)
-        x = self.postnet(x)
+        
+        x = self.postnet(x) * masks
         return x
 
+class RMSNorm(nn.Module):
+    def __init__(self, dim, scale = True, dim_cond = None):
+        super().__init__()
+        self.to_gamma_beta = None
+        if dim_cond is not None:
+            self.to_gamma_beta = nn.Linear(dim_cond, dim * 2) if self.cond else None
+
+        self.scale = dim ** 0.5
+        self.gamma = nn.Parameter(torch.ones(dim)) if scale else None
+
+    def forward(self, x, cond = None):
+        out = nn.functional.normalize(x, dim = -1) * self.scale * self.gamma
+        
+        if self.to_gamma_beta is None:
+            return out
+
+        gamma, beta = self.to_gamma_beta(cond).chunk(2, dim = -1)
+        gamma, beta = map(lambda t: rearrange(t, 'b d -> b 1 d'), (self.gamma, beta))
+        return out * gamma + beta
 
 class DiffusionFFN(nn.Module):
     def __init__(self, diffusion_size):
@@ -284,7 +296,7 @@ class DiffusionFFN(nn.Module):
 
         self.diffusion_embedding = Diffusion_Embedding(channels=diffusion_size)
         self.conv1 = torch.nn.Conv1d(in_channels=diffusion_size + 1, out_channels=diffusion_size * 4, kernel_size=1)
-        self.silu = torch.nn.SiLU()
+        self.silu = torch.nn.ReLU()
         self.conv2 = torch.nn.Conv1d(in_channels=diffusion_size * 4, out_channels=diffusion_size, kernel_size=1)
 
     def forward(self, x):
@@ -327,7 +339,7 @@ class WaveNet(torch.nn.Module):
     ):
         super().__init__()
         self.calc_channels = channels
-        self.apply_film = apply_film and ((block_index + 1) % 3 == 0)  # apply film every 3rd layer
+        self.apply_film = apply_film # apply film every 3rd layer
 
         self.conv = nn.Conv1d(
             in_channels=channels,
@@ -362,9 +374,7 @@ class WaveNet(torch.nn.Module):
         cond = self.condition(conditions)
         conv = self.conv(x)
 
-        cond = torch.nn.functional.interpolate(cond, size=conv.size(2), mode="nearest")
         x = conv + cond  # torch.cat([conv,cond],dim=2) # [Batch, Calc_d * 2, Time]
-
         if self.apply_film:
             prompt_conditions, _ = self.attention(
                 queries.permute(2, 0, 1),
@@ -372,9 +382,8 @@ class WaveNet(torch.nn.Module):
                 speech_prompts,
             )  # [Batch, Diffusion_d, Time]
             x = self.film(x, prompt_conditions.permute(1, 2, 0), masks)
-
-        x = Fused_Gate(x)  # [Batch, Calc_d, Time]
-        x = self.dropout(x)  # [Batch, Calc_d, Time]
+        x = Fused_Gate(x)  #[Batch, Calc_d, Time]
+        x = self.dropout(x) #[Batch, Calc_d, Time]
 
         return x + residuals, x
 
@@ -382,7 +391,6 @@ class WaveNet(torch.nn.Module):
 def Fused_Gate(x):
     x_tanh, x_sigmoid = x.chunk(chunks=2, dim=1)
     x = x_tanh.tanh() * x_sigmoid.sigmoid()
-
     return x
 
 
@@ -411,11 +419,11 @@ def Mask_Generate(lengths: torch.Tensor, max_length: Optional[Union[int, torch.T
     return sequence >= lengths[:, None]  # [Batch, Time]
 
 
-def sigmoid_schedule(t, start=-3, end=3, tau=1, clamp_min=1e-9):
+def sigmoid_schedule(t, start=-1, end=1, tau=1, clamp_min=1e-9):
     v_start = torch.tensor(start / tau).sigmoid()
     v_end = torch.tensor(end / tau).sigmoid()
     gamma = (-((t * (end - start) + start) / tau).sigmoid() + v_end) / (v_end - v_start)
-    return gamma.clamp_(min=clamp_min, max=1.0)
+    return gamma.clamp_(min=clamp_min)
 
 
 def simple_linear_schedule(t, clip_min=1e-9):
@@ -424,8 +432,8 @@ def simple_linear_schedule(t, clip_min=1e-9):
 
 def cosine_schedule(t, start=0, end=1, tau=1, clip_min=1e-9):
     power = 2 * tau
-    v_start = math.cos(start * math.pi / 2) ** power
-    v_end = math.cos(end * math.pi / 2) ** power
-    output = math.cos((t * (end - start) + start) * math.pi / 2) ** power
+    v_start = torch.cos(torch.tensor(start) * torch.tensor(math.pi / 2)) ** power
+    v_end = torch.cos(torch.tensor(end) * torch.tensor(math.pi / 2)) ** power
+    output = torch.cos((t * (end - start) + start) * torch.tensor(math.pi / 2)) ** power
     output = (v_end - output) / (v_end - v_start)
     return output.clamp(min=clip_min)

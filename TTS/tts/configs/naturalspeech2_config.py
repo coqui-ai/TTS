@@ -87,23 +87,23 @@ class Naturalspeech2Config(BaseTTSConfig):
     audio: Naturalspeech2AudioConfig = Naturalspeech2AudioConfig()
 
     # optimizer
-    lr: float = 0.0005
     lr_scheduler: str = "NoamLR"
     lr_scheduler_params: dict = field(default_factory=lambda: {"warmup_steps": 32000})
-    scheduler_after_epoch: bool = True
+    # lr_scheduler: str = "ExponentialLR"
+    # lr_scheduler_params: dict = field(default_factory=lambda: {"gamma": 0.98, "last_epoch": -1})
+    lr: float = 1e-4
+    scheduler_after_epoch: bool = False
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
-    grad_clip: float = 10.0
+    grad_clip: float = 500.0
 
     # loss params
     data_loss_alpha: float = 1.0
-    ce_loss_alpha: float = 0.1
+    ce_loss_alpha: float = 0.01
     aligner_loss_alpha: float = 1.0
-    binary_align_loss_alpha: float = 1.0
-    binary_loss_warmup_epochs: int = 150
     duration_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 1.0
-    mel_loss_alpha: float = 45.0
+    mel_loss_alpha: float = 0.0
     diffusion_loss_alpha: float = 1.0
     # data loader params
     return_wav: bool = True
@@ -119,19 +119,16 @@ class Naturalspeech2Config(BaseTTSConfig):
     add_blank: bool = True
 
     # dataset configs
-    compute_f0: bool = False
+    compute_f0: bool = True
     f0_cache_path: str = None
     use_voice_prompt: bool = True
     # testing
     test_sentences: List[List] = field(
         default_factory=lambda: [
-            [
-                "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-                "add_audio_path",
-            ],
-            ["Be a voice, not an echo.", "add_audio_path"],
-            ["I'm sorry Dave. I'm afraid I can't do that.", "add_audio_path"],
-            ["This cake is great. It's so delicious and moist.", "add_audio_path"],
-            ["Prior to November 22, 1963.", "add_audio_path"],
+            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "/datasets/Final_mailabs_vctk/en_UK/wav24/elizabeth_klett_Female_en_UK/jane_eyre_01_f000007.wav"],
+            ["Be a voice, not an echo, keep speaking and smiling.", "/datasets/Final_mailabs_vctk/en_UK/wav24/elizabeth_klett_Female_en_UK/jane_eyre_01_f000007.wav"],
+            ["I'm sorry Dave. I'm afraid I can't do that.", "/datasets/en/libri+vctk/wav24/p281/p281_395.wav"],
+            ["This cake is great. It's so delicious and moist.", "/datasets/en/libri+vctk/wav24/p281/p281_334.wav"],
+            ["Prior to November 22, 1963.", "/datasets/en/libri+vctk/wav24/p281/p281_395.wav"],
         ]
     )
