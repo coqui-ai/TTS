@@ -36,7 +36,7 @@ This model can be shared in two ways:
 
 Models are served under `.models.json` file and any model is available under TTS CLI or Server end points.
 
-Either way you choose, please make sure you send the models [here](https://github.com/coqui-ai/TTS/issues/380). 
+Either way you choose, please make sure you send the models [here](https://github.com/coqui-ai/TTS/discussions/930).
 
 ## Sending a ✨**PR**✨
 
