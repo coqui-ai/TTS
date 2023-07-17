@@ -68,7 +68,7 @@ class DelightfulTTSConfig(BaseTTSConfig):
     use_attn_priors: bool = True
 
     # vocoder
-    vocoder: VocoderConfig = field(default_factory=VocoderConfig())
+    vocoder: VocoderConfig = field(default_factory=VocoderConfig)
     init_discriminator: bool = True
 
     # optimizer
