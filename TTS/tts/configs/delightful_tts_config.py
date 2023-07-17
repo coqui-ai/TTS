@@ -63,12 +63,12 @@ class DelightfulTTSConfig(BaseTTSConfig):
     model: str = "delightful_tts"
 
     # model specific params
-    audio: DelightfulTtsAudioConfig = DelightfulTtsAudioConfig()
-    model_args: DelightfulTtsArgs = DelightfulTtsArgs()
+    audio: DelightfulTtsAudioConfig = field(default_factory=DelightfulTtsAudioConfig)
+    model_args: DelightfulTtsArgs = field(default_factory=DelightfulTtsArgs)
     use_attn_priors: bool = True
 
     # vocoder
-    vocoder: VocoderConfig = VocoderConfig()
+    vocoder: VocoderConfig = field(default_factory=VocoderConfig())
     init_discriminator: bool = True
 
     # optimizer
