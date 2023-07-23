@@ -66,7 +66,7 @@ with open(os.path.join(cwd, "requirements.dev.txt"), "r") as f:
     requirements_dev = f.readlines()
 with open(os.path.join(cwd, "requirements.ja.txt"), "r") as f:
     requirements_ja = f.readlines()
-requirements_all = requirements_dev + requirements_notebooks
+requirements_all = requirements_dev + requirements_notebooks + requirements_ja
 
 with open("README.md", "r", encoding="utf-8") as readme_file:
     README = readme_file.read()
