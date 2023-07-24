@@ -115,7 +115,7 @@ class ReferenceEncoder(nn.Module):
 
         return x, memory, mel_masks
 
-    def calculate_channels(  #pylint: disable=no-self-use
+    def calculate_channels(  # pylint: disable=no-self-use
         self, L: int, kernel_size: int, stride: int, pad: int, n_convs: int
     ) -> int:
         for _ in range(n_convs):
