@@ -42,7 +42,7 @@ config = DelightfulTTSConfig(
     use_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path="tests/data/ljspeech/phoneme_cache/",
-    f0_cache_path="tests/data/ljspeech/f0_cache/",
+    f0_cache_path="tests/data/ljspeech/f0_cache_delightful/",  ## delightful f0 cache is incompatible with other models
     run_eval=True,
     test_delay_epochs=-1,
     binary_align_loss_alpha=0.0,
@@ -62,7 +62,6 @@ command_train = (
     f"CUDA_VISIBLE_DEVICES='{'cpu'}'  python TTS/bin/train_tts.py --config_path {config_path}  "
     f"--coqpit.output_path {output_path} "
     "--coqpit.datasets.0.formatter ljspeech "
-    "--coqpit.datasets.0.dataset_name ljspeech "
     "--coqpit.datasets.0.meta_file_train metadata.csv "
     "--coqpit.datasets.0.meta_file_val metadata.csv "
     "--coqpit.datasets.0.path tests/data/ljspeech "
@@ -95,3 +94,4 @@ run_cli(inference_command)
 command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "
 run_cli(command_train)
 shutil.rmtree(continue_path)
+shutil.rmtree("tests/data/ljspeech/f0_cache_delightful/")

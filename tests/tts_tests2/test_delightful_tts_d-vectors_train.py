@@ -24,7 +24,7 @@ config = DelightfulTTSConfig(
     model_args=model_args,
     audio=audio_config,
     vocoder=vocoder_config,
-    batch_size=8,
+    batch_size=2,
     eval_batch_size=8,
     compute_f0=True,
     run_eval=True,
@@ -33,7 +33,7 @@ config = DelightfulTTSConfig(
     use_phonemes=True,
     phoneme_language="en-us",
     phoneme_cache_path="tests/data/ljspeech/phoneme_cache/",
-    f0_cache_path="tests/data/ljspeech/f0_cache/",
+    f0_cache_path="tests/data/ljspeech/f0_cache_delightful/",  ## delightful f0 cache is incompatible with other models
     epochs=1,
     print_step=1,
     print_eval=True,
@@ -95,3 +95,4 @@ run_cli(inference_command)
 command_train = f"CUDA_VISIBLE_DEVICES='{get_device_id()}' python TTS/bin/train_tts.py --continue_path {continue_path} "
 run_cli(command_train)
 shutil.rmtree(continue_path)
+shutil.rmtree("tests/data/ljspeech/f0_cache_delightful/")

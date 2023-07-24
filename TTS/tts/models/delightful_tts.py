@@ -27,7 +27,7 @@ from TTS.tts.utils.helpers import average_over_durations, compute_attn_prior, ra
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment, plot_avg_pitch, plot_pitch, plot_spectrogram
-from TTS.utils.audio.numpy_transforms import build_mel_basis
+from TTS.utils.audio.numpy_transforms import build_mel_basis, compute_f0
 from TTS.utils.audio.numpy_transforms import db_to_amp as db_to_amp_numpy
 from TTS.utils.audio.numpy_transforms import mel_to_wav as mel_to_wav_numpy
 from TTS.utils.audio.processor import AudioProcessor
@@ -35,7 +35,6 @@ from TTS.utils.io import load_fsspec
 from TTS.vocoder.layers.losses import MultiScaleSTFTLoss
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
-from TTS.utils.audio.numpy_transforms import compute_f0
 
 
 def id_to_torch(aux_id, cuda=False):
@@ -1193,8 +1192,8 @@ class DelightfulTTS(BaseTTSE2E):
     def synthesize(
         self,
         text: str,
-        speaker_id: str=None,
-        d_vector: torch.tensor=None,
+        speaker_id: str = None,
+        d_vector: torch.tensor = None,
         pitch_transform=None,
         **kwargs,
     ):  # pylint: disable=unused-argument
