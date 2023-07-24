@@ -1579,9 +1579,9 @@ class DelightfulTTS(BaseTTSE2E):
         Args:
             trainer (Trainer): Trainer object.
         """
-        self.train_disc = (
+        self.train_disc = ( # pylint: disable=attribute-defined-outside-init
             trainer.total_steps_done >= self.config.steps_to_start_discriminator
-        )  # pylint: disable=attribute-defined-outside-init
+        )
 
 
 class DelightfulTTSLoss(nn.Module):

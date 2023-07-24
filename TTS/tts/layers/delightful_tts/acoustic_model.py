@@ -312,9 +312,9 @@ class AcousticModel(torch.nn.Module):
         aligner_mas = aligner_mas.transpose(1, 2)  # [B, T_max, T_max2] -> [B, T_max2, T_max]
         return aligner_durations, aligner_soft, aligner_logprob, aligner_mas
 
-    def average_utterance_prosody(
+    def average_utterance_prosody(  # pylint: disable=no-self-use
         self, u_prosody_pred: torch.Tensor, src_mask: torch.Tensor
-    ) -> torch.Tensor:  # pylint: disable=no-self-use
+    ) -> torch.Tensor:
         lengths = ((~src_mask) * 1.0).sum(1)
         u_prosody_pred = u_prosody_pred.sum(1, keepdim=True) / lengths.view(-1, 1, 1)
         return u_prosody_pred
