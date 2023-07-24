@@ -108,6 +108,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 - Capacitron: [paper](https://arxiv.org/abs/1906.03402)
 - OverFlow: [paper](https://arxiv.org/abs/2211.06892)
 - Neural HMM TTS: [paper](https://arxiv.org/abs/2108.13320)
+- Delightful TTS: [paper](https://arxiv.org/abs/2110.12612) 
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
