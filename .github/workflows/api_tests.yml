@@ -1,11 +1,9 @@
-name: inference_tests
+name: api_tests
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    types: [opened, synchronize, reopened]
 jobs:
   check_skip:
     runs-on: ubuntu-latest
@@ -50,4 +48,6 @@ jobs:
           python3 -m pip install .[all]
           python3 setup.py egg_info
       - name: Unit tests
-        run: make inference_tests
+        run: make api_tests
+        env:
+          COQUI_STUDIO_TOKEN: ${{ secrets.COQUI_STUDIO_TOKEN }}

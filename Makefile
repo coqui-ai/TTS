@@ -29,6 +29,9 @@ test_zoo:	## run zoo tests.
 inference_tests: ## run inference tests.
 	nose2 -F -v -B --with-coverage --coverage TTS tests.inference_tests
 
+api_tests: ## run api tests.
+	nose2 -F -v -B --with-coverage --coverage TTS tests.api_tests
+
 data_tests: ## run data tests.
 	nose2 -F -v -B --with-coverage --coverage TTS tests.data_tests
 

@@ -136,7 +136,9 @@ def generate_voice(
     hubert_model = CustomHubert(checkpoint_path=model.config.LOCAL_MODEL_PATHS["hubert"]).to(model.device)
 
     # Load the CustomTokenizer model
-    tokenizer = HubertTokenizer.load_from_checkpoint(model.config.LOCAL_MODEL_PATHS["hubert_tokenizer"], map_location=model.device)
+    tokenizer = HubertTokenizer.load_from_checkpoint(
+        model.config.LOCAL_MODEL_PATHS["hubert_tokenizer"], map_location=model.device
+    )
     # semantic_tokens = model.text_to_semantic(
     #     text, max_gen_duration_s=seconds, top_k=50, top_p=0.95, temp=0.7
     # )  # not 100%
