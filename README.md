@@ -1,5 +1,4 @@
 
-
 ## 🐸Coqui.ai News
 - 📣 [🐶Bark](https://github.com/suno-ai/bark) is now available for inference with uncontrained voice cloning. [Docs](https://tts.readthedocs.io/en/dev/models/bark.html)
 - 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
@@ -10,11 +9,20 @@
 - 📣 Voice generation with fusion - **Voice fusion** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
 - 📣 Voice cloning is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
 
+<div align="center">
+<img src="https://static.scarf.sh/a.png?x-pxid=cf317fe7-2188-4721-bc01-124bb5d5dbb2" />
+
 ## <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
 
 
-🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
-🐸TTS comes with pretrained models, tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
+**🐸TTS is a library for advanced Text-to-Speech generation.**
+
+🚀 Pretrained models in +1100 languages.
+
+🛠️ Tools for training new models and fine-tuning existing models in any language.
+
+📚 Utilities for dataset analysis and curation.
+______________________________________________________________________
 
 [![Dicord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
@@ -36,13 +44,9 @@
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests2.yml/badge.svg)
 [![Docs](<https://readthedocs.org/projects/tts/badge/?version=latest&style=plastic>)](https://tts.readthedocs.io/en/latest/)
 
-📰 [**Subscribe to 🐸Coqui.ai Newsletter**](https://coqui.ai/?subscription=true)
+</div>
 
-📢 [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
-
-📄 [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
-
-<img src="https://static.scarf.sh/a.png?x-pxid=cf317fe7-2188-4721-bc01-124bb5d5dbb2" />
+______________________________________________________________________
 
 ## 💬 Where to ask questions
 Please use our dedicated channels for questions and discussion. Help is much more valuable if it's shared publicly so that more people can benefit from it.
@@ -68,6 +72,8 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 👩‍💻 **Contributing**               | [CONTRIBUTING.md](https://github.com/coqui-ai/TTS/blob/main/CONTRIBUTING.md)|
 | 📌 **Road Map**                   | [Main Development Plans](https://github.com/coqui-ai/TTS/issues/378)
 | 🚀 **Released Models**            | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
+| 📰 **Papers**                    | [TTS Papers](https://github.com/erogol/TTS-papers)|
+
 
 ## 🥇 TTS Performance
 <p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
@@ -88,7 +94,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 - Utilities to use and test your models.
 - Modular (but not too much) code base enabling easy implementation of new ideas.
 
-## Implemented Models
+## Model Implementations
 ### Spectrogram models
 - Tacotron: [paper](https://arxiv.org/abs/1703.10135)
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
@@ -136,7 +142,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 
 You can also help us implement more models.
 
-## Install TTS
+## Installation
 🐸TTS is tested on Ubuntu 18.04 with **python >= 3.7, < 3.11.**.
 
 If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
@@ -259,7 +265,7 @@ api.tts_with_vc_to_file(
 )
 ```
 
-### Command line `tts`
+### Command-line `tts`
 #### Single Speaker Models
 
 - List provided models:
