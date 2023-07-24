@@ -32,9 +32,6 @@ coqpit>=0.0.16
 # chinese g2p deps
 jieba
 pypinyin
-# japanese g2p deps
-mecab-python3==1.0.6
-unidic-lite==1.0.8
 # gruut+supported langs
 gruut[de,es,fr]==2.2.3
 # deps for korean

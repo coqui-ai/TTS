@@ -4,7 +4,10 @@
 import re
 import unicodedata
 
-import MeCab
+try:
+    import MeCab
+except ImportError:
+    raise ImportError("Japanese requires mecab-python3 and unidic-lite.")
 from num2words import num2words
 
 _CONVRULES = [
