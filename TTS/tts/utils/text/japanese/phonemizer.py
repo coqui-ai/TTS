@@ -6,8 +6,8 @@ import unicodedata
 
 try:
     import MeCab
-except ImportError:
-    raise ImportError("Japanese requires mecab-python3 and unidic-lite.")
+except ImportError as e:
+    raise ImportError("Japanese requires mecab-python3 and unidic-lite.") from e
 from num2words import num2words
 
 _CONVRULES = [
