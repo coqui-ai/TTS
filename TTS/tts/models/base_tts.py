@@ -439,3 +439,21 @@ class BaseTTS(BaseTrainerModel):
             trainer.config.save_json(os.path.join(trainer.output_path, "config.json"))
             print(f" > `language_ids.json` is saved to {output_path}.")
             print(" > `language_ids_file` is updated in the config.json.")
+
+
+class BaseTTSE2E(BaseTTS):
+    def _set_model_args(self, config: Coqpit):
+        self.config = config
+        if "Config" in config.__class__.__name__:
+            num_chars = (
+                self.config.model_args.num_chars if self.tokenizer is None else self.tokenizer.characters.num_chars
+            )
+            self.config.model_args.num_chars = num_chars
+            self.config.num_chars = num_chars
+            self.args = config.model_args
+            self.args.num_chars = num_chars
+        elif "Args" in config.__class__.__name__:
+            self.args = config
+            self.args.num_chars = self.args.num_chars
+        else:
+            raise ValueError("config must be either a *Config or *Args")

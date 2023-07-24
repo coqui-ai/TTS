@@ -19,6 +19,9 @@ test_vocoder:	## run vocoder tests.
 test_tts:	## run tts tests.
 	nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests
 
+test_tts2:	## run tts tests.
+	nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests2
+
 test_aux:	## run aux tests.
 	nose2 -F -v -B --with-coverage --coverage TTS tests.aux_tests
 	./run_bash_tests.sh
