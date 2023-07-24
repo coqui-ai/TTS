@@ -715,6 +715,18 @@
                     "license": "Apache 2.0"
                 }
             }
+        },
+        "be": {
+            "common-voice": {
+                "glow-tts":{
+                    "description": "Belarusian GlowTTS model created by @alex73 (Github).",
+                    "hf_url":"",
+                    "default_vocoder": "vocoder_models/be/common-voice/hifigan",
+                    "commit": "c0aabb85",
+                    "license": "CC-BY-SA 4.0",
+                    "contact": "alex73mail@gmail.com"
+                }
+            }
         }
     },
     "vocoder_models": {
@@ -864,6 +876,17 @@
                     "author": "Fatih Akademi",
                     "license": "MIT",
                     "commit": null
+                }
+            }
+        },
+        "be": {
+            "common-voice": {
+                "hifigan": {
+                    "hf_url": "https://huggingface.co/coqui/hifigan-be",
+                    "description": "Belarusian HiFiGAN model created by @alex73 (Github).",
+                    "author": "@alex73",
+                    "license": "CC-BY-SA 4.0",
+                    "commit": "c0aabb85"
                 }
             }
         }
