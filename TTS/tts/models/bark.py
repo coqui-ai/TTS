@@ -214,6 +214,7 @@ class Bark(BaseTTS):
             as latents used at inference.
 
         """
+        speaker_id = "random" if speaker_id is None else speaker_id
         voice_dirs = self._set_voice_dirs(voice_dirs)
         history_prompt = load_voice(self, speaker_id, voice_dirs)
         outputs = self.generate_audio(text, history_prompt=history_prompt, **kwargs)

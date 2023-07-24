@@ -513,6 +513,7 @@ class Tortoise(BaseTTS):
             as latents used at inference.
 
         """
+        speaker_id = "random" if speaker_id is None else speaker_id
         if extra_voice_dirs is not None:
             extra_voice_dirs = [extra_voice_dirs]
             voice_samples, conditioning_latents = load_voice(speaker_id, extra_voice_dirs)
