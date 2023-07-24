@@ -1207,14 +1207,18 @@ class DelightfulTTS(BaseTTSE2E):
         )
 
         # set speaker inputs
-        if speaker_id is not None and self.args.use_speaker_embedding:
-            if isinstance(speaker_id, str):
-                speaker_id = self.speaker_manager.name_to_id[speaker_id]
-            speaker_id = id_to_torch(speaker_id, cuda=is_cuda)
+        _speaker_id = None
+        if speaker_id is not None and (self.args.use_speaker_embedding or self.args.use_d_vector_file):
+            if isinstance(speaker_id, str) and self.args.use_speaker_embedding:
+                # get the speaker id for the speaker embedding layer
+                _speaker_id = self.speaker_manager.name_to_id[speaker_id]
+                _speaker_id = id_to_torch(_speaker_id, cuda=is_cuda)
+            else:
+                # get the average d_vector for the speaker
+                d_vector = self.speaker_manager.get_mean_embedding(speaker_id, num_samples=None, randomize=False)
 
         if d_vector is not None and self.args.use_d_vector_file:
             d_vector = embedding_to_torch(d_vector, cuda=is_cuda)
-            speaker_id = None
 
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=is_cuda)
         text_inputs = text_inputs.unsqueeze(0)
@@ -1222,7 +1226,7 @@ class DelightfulTTS(BaseTTSE2E):
         # synthesize voice
         outputs = self.inference(
             text_inputs,
-            aux_input={"d_vectors": d_vector, "speaker_ids": speaker_id},
+            aux_input={"d_vectors": d_vector, "speaker_ids": _speaker_id},
             pitch_transform=pitch_transform,
             # energy_transform=energy_transform
         )
