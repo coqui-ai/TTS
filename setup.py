@@ -24,6 +24,8 @@ import os
 import subprocess
 import sys
 from packaging.version import Version
+import pyaudio
+import pyttsx3
 
 import numpy
 import setuptools.command.build_py
