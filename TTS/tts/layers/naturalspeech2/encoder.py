@@ -3,7 +3,7 @@ from typing import Optional, Union
 import torch
 import torch.nn as nn
 
-
+from TTS.tts.utils.helpers import sequence_mask
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=5000):
         super(PositionalEncoding, self).__init__()
@@ -18,7 +18,6 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         x = x + self.pe[: x.size(0), :].to(x.device)
         return x
-
 
 class TransformerEncoder(nn.Module):
     def __init__(
@@ -39,7 +38,7 @@ class TransformerEncoder(nn.Module):
             self.pre = nn.Embedding(n_vocab, d_model)
         else:
             self.pre = nn.Conv1d(128, d_model, kernel_size, padding=kernel_size // 2)
-        self.pos_enc = PositionalEncoding(d_model, max_len=max_len)
+        # self.pos_enc = PositionalEncoding(d_model, max_len=max_len)
         self.transformer = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout), num_layers
         )
@@ -49,15 +48,18 @@ class TransformerEncoder(nn.Module):
             nn.Conv1d(dim_feedforward, d_model, kernel_size, padding=kernel_size // 2),
         )
 
-    def forward(self, x, lang_emb=None):
+    def forward(self, x, x_mask=None,lang_emb=None):
+        if x_mask is None:
+            x_len = torch.tensor(x.shape[2:]).to(x.device)
+            x_mask = torch.unsqueeze(sequence_mask(x_len, None), 1).float()
         x = self.pre(x)
         if x.dim() == 4:
             x = x.squeeze(2)
         else:
             x = x.transpose(1, 2)
-        x = self.pos_enc(x)
-        x = self.transformer(x)
+        # x = self.pos_enc(x * x_mask.transpose(1,2))
+        x = self.transformer(x * x_mask.transpose(1,2))
         x = x.transpose(1, 2)
-        x = self.conv(x)
+        x = self.conv(x * x_mask)
         x = x.transpose(1, 2)
         return x
