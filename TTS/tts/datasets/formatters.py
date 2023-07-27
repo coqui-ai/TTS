@@ -280,6 +280,25 @@ def common_voice(root_path, meta_file, ignored_speakers=None):
             )
     return items
 
+def libri_r(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
+    """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
+    items = []
+    meta_files = glob(f"{root_path}/**/*.normalized.txt", recursive=True)
+    for meta_file in meta_files[:1000]:
+        _, folder_id, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
+        file_id = txt_file.split(".")[0]
+        # ignore speakers
+        if isinstance(ignored_speakers, list):
+            if speaker_id in ignored_speakers:
+                continue
+        with open(meta_file, "r", encoding="utf-8") as file_text:
+            text = file_text.readlines()[0]
+        wav_file = os.path.join(root_path, wavs_path, folder_id, speaker_id, file_id + ".wav")
+        print("text", text, "audio_file", wav_file, "speaker_name", "VCTK_old_" + speaker_id, "root_path", root_path)
+        items.append(
+            {"text": text, "audio_file": wav_file, "speaker_name": speaker_id, "root_path": root_path}
+        )
+    return items
 
 def libri_tts(root_path, meta_files=None, ignored_speakers=None):
     """https://ai.google/tools/datasets/libri-tts/"""
@@ -355,6 +374,19 @@ def brspeech(root_path, meta_file, ignored_speakers=None):
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_id, "root_path": root_path})
     return items
 
+def hifitts(root_path, meta_files=None, wavs_path="audio", ignored_speakers=None):
+    meta_files = glob("/root/Desktop/datasets/hifitts/hi_fi_tts_v0/*.json")
+    items = []
+    for meta_file in meta_files:
+        data = pd.read_json(meta_file, lines=True)
+        del data['text']
+        data = data.rename(columns={'audio_filepath': 'audio_file', 'text_normalized': 'text'})
+        data["speaker_name"] = data['audio_file'].apply(lambda x: os.path.split(os.path.dirname(x))[-1])
+        data["root_path"] = root_path
+        data["audio_file"] = root_path +"/"+ data["audio_file"]
+        data = data[["text", "audio_file", "speaker_name", "root_path"]]
+        data = data.dropna()
+        items.extend(data.to_dict('records'))
 
 def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic1", ignored_speakers=None):
     """VCTK dataset v0.92.
