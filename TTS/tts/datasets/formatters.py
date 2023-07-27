@@ -389,7 +389,7 @@ def hifitts(root_path, meta_files=None, wavs_path="audio", ignored_speakers=None
         data = data[["text", "audio_file", "speaker_name", "root_path"]]
         data = data.dropna()
         items.extend(data.to_dict('records'))
-
+    return items
 def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic1", ignored_speakers=None):
     """VCTK dataset v0.92.
 

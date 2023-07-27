@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 import torch
 import torch.nn as nn
-
+import bitsandbytes as bnb
 from TTS.tts.utils.helpers import sequence_mask
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=5000):
@@ -31,13 +31,17 @@ class TransformerEncoder(nn.Module):
         language_emb_dim=4,
         max_len=250,
         n_vocab=100,
+        audio_codec_size=512,
         encoder_type="phoneme",
+        cond_channels = 0
     ):
         super().__init__()
         if encoder_type == "phoneme":
-            self.pre = nn.Embedding(n_vocab, d_model)
+            self.pre = bnb.nn.StableEmbedding(n_vocab, d_model)
         else:
-            self.pre = nn.Conv1d(128, d_model, kernel_size, padding=kernel_size // 2)
+            self.pre = nn.Conv1d(audio_codec_size, d_model, kernel_size, padding=kernel_size // 2)
+        if cond_channels > 0:
+            self.cond_ch = nn.Conv1d(cond_channels, d_model, 1)
         # self.pos_enc = PositionalEncoding(d_model, max_len=max_len)
         self.transformer = nn.TransformerEncoder(
             nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout), num_layers
@@ -48,7 +52,7 @@ class TransformerEncoder(nn.Module):
             nn.Conv1d(dim_feedforward, d_model, kernel_size, padding=kernel_size // 2),
         )
 
-    def forward(self, x, x_mask=None,lang_emb=None):
+    def forward(self, x, x_mask=None,g=None):
         if x_mask is None:
             x_len = torch.tensor(x.shape[2:]).to(x.device)
             x_mask = torch.unsqueeze(sequence_mask(x_len, None), 1).float()
@@ -57,6 +61,9 @@ class TransformerEncoder(nn.Module):
             x = x.squeeze(2)
         else:
             x = x.transpose(1, 2)
+        if g is not None:
+            cond = self.cond_ch(g)
+            x = x + cond.transpose(1,2)
         # x = self.pos_enc(x * x_mask.transpose(1,2))
         x = self.transformer(x * x_mask.transpose(1,2))
         x = x.transpose(1, 2)
