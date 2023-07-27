@@ -280,12 +280,12 @@ def common_voice(root_path, meta_file, ignored_speakers=None):
             )
     return items
 
-def libri_r(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
+def libri_r(root_path, meta_files=None, wavs_path="wav24", ignored_speakers=None):
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
     items = []
     meta_files = glob(f"{root_path}/**/*.normalized.txt", recursive=True)
-    for meta_file in meta_files[:1000]:
-        _, folder_id, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
+    for meta_file in meta_files:
+        folder_id, speaker_id, txt_file = os.path.relpath(meta_file, root_path).split(os.sep)
         file_id = txt_file.split(".")[0]
         # ignore speakers
         if isinstance(ignored_speakers, list):
@@ -293,11 +293,13 @@ def libri_r(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None
                 continue
         with open(meta_file, "r", encoding="utf-8") as file_text:
             text = file_text.readlines()[0]
-        wav_file = os.path.join(root_path, wavs_path, folder_id, speaker_id, file_id + ".wav")
-        print("text", text, "audio_file", wav_file, "speaker_name", "VCTK_old_" + speaker_id, "root_path", root_path)
-        items.append(
-            {"text": text, "audio_file": wav_file, "speaker_name": speaker_id, "root_path": root_path}
-        )
+        wav_file = os.path.join(root_path, folder_id, speaker_id, file_id + ".wav")
+        if os.path.exists(wav_file):
+            items.append(
+                {"text": text, "audio_file": wav_file, "speaker_name": speaker_id, "root_path": root_path}
+            )
+        else:
+            print("missing file: ", wav_file)
     return items
 
 def libri_tts(root_path, meta_files=None, ignored_speakers=None):
