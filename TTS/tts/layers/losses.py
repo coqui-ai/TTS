@@ -57,7 +57,7 @@ class IntegerLoss(nn.Module):
         self.threshold = threshold
         self.weight = weight
     def forward(self, output, target):
-        loss = functional.l1_loss(output, target)  # Mean Squared Error (MSE) loss
+        loss = functional.mse_loss(output, target)  # Mean Squared Error (MSE) loss
         
         # Additional term to penalize values below the threshold
         # int_out = torch.exp(output)
@@ -283,7 +283,7 @@ class Huber(nn.Module):
             y: B x T
             length: B
         """
-        mask = sequence_mask(sequence_length=length, max_len=y.size(1)).unsqueeze(2).float()
+        mask = sequence_mask(sequence_length=length, max_len=y.size(1)).float()
         return torch.nn.functional.smooth_l1_loss(x * mask, y * mask, reduction="sum") / mask.sum()
 
 
@@ -887,6 +887,7 @@ class ForwardTTSLoss(nn.Module):
             return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
 
         if self.binary_alignment_loss_alpha > 0 and alignment_hard is not None:
+            # print(alignment_hard.shape, alignment_soft.shape)
             binary_alignment_loss = self._binary_alignment_loss(alignment_hard, alignment_soft)
             loss = loss + self.binary_alignment_loss_alpha * binary_alignment_loss
             if binary_loss_weight:
@@ -910,8 +911,10 @@ class Naturalspeech2Loss(nn.Module):
         self.ce_loss_alpha = c.ce_loss_alpha
         self.duration_loss_alpha = c.duration_loss_alpha
         self.pitch_loss_alpha = c.pitch_loss_alpha
+        self.pitch_loss = MSELossMasked(False)
+        # self.pitch_loss = Huber()
+        # self.data_loss = Huber()
         self.duration_loss = IntegerLoss()
-        self.mel_loss_alpha = c.mel_loss_alpha
         self.diffusion_loss_alpha = c.diffusion_loss_alpha
         # use aligner if needed
         self.aligner_loss = ForwardSumLoss()
@@ -940,13 +943,10 @@ class Naturalspeech2Loss(nn.Module):
         diffusion_predictions=None,
         input_lens=None,
         spec_lens=None,
-        alignment_logprob=None
+        alignment_logprob=None,
     ):
         loss = 0
         return_dict = {}
-        if self.mel_loss_alpha > 0.0:
-            loss_mel = functional.mse_loss(mel_slice, mel_slice_hat) * self.mel_loss_alpha
-            return_dict["mel_loss"] = loss_mel
         if ce_loss is not None:
             ce_loss = ce_loss * self.ce_loss_alpha
             return_dict["ce_loss"] = ce_loss
@@ -955,18 +955,21 @@ class Naturalspeech2Loss(nn.Module):
         data_loss = functional.mse_loss(latents, latent_z_hat) * self.data_loss_alpha
         loss += data_loss 
         return_dict["data_loss"] = data_loss
-
+        # if self.diffusion_loss_alpha > 0.0:
         diffusion_loss = functional.mse_loss(diffusion_targets, diffusion_predictions) * self.diffusion_loss_alpha
         loss += diffusion_loss 
         return_dict["diffusion_loss"] = diffusion_loss
 
         if self.duration_loss_alpha > 0:
+            # log_dur_tgt = torch.log(duration.float() + 1e-7)
+            # log_dur_pred = torch.log(duration_pred.float() + 1e-7)
             duration_loss = self.duration_loss(duration_pred, duration)
             loss += duration_loss * self.duration_loss_alpha
             return_dict["duration_loss"] = duration_loss * self.duration_loss_alpha
 
         if self.pitch_loss_alpha > 0:
-            pitch_loss = functional.l1_loss(pitch_pred,pitch)
+            pitch_loss = torch.sum((pitch_pred - pitch) ** 2) / torch.sum(input_lens)
+            # pitch_loss = functional.l1_loss(pitch_pred,pitch)
             loss += pitch_loss * self.pitch_loss_alpha
             return_dict["pitch_loss"] = pitch_loss * self.pitch_loss_alpha
 
