@@ -6,7 +6,7 @@ from trainer import Trainer, TrainerArgs
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.delightful_tts_config import DelightfulTtsAudioConfig, DelightfulTTSConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTTSE2e, VocoderConfig
+from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTTS, VocoderConfig
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio.processor import AudioProcessor
@@ -75,7 +75,7 @@ speaker_manager.set_ids_from_data(train_samples + eval_samples, parse_key="speak
 config.model_args.num_speakers = speaker_manager.num_speakers
 
 
-model = DelightfulTTSE2e(
+model = DelightfulTTS(
     ap=ap, config=config, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=None
 )
 
