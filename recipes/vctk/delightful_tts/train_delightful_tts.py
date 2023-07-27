@@ -1,6 +1,5 @@
 import os
 
-from clearml import Task
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseDatasetConfig
@@ -11,7 +10,6 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio.processor import AudioProcessor
 
-task = Task.init(project_name="delightful-tts", task_name="vctk")
 data_path = "/raid/datasets/vctk_v092_48khz_removed_silence_silero_vad"
 output_path = os.path.dirname(os.path.abspath(__file__))
 
