@@ -16,7 +16,7 @@ data_path = "/raid/datasets/vctk_v092_48khz_removed_silence_silero_vad"
 output_path = os.path.dirname(os.path.abspath(__file__))
 
 
-dataset_config = BaseDatasetConfig(dataset_name="vctk", meta_file_train="", path=data_path, language="en-us")
+dataset_config = BaseDatasetConfig(dataset_name="vctk", formatter="vctk", meta_file_train="", path=data_path, language="en-us")
 
 audio_config = DelightfulTtsAudioConfig()
 
@@ -25,7 +25,7 @@ model_args = DelightfulTtsArgs()
 vocoder_config = VocoderConfig()
 
 something_tts_config = DelightfulTTSConfig(
-    run_name="delightful_tts_e2e_ljspeech",
+    run_name="delightful_tts_vctk",
     run_description="Train like in delightful tts paper.",
     model_args=model_args,
     audio=audio_config,
