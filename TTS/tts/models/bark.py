@@ -206,7 +206,7 @@ class Bark(BaseTTS):
             speaker_wav (str): Path to the speaker audio file for cloning a new voice. It is cloned and saved in
                 `voice_dirs` with the name `speaker_id`. Defaults to None.
             voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
-            **kwargs: Inference settings. See `inference()`.
+            **kwargs: Model specific inference settings used by `generate_audio()` and `TTS.tts.layers.bark.inference_funcs.generate_text_semantic().
 
         Returns:
             A dictionary of the output values with `wav` as output waveform, `deterministic_seed` as seed used at inference,
