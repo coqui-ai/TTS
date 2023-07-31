@@ -5,7 +5,7 @@ from trainer import Trainer, TrainerArgs
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.configs.delightful_tts_config import DelightfulTtsAudioConfig, DelightfulTTSConfig
 from TTS.tts.datasets import load_tts_samples
-from TTS.tts.models.delightful_tts import DelightfulTtsArgs, DelightfulTTS, VocoderConfig
+from TTS.tts.models.delightful_tts import DelightfulTTS, DelightfulTtsArgs, VocoderConfig
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio.processor import AudioProcessor
@@ -14,7 +14,9 @@ data_path = "/raid/datasets/vctk_v092_48khz_removed_silence_silero_vad"
 output_path = os.path.dirname(os.path.abspath(__file__))
 
 
-dataset_config = BaseDatasetConfig(dataset_name="vctk", formatter="vctk", meta_file_train="", path=data_path, language="en-us")
+dataset_config = BaseDatasetConfig(
+    dataset_name="vctk", formatter="vctk", meta_file_train="", path=data_path, language="en-us"
+)
 
 audio_config = DelightfulTtsAudioConfig()
 
@@ -73,9 +75,7 @@ speaker_manager.set_ids_from_data(train_samples + eval_samples, parse_key="speak
 config.model_args.num_speakers = speaker_manager.num_speakers
 
 
-model = DelightfulTTS(
-    ap=ap, config=config, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=None
-)
+model = DelightfulTTS(ap=ap, config=config, tokenizer=tokenizer, speaker_manager=speaker_manager, emotion_manager=None)
 
 trainer = Trainer(
     TrainerArgs(), config, output_path, model=model, train_samples=train_samples, eval_samples=eval_samples

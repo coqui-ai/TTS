@@ -51,7 +51,7 @@ config = DelightfulTTSConfig(
     use_attn_priors=False,
     print_eval=True,
     test_sentences=[
-        "Be a voice, not an echo.",
+        ["Be a voice, not an echo."],
     ],
     use_speaker_embedding=False,
 )
