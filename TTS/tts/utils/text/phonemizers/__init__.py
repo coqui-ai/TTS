@@ -52,6 +52,7 @@ def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
         kwargs (dict):
             Extra keyword arguments that should be passed to the phonemizer.
     """
+    global JAPANESE_ENABLED
     if name == "espeak":
         return ESpeak(**kwargs)
     if name == "gruut":
