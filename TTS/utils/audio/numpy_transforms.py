@@ -219,7 +219,7 @@ def istft(
 
 def griffin_lim(*, spec: np.ndarray = None, num_iter=60, **kwargs) -> np.ndarray:
     angles = np.exp(2j * np.pi * np.random.rand(*spec.shape))
-    S_complex = np.abs(spec).astype(np.complex)
+    S_complex = np.abs(spec).astype(complex)
     y = istft(y=S_complex * angles, **kwargs)
     if not np.isfinite(y).all():
         print(" [!] Waveform is not finite everywhere. Skipping the GL.")
