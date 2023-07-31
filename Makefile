@@ -1,50 +1,48 @@
 .DEFAULT_GOAL := help
 .PHONY: test system-deps dev-deps deps style lint install help docs
 
-export ENABLE_JAPANESE = 1
-
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 target_dirs := tests TTS notebooks recipes
 
 test_all:	## run tests and don't stop on an error.
-	nose2 --with-coverage --coverage TTS tests
-	./run_bash_tests.sh
+	ENABLE_JAPANESE=1 nose2 --with-coverage --coverage TTS tests
+	ENABLE_JAPANESE=1 ./run_bash_tests.sh
 
 test:	## run tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests
 
 test_vocoder:	## run vocoder tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.vocoder_tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.vocoder_tests
 
 test_tts:	## run tts tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests
 
 test_tts2:	## run tts tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests2
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests2
 
 test_aux:	## run aux tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.aux_tests
-	./run_bash_tests.sh
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.aux_tests
+	ENABLE_JAPANESE=1 ./run_bash_tests.sh
 
 test_zoo:	## run zoo tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests
 
 inference_tests: ## run inference tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.inference_tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.inference_tests
 
 api_tests: ## run api tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.api_tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.api_tests
 
 data_tests: ## run data tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.data_tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.data_tests
 
 test_text: ## run text tests.
-	nose2 -F -v -B --with-coverage --coverage TTS tests.text_tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests.text_tests
 
 test_failed:  ## only run tests failed the last time.
-	nose2 -F -v -B --with-coverage --coverage TTS tests
+	ENABLE_JAPANESE=1 nose2 -F -v -B --with-coverage --coverage TTS tests
 
 style:	## update code style.
 	black ${target_dirs}
