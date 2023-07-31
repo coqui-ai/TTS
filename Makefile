@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 .PHONY: test system-deps dev-deps deps style lint install help docs
 
-export ENABLE_JAPANESE := 1
+export ENABLE_JAPANESE = 1
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
