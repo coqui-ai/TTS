@@ -1814,7 +1814,7 @@ class Vits(BaseTTS):
         # rollback values
         _forward = self.forward
         disc = None
-        if hasattr(self, 'disc'):
+        if hasattr(self, "disc"):
             disc = self.disc
         training = self.training
 
@@ -1908,7 +1908,7 @@ class Vits(BaseTTS):
             [self.inference_noise_scale, self.length_scale, self.inference_noise_scale_dp],
             dtype=np.float32,
         )
-		
+
         audio = self.onnx_sess.run(
             ["output"],
             {
@@ -1916,7 +1916,7 @@ class Vits(BaseTTS):
                 "input_lengths": x_lengths,
                 "scales": scales,
                 "sid": None if speaker_id is None else torch.tensor([speaker_id]).cpu().numpy(),
-				"langid": None if language_id is None else torch.tensor([language_id]).cpu().numpy()
+                "langid": None if language_id is None else torch.tensor([language_id]).cpu().numpy(),
             },
         )
         return audio[0][0]

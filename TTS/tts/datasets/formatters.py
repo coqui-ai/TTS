@@ -602,6 +602,7 @@ def kss(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
 
+
 def bel_tts_formatter(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     txt_file = os.path.join(root_path, meta_file)
     items = []

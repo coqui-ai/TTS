@@ -40,7 +40,7 @@ config = DelightfulTTSConfig(
     binary_align_loss_alpha=0.0,
     use_attn_priors=False,
     test_sentences=[
-            ["Be a voice, not an echo.", "ljspeech-0"],
+        ["Be a voice, not an echo.", "ljspeech-0"],
     ],
     output_path=output_path,
     use_speaker_embedding=False,
