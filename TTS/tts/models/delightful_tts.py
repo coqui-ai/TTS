@@ -49,7 +49,7 @@ def id_to_torch(aux_id, cuda=False):
 def embedding_to_torch(d_vector, cuda=False):
     if d_vector is not None:
         d_vector = np.asarray(d_vector)
-        d_vector = torch.from_numpy(d_vector).type(torch.FloatTensor)
+        d_vector = torch.from_numpy(d_vector).float()
         d_vector = d_vector.squeeze().unsqueeze(0)
     if cuda:
         return d_vector.cuda()
@@ -1151,7 +1151,7 @@ class DelightfulTTS(BaseTTSE2E):
                 if speaker_name is None:
                     speaker_id = self.speaker_manager.get_random_id()
                 else:
-                    speaker_id = self.speaker_manager.ids[speaker_name]
+                    speaker_id = self.speaker_manager.name_to_id[speaker_name]
 
         return {"text": text, "speaker_id": speaker_id, "style_wav": style_wav, "d_vector": d_vector}
 
@@ -1208,17 +1208,16 @@ class DelightfulTTS(BaseTTSE2E):
 
         # set speaker inputs
         _speaker_id = None
-        if speaker_id is not None and (self.args.use_speaker_embedding or self.args.use_d_vector_file):
+        if speaker_id is not None and self.args.use_speaker_embedding:
             if isinstance(speaker_id, str) and self.args.use_speaker_embedding:
                 # get the speaker id for the speaker embedding layer
                 _speaker_id = self.speaker_manager.name_to_id[speaker_id]
                 _speaker_id = id_to_torch(_speaker_id, cuda=is_cuda)
-            else:
-                # get the average d_vector for the speaker
-                d_vector = self.speaker_manager.get_mean_embedding(speaker_id, num_samples=None, randomize=False)
 
-        if d_vector is not None and self.args.use_d_vector_file:
-            d_vector = embedding_to_torch(d_vector, cuda=is_cuda)
+        if speaker_id is not None and self.args.use_d_vector_file:
+            # get the average d_vector for the speaker
+            d_vector = self.speaker_manager.get_mean_embedding(speaker_id, num_samples=None, randomize=False)
+        d_vector = embedding_to_torch(d_vector, cuda=is_cuda)
 
         text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=is_cuda)
         text_inputs = text_inputs.unsqueeze(0)
