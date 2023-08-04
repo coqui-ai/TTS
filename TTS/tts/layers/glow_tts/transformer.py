@@ -430,3 +430,133 @@ class RelativePositionTransformer(nn.Module):
             x = self.norm_layers_2[i](x + y)
         x = x * x_mask
         return x
+
+class ConditionalRelativePositionTransformer(nn.Module):
+    """Transformer with Relative Potional Encoding and conditioned on external embeddings at cond_layer_idx'th layer.
+    
+    https://arxiv.org/abs/2307.16430
+
+    Args:
+        in_channels (int): number of channels of the input tensor.
+        out_chanels (int): number of channels of the output tensor.
+        hidden_channels (int): model hidden channels.
+        hidden_channels_ffn (int): hidden channels of FeedForwardNetwork.
+        num_heads (int): number of attention heads.
+        num_layers (int): number of transformer layers.
+        kernel_size (int, optional): kernel size of feed-forward inner layers. Defaults to 1.
+        dropout_p (float, optional): dropout rate for self-attention and feed-forward inner layers_per_stack. Defaults to 0.
+        rel_attn_window_size (int, optional): relation attention window size.
+            If 4, for each time step next and previous 4 time steps are attended.
+            If default, relative encoding is disabled and it is a regular transformer.
+            Defaults to None.
+        input_length (int, optional): input lenght to limit position encoding. Defaults to None.
+        layer_norm_type (str, optional): type "1" uses torch tensor operations and type "2" uses torch layer_norm
+            primitive. Use type "2", type "1: is for backward compat. Defaults to "1".
+        cond_channels (int): number of channels of the external embeddings.
+        cond_layer_idx (int): layer index to condition at. (using 3rd layer by default as in the paper)
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        hidden_channels: int,
+        hidden_channels_ffn: int,
+        num_heads: int,
+        num_layers: int,
+        kernel_size=1,
+        dropout_p=0.0,
+        rel_attn_window_size: int = None,
+        input_length: int = None,
+        layer_norm_type: str = "1",
+        cond_channels: int = 0,
+        cond_layer_idx: int = 2,
+    ):
+        super().__init__()
+        self.cond_channels = cond_channels
+        if cond_layer_idx < 0 or cond_layer_idx >= num_layers:
+            raise ValueError(" [!] cond_layer_idx should be in [0, num_layers)")
+        self.cond_layer_idx = cond_layer_idx
+        self.cond_proj = None
+        if self.cond_channels:
+            self.cond_proj = nn.Linear(cond_channels, hidden_channels)    
+
+        self.hidden_channels = hidden_channels
+        self.hidden_channels_ffn = hidden_channels_ffn
+        self.num_heads = num_heads
+        self.num_layers = num_layers
+        self.kernel_size = kernel_size
+        self.dropout_p = dropout_p
+        self.rel_attn_window_size = rel_attn_window_size
+
+        self.dropout = nn.Dropout(dropout_p)
+        self.attn_layers = nn.ModuleList()
+        self.norm_layers_1 = nn.ModuleList()
+        self.ffn_layers = nn.ModuleList()
+        self.norm_layers_2 = nn.ModuleList()
+
+        for idx in range(self.num_layers):
+            self.attn_layers.append(
+                RelativePositionMultiHeadAttention(
+                    hidden_channels if idx != 0 else in_channels,
+                    hidden_channels,
+                    num_heads,
+                    rel_attn_window_size=rel_attn_window_size,
+                    dropout_p=dropout_p,
+                    input_length=input_length,
+                )
+            )
+            if layer_norm_type == "1":
+                self.norm_layers_1.append(LayerNorm(hidden_channels))
+            elif layer_norm_type == "2":
+                self.norm_layers_1.append(LayerNorm2(hidden_channels))
+            else:
+                raise ValueError(" [!] Unknown layer norm type")
+
+            if hidden_channels != out_channels and (idx + 1) == self.num_layers:
+                self.proj = nn.Conv1d(hidden_channels, out_channels, 1)
+
+            self.ffn_layers.append(
+                FeedForwardNetwork(
+                    hidden_channels,
+                    hidden_channels if (idx + 1) != self.num_layers else out_channels,
+                    hidden_channels_ffn,
+                    kernel_size,
+                    dropout_p=dropout_p,
+                )
+            )
+
+            if layer_norm_type == "1":
+                self.norm_layers_2.append(LayerNorm(hidden_channels if (idx + 1) != self.num_layers else out_channels))
+            elif layer_norm_type == "2":
+                self.norm_layers_2.append(LayerNorm2(hidden_channels if (idx + 1) != self.num_layers else out_channels))
+            else:
+                raise ValueError(" [!] Unknown layer norm type")
+
+    def forward(self, x, x_mask, g=None):
+        """
+        Shapes:
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
+            - g: :math:`[B, C, T]`
+        """
+        attn_mask = x_mask.unsqueeze(2) * x_mask.unsqueeze(-1)
+        for i in range(self.num_layers):
+            if i == self.cond_layer_idx and self.cond_proj is not None:
+                g = self.cond_proj(g.transpose(1, 2))
+                g = g.transpose(1, 2)
+                x = x + g
+            x = x * x_mask
+            y = self.attn_layers[i](x, x, attn_mask)
+            y = self.dropout(y)
+            x = self.norm_layers_1[i](x + y)
+
+            y = self.ffn_layers[i](x, x_mask)
+            y = self.dropout(y)
+
+            if (i + 1) == self.num_layers and hasattr(self, "proj"):
+                x = self.proj(x)
+
+            x = self.norm_layers_2[i](x + y)
+        x = x * x_mask
+        return x
