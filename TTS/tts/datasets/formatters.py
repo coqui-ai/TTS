@@ -641,7 +641,7 @@ def artic_multispeaker(root_path, meta_file, ignored_speakers=None): # pylint: d
     """
     items = []
     # Loop over speakers: speaker names are subdirs of `root_path`
-    for pth in glob(f"{root_path}/*", recursive=False):
+    for pth in glob(f"{root_path}/*/", recursive=False):
         speaker_name = os.path.basename(pth)
         # Ignore speakers
         if isinstance(ignored_speakers, list):
