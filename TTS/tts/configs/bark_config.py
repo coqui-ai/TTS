@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, List
 
 from TTS.tts.configs.shared_configs import BaseTTSConfig
 from TTS.tts.layers.bark.model import GPTConfig
@@ -74,6 +74,28 @@ class BarkConfig(BaseTTSConfig):
     SMALL_REMOTE_MODEL_PATHS: Dict = None
     CACHE_DIR: str = str(get_user_data_dir("tts/suno/bark_v0"))
     DEF_SPEAKER_DIR: str = str(get_user_data_dir("tts/bark_v0/speakers"))
+
+    # training parameters
+    training_mode: str = None
+    batch_size: int = 32
+    num_workers: int = 4
+    epochs: int = 1000
+
+    # data parameters
+    max_semantic_tokens_len: int = 512
+    max_text_tokens_len: int = 128
+    max_coarse_tokens_len: int = 512
+    max_fine_tokens_len: int = 512
+
+    # optimizer
+    grad_clip: List[float] = field(default_factory=lambda: [1000, 1000])
+    lr: float = 0.0002
+    lr_scheduler: str = "ExponentialLR"
+    lr_scheduler_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
+    scheduler_after_epoch: bool = True
+    optimizer: str = "AdamW"
+    optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
+
 
     def __post_init__(self):
         self.REMOTE_MODEL_PATHS = {
