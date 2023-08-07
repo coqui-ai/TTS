@@ -73,10 +73,9 @@ class CustomHubert(nn.Module):
             output_hidden_states=True,
         )
         embed = outputs["hidden_states"][self.output_layer]
-        embed, packed_shape = pack([embed], "* d")
-        codebook_indices = torch.from_numpy(embed.cpu().detach().numpy()).to(device)
         if flatten:
-            return codebook_indices
+            embed, packed_shape = pack([embed], "* d")
+            embed = torch.from_numpy(embed.cpu().detach().numpy()).to(device)
+            return embed
 
-        (codebook_indices,) = unpack(codebook_indices, packed_shape, "*")
-        return codebook_indices
+        return embed
