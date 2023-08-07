@@ -162,7 +162,7 @@ def generate_text_semantic(
     allow_early_stop=True,
     base=None,
     use_kv_caching=True,
-    **kwargs, # pylint: disable=unused-argument
+    **kwargs,  # pylint: disable=unused-argument
 ):
     """Generate semantic tokens from text.
 
