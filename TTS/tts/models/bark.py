@@ -1,24 +1,132 @@
+from torch.utils.data import DataLoader
 import os
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, List, Optional, Tuple, Union
+import torch
+from torch.nn import functional as F
 
 import numpy as np
 from coqpit import Coqpit
+import torchaudio
+from TTS.config.shared_configs import BaseDatasetConfig
+from TTS.tts.datasets import load_tts_samples
+from TTS.tts.datasets.dataset import _parse_sample
+from torch.utils.data import Dataset
 from encodec import EncodecModel
 from transformers import BertTokenizer
 
 from TTS.tts.layers.bark.inference_funcs import (
+    BarkHubertAudioTokenizer,
     codec_decode,
     generate_coarse,
     generate_fine,
     generate_text_semantic,
     generate_voice,
     load_voice,
+    convert_audio,
 )
 from TTS.tts.layers.bark.load_model import load_model
 from TTS.tts.layers.bark.model import GPT
 from TTS.tts.layers.bark.model_fine import FineGPT
 from TTS.tts.models.base_tts import BaseTTS
+from trainer.trainer_utils import get_optimizer, get_scheduler
+import torch.distributed as dist
+
+
+def load_audio(file_path, sr):
+    """Load the audio file normalized in [-1, 1]
+
+    Return Shapes:
+        - x: :math:`[1, T]`
+    """
+    x, _sr = torchaudio.load(file_path)
+
+    # resample if needed
+    if sr != _sr:
+        x = torchaudio.transforms.Resample(_sr, sr)(x)
+
+    assert (x > 1).sum() + (x < -1).sum() == 0
+    return x, sr
+
+
+class BarkDataset(Dataset):
+    def __init__(self, config, samples):
+        super().__init__()
+        self.samples = samples
+        self.config = config
+
+    def __getitem__(self, idx):
+        item = self.samples[idx]
+        raw_text = item["text"]
+
+        wav, _ = load_audio(item["audio_file"], self.config.sample_rate)
+        wav_filename = os.path.basename(item["audio_file"])
+
+        return {
+            "raw_text": raw_text,
+            "wav": wav,
+            "wav_file": wav_filename,
+            "speaker_name": item["speaker_name"],
+            "language_name": item["language"],
+            "audio_unique_name": item["audio_unique_name"],
+        }
+
+    def __len__(self):
+        return len(self.samples)
+
+    @property
+    def lengths(self):
+        lens = []
+        for item in self.samples:
+            _, wav_file, *_ = _parse_sample(item)
+            audio_len = os.path.getsize(wav_file) / 16 * 8  # assuming 16bit audio
+            lens.append(audio_len)
+        return lens
+
+    def collate_fn(self, batch):
+        """
+        Return Shapes:
+            - tokens: :math:`[B, T]`
+            - token_lens :math:`[B]`
+            - token_rel_lens :math:`[B]`
+            - waveform: :math:`[B, 1, T]`
+            - waveform_lens: :math:`[B]`
+            - waveform_rel_lens: :math:`[B]`
+            - speaker_names: :math:`[B]`
+            - language_names: :math:`[B]`
+            - audiofile_paths: :math:`[B]`
+            - raw_texts: :math:`[B]`
+            - audio_unique_names: :math:`[B]`
+        """
+        # convert list of dicts to dict of lists
+        B = len(batch)
+        batch = {k: [dic[k] for dic in batch] for k in batch[0]}
+
+        _, ids_sorted_decreasing = torch.sort(
+            torch.LongTensor([x.size(1) for x in batch["wav"]]), dim=0, descending=True
+        )
+
+        wav_lens = [w.shape[1] for w in batch["wav"]]
+        wav_lens = torch.LongTensor(wav_lens)
+        wav_lens_max = torch.max(wav_lens)
+        wav_rel_lens = wav_lens / wav_lens_max
+
+        wav_padded = torch.FloatTensor(B, 1, wav_lens_max)
+        wav_padded = wav_padded.zero_()
+        for i in range(len(ids_sorted_decreasing)):
+            wav = batch["wav"][i]
+            wav_padded[i, :, : wav.size(1)] = torch.FloatTensor(wav)
+
+        return {
+            "waveform": wav_padded,  # (B x T)
+            "waveform_lens": wav_lens,  # (B)
+            "waveform_rel_lens": wav_rel_lens,
+            "speaker_names": batch["speaker_name"],
+            "language_names": batch["language_name"],
+            "audio_files": batch["wav_file"],
+            "raw_text": batch["raw_text"],
+            "audio_unique_names": batch["audio_unique_name"],
+        }
 
 
 @dataclass
@@ -41,6 +149,7 @@ class Bark(BaseTTS):
         self.fine_model = FineGPT(config.fine_config)
         self.encodec = EncodecModel.encodec_model_24khz()
         self.encodec.set_target_bandwidth(6.0)
+        self.semantic_tokenizer = BarkHubertAudioTokenizer(self.config, lazy_load=self.config.training_mode is None)
 
     @property
     def device(self):
@@ -60,10 +169,21 @@ class Bark(BaseTTS):
             ckpt_path=self.config.LOCAL_MODEL_PATHS["fine"], device=self.device, config=self.config, model_type="fine"
         )
 
-    def train_step(
-        self,
-    ):
-        pass
+    def generate_coarse_fine_tokens(self, audio):
+        if isinstance(audio, str):
+            audio, sr = torchaudio.load(audio)
+            audio = convert_audio_and_make_label(audio, sr, self.config.sample_rate, self.encodec.channels)
+            audio = audio.unsqueeze(0).to(self.device)
+
+        # Coarse and fine tokens
+        with torch.no_grad():
+            encoded_frames = self.encodec.encode(audio)
+        codes = torch.cat([encoded[0] for encoded in encoded_frames], dim=-1).squeeze()  # [n_q, T]
+        codes = codes.cpu().numpy()
+        return codes, codes[:2, :]  # fine, corse
+
+    def generate_semantic_tokens(self, audio):
+        return self.semantic_tokenizer.encode(audio, self.device)
 
     def text_to_semantic(
         self,
@@ -225,7 +345,81 @@ class Bark(BaseTTS):
 
         return return_dict
 
+    def format_batch(self, batch):
+        """Tokenize input text.
+
+        Args:
+            batch (dict): batch of data to format
+
+        Returns:
+            formatted batch
+        """
+        PAD_TOKEN = None
+        if self.config.training_mode == "semantic":
+            PAD_TOKEN = self.config.SEMANTIC_PAD_TOKEN
+        elif self.config.training_mode in ["coarse", "fine"]:
+            PAD_TOKEN = self.config.COARSE_SEMANTIC_PAD_TOKEN
+        else:
+            raise ValueError("Invalid training mode: {}".format(self.config.training_mode))
+
+        tokenss = []
+        max_len = 0
+        for i, text in enumerate(batch["raw_text"]):
+            tokens = np.array(self.tokenizer.encode(text, add_special_tokens=False)) + self.config.TEXT_ENCODING_OFFSET
+            tokens = torch.from_numpy(tokens).long()
+            tokenss.append(tokens)
+            max_len = max(max_len, len(tokens))
+
+        # pad and collate into batch
+        for i, tokens in enumerate(tokenss):
+            tokenss[i] = torch.nn.functional.pad(tokens, (0, max_len - len(tokens)), value=PAD_TOKEN)
+        tokens = torch.stack(tokenss, dim=0)
+        batch["input_ids"] = tokens[:, :self.config.max_text_tokens_len]
+        return batch
+
+    def format_batch_on_device(self, batch):
+        """Tokenize input audio.
+
+        Args:
+            batch (dict): Batch of input data.
+
+        Returns:
+            dict: Formatted batch.
+        """
+        if self.config.training_mode == "semantic":
+            batch["semantic_tokens"] = self.generate_semantic_tokens(batch["waveform"][:, 0])[:, : self.config.max_semantic_tokens_len]
+
+        return batch
+
+    def train_step_semantic(self, batch: dict, criterion: torch.nn.Module) -> Tuple[Dict, Dict]:
+        """Train semantic encoder"""
+        tokens = batch["semantic_tokens"]
+        target_tokens = tokens[:, 1:].contiguous()
+        input_tokens = tokens[:, :-1].contiguous()
+
+        inputs = torch.cat([batch["input_ids"], input_tokens], dim=1)
+        logits = self.semantic_model(inputs)
+
+        semantic_logits = logits[:, batch["input_ids"].size(1) :].contiguous()
+
+        loss = criterion(semantic_logits.view(-1, self.semantic_model.config.output_vocab_size), target_tokens.view(-1))
+        loss_dict = {"loss": loss}
+        return None, loss_dict
+
+    def train_step_coarse(self):
+        ...
+
+    def train_step_fine(self):
+        ...
+
+    def train_step(self, *args, **kwargs):
+        if self.config.training_mode == "semantic":
+            return self.train_step_semantic(*args, **kwargs)
+
     def eval_step(self):
+        ...
+
+    def test_run(self, *args, **kwargs):
         ...
 
     def forward(self):
@@ -233,6 +427,75 @@ class Bark(BaseTTS):
 
     def inference(self):
         ...
+
+    def _get_test_aux_inputs(self):
+        return None
+
+    def get_criterion(self):
+        if self.config.training_mode in ["semantic", "coarse_encoder"]:
+            criterion = torch.nn.CrossEntropyLoss(ignore_index=self.config.COARSE_SEMANTIC_PAD_TOKEN)
+        elif self.config.training_mode == "fine_encoder":
+            criterion = torch.nn.CrossEntropyLoss(ignore_index=self.config.FINE_COARSE_PAD_TOKEN)
+        else:
+            raise ValueError(f" ❗ Invalid training mode {self.config.training_mode}")
+
+    def get_optimizer(self):
+        if self.config.training_mode == "semantic":
+            optimizer = get_optimizer(
+                self.config.optimizer, self.config.optimizer_params, self.config.lr, self.semantic_model
+            )
+        elif self.config.training_mode == "coarse_encoder":
+            optimizer = get_optimizer(
+                self.config.optimizer, self.config.optimizer_params, self.config.lr, self.coarse_model
+            )
+        elif self.config.training_mode == "fine_encoder":
+            optimizer = get_optimizer(
+                self.config.optimizer, self.config.optimizer_params, self.config.lr, self.fine_model
+            )
+        return optimizer
+
+    def get_scheduler(self, optimizer):
+        scheduler = get_scheduler(self.config.lr_scheduler, self.config.lr_scheduler_params, optimizer)
+        return scheduler
+
+    def get_data_loader(
+        self,
+        config: Coqpit,
+        assets: Dict,
+        is_eval: bool,
+        samples: Union[List[Dict], List[List]],
+        verbose: bool,
+        num_gpus: int,
+        rank: int = None,
+    ) -> "DataLoader":
+        from trainer.torch import DistributedSampler
+
+        if is_eval and not config.run_eval:
+            loader = None
+        else:
+            # init dataloader
+            dataset = BarkDataset(
+                config=self.config,
+                samples=samples,
+            )
+
+            # wait all the DDP process to be ready
+            if num_gpus > 1:
+                dist.barrier()
+
+            # init data loader
+            sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+            loader = DataLoader(
+                dataset,
+                batch_size=config.eval_batch_size if is_eval else config.batch_size,
+                shuffle=False,  # shuffle is done in the dataset.
+                collate_fn=dataset.collate_fn,
+                drop_last=True,  # setting this False might cause issues in AMP training.
+                sampler=sampler,
+                num_workers=config.num_eval_loader_workers if is_eval else config.num_loader_workers,
+                pin_memory=True,
+            )
+        return loader
 
     @staticmethod
     def init_from_config(config: "BarkConfig", **kwargs):  # pylint: disable=unused-argument
@@ -276,3 +539,41 @@ class Bark(BaseTTS):
 
         if eval:
             self.eval()
+
+
+if __name__ == "__main__":
+    from TTS.tts.configs.bark_config import BarkConfig
+
+    bark_config = BarkConfig()
+
+    bark_config.training_mode = "semantic"
+    bark_config.batch_size = 2
+
+    bark = Bark.init_from_config(bark_config)
+
+    # batch = {"waveform": torch.randn(2, 48000), "raw_text": ["hello world", "how are you"]}
+    # batch = bark.format_batch(batch)
+    # batch = bark.format_batch_on_device(batch)
+
+    from trainer import Trainer, TrainerArgs
+
+    dataset_config = BaseDatasetConfig(
+        formatter="ljspeech", meta_file_train="metadata.csv", path="/Users/erengolge/Projects/TTS/tests/data/ljspeech/"
+    )
+
+    train_samples, eval_samples = load_tts_samples(
+        dataset_config,
+        eval_split=True,
+        eval_split_max_size=4,
+        eval_split_size=4,
+    )
+
+    trainer = Trainer(
+        model=bark,
+        config=bark_config,
+        output_path="./",
+        args=TrainerArgs(),
+        train_samples=train_samples,
+        eval_samples=eval_samples,
+    )
+    trainer.fit()
