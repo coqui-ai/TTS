@@ -408,8 +408,7 @@ class Synthesizer(nn.Module):
                     # run vocoder model
                     # [1, T, C]
                     waveform = self.vocoder_model.inference(vocoder_input.to(vocoder_device))
-                if self.use_cuda and not use_gl:
-                    waveform = waveform.cpu()
+                waveform = waveform.cpu()
                 if not use_gl:
                     waveform = waveform.numpy()
                 waveform = waveform.squeeze()
