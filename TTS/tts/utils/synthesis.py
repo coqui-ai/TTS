@@ -166,6 +166,8 @@ def synthesis(
     """
     # device
     device = next(model.parameters()).device
+    if use_cuda:
+        device = "cuda"
 
     # GST or Capacitron processing
     # TODO: need to handle the case of setting both gst and capacitron to true somewhere
@@ -295,22 +297,27 @@ def transfer_voice(
         do_trim_silence (bool):
             trim silence after synthesis. Defaults to False.
     """
+    # device
+    device = next(model.parameters()).device
+    if use_cuda:
+        device = "cuda"
+
     # pass tensors to backend
     if speaker_id is not None:
-        speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
+        speaker_id = id_to_torch(speaker_id, device=device)
 
     if d_vector is not None:
-        d_vector = embedding_to_torch(d_vector, cuda=use_cuda)
+        d_vector = embedding_to_torch(d_vector, device=device)
 
     if reference_d_vector is not None:
-        reference_d_vector = embedding_to_torch(reference_d_vector, cuda=use_cuda)
+        reference_d_vector = embedding_to_torch(reference_d_vector, device=device)
 
     # load reference_wav audio
     reference_wav = embedding_to_torch(
         model.ap.load_wav(
             reference_wav, sr=model.args.encoder_sample_rate if model.args.encoder_sample_rate else model.ap.sample_rate
         ),
-        cuda=use_cuda,
+        device=device,
     )
 
     if hasattr(model, "module"):
