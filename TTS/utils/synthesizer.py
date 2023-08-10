@@ -362,6 +362,8 @@ class Synthesizer(nn.Module):
         use_gl = self.vocoder_model is None
         if not use_gl:
             vocoder_device = next(self.vocoder_model.parameters()).device
+        if self.use_cuda:
+            vocoder_device = "cuda"
 
         if not reference_wav:  # not voice conversion
             for sen in sens:
@@ -408,7 +410,8 @@ class Synthesizer(nn.Module):
                     # run vocoder model
                     # [1, T, C]
                     waveform = self.vocoder_model.inference(vocoder_input.to(vocoder_device))
-                waveform = waveform.cpu()
+                if not use_gl and waveform.device != torch.device("cpu"):
+                    waveform = waveform.cpu()
                 if not use_gl:
                     waveform = waveform.numpy()
                 waveform = waveform.squeeze()
@@ -471,7 +474,8 @@ class Synthesizer(nn.Module):
                 # run vocoder model
                 # [1, T, C]
                 waveform = self.vocoder_model.inference(vocoder_input.to(vocoder_device))
-            waveform = waveform.cpu()
+            if not use_gl and waveform.device != torch.device("cpu"):
+                    waveform = waveform.cpu()
             if not use_gl:
                 waveform = waveform.numpy()
             wavs = waveform.squeeze()
