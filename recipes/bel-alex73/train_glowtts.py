@@ -60,7 +60,7 @@ config = GlowTTSConfig(
     output_path=output_path,
     add_blank=True,
     datasets=[dataset_config],
-    characters=characters,
+#    characters=characters,
     enable_eos_bos_chars=True,
     mixed_precision=False,
     save_step=10000,
@@ -69,6 +69,8 @@ config = GlowTTSConfig(
     text_cleaner="no_cleaners",
     audio=audio_config,
     test_sentences=[],
+    use_phonemes=True,
+    phoneme_language="be",
 )
 
 if __name__ == "__main__":
