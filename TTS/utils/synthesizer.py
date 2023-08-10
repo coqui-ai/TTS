@@ -410,7 +410,7 @@ class Synthesizer(nn.Module):
                     # run vocoder model
                     # [1, T, C]
                     waveform = self.vocoder_model.inference(vocoder_input.to(vocoder_device))
-                if not use_gl and waveform.device != torch.device("cpu"):
+                if waveform.device != torch.device("cpu") and not use_gl:
                     waveform = waveform.cpu()
                 if not use_gl:
                     waveform = waveform.numpy()
@@ -474,7 +474,7 @@ class Synthesizer(nn.Module):
                 # run vocoder model
                 # [1, T, C]
                 waveform = self.vocoder_model.inference(vocoder_input.to(vocoder_device))
-            if not use_gl and waveform.device != torch.device("cpu"):
+            if waveform.device != torch.device("cpu"):
                     waveform = waveform.cpu()
             if not use_gl:
                 waveform = waveform.numpy()
