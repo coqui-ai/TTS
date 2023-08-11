@@ -224,7 +224,7 @@ tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", 
 
 #### Example voice conversion
 
-Converting speaker of the `source_wav` to the speaker of the `target_wav`
+Converting the voice in `source_wav` to the voice of `target_wav`
 
 ```python
 tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=True)
@@ -244,13 +244,13 @@ tts.tts_with_vc_to_file(
 )
 ```
 
-#### Example text to speech using [🐸Coqui Studio](https://coqui.ai) models.
-You can use all of your available speakers in the studio.
-[🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
-You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
+#### Example using [🐸Coqui Studio](https://coqui.ai) voices.
+You access all of your cloned voices and built-in speakers in [🐸Coqui Studio](https://coqui.ai). 
+To do this, you'll need an API token, which you can obtain from the [account page](https://coqui.ai/account).
+After obtaining the API token, you'll need to configure the COQUI_STUDIO_TOKEN environment variable.
 
-If you have a valid API token set you will see the studio speakers as separate models in the list.
-The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
+Once you have a valid API token in place, the studio speakers will be displayed as distinct models within the list. 
+These models will follow the naming convention `coqui_studio/en/<studio_speaker_name>/coqui_studio`
 
 ```python
 # XTTS model
@@ -274,8 +274,8 @@ tts.tts_to_file(text="Das ist ein Test.", file_path=OUTPUT_PATH, language="de", 
 ```
 
 #### Example text to speech using **Fairseq models in ~1100 languages** 🤯.
-For these models use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
-You can find the list of language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html)
+For Fairseq models, use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
+You can find the language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html)
 and learn about the Fairseq models [here](https://github.com/facebookresearch/fairseq/tree/main/examples/mms).
 
 ```python
