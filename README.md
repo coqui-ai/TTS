@@ -108,7 +108,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 - Capacitron: [paper](https://arxiv.org/abs/1906.03402)
 - OverFlow: [paper](https://arxiv.org/abs/2211.06892)
 - Neural HMM TTS: [paper](https://arxiv.org/abs/2108.13320)
-- Delightful TTS: [paper](https://arxiv.org/abs/2110.12612) 
+- Delightful TTS: [paper](https://arxiv.org/abs/2110.12612)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
@@ -204,9 +204,11 @@ tts = TTS(model_name)
 wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
 # Text to speech to a file
 tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path="output.wav")
+```
 
-# Running a single speaker model
+#### Running a single speaker model
 
+```python
 # Init TTS with the target model name
 tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
 # Run TTS
@@ -218,15 +220,21 @@ tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_
 tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr-fr", file_path="output.wav")
 tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt-br", file_path="output.wav")
+```
 
+#### Example voice conversion
 
-# Example voice conversion converting speaker of the `source_wav` to the speaker of the `target_wav`
+Converting speaker of the `source_wav` to the speaker of the `target_wav`
 
+```python
 tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=True)
 tts.voice_conversion_to_file(source_wav="my/source.wav", target_wav="my/target.wav", file_path="output.wav")
+```
 
-# Example voice cloning by a single speaker TTS model combining with the voice conversion model. This way, you can
-# clone voices by using any model in 🐸TTS.
+#### Example voice cloning together with the voice conversion model.
+This way, you can clone voices by using any model in 🐸TTS.
+
+```python
 
 tts = TTS("tts_models/de/thorsten/tacotron2-DDC")
 tts.tts_with_vc_to_file(
@@ -234,29 +242,43 @@ tts.tts_with_vc_to_file(
     speaker_wav="target/speaker.wav",
     file_path="output.wav"
 )
+```
 
-# Example text to speech using [🐸Coqui Studio](https://coqui.ai) models.
+#### Example text to speech using [🐸Coqui Studio](https://coqui.ai) models.
+You can use all of your available speakers in the studio.
+[🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
+You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
 
-# You can use all of your available speakers in the studio.
-# [🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
-# You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
+If you have a valid API token set you will see the studio speakers as separate models in the list.
+The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
 
-# If you have a valid API token set you will see the studio speakers as separate models in the list.
-# The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
-models = TTS().list_models()
+```python
+# XTTS model
+models = TTS(cs_api_model="XTTS").list_models()
 # Init TTS with the target studio speaker
 tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False, gpu=False)
 # Run TTS
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
+
+# V1 model
+models = TTS(cs_api_model="V1").list_models()
 # Run TTS with emotion and speed control
+# Emotion control only works with V1 model
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
 
+# XTTS-multilingual
+models = TTS(cs_api_model="XTTS-multilingual").list_models()
+# Run TTS with emotion and speed control
+# Emotion control only works with V1 model
+tts.tts_to_file(text="Das ist ein Test.", file_path=OUTPUT_PATH, language="de", speed=1.0)
+```
 
-#Example text to speech using **Fairseq models in ~1100 languages** 🤯.
+#### Example text to speech using **Fairseq models in ~1100 languages** 🤯.
+For these models use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
+You can find the list of language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html)
+and learn about the Fairseq models [here](https://github.com/facebookresearch/fairseq/tree/main/examples/mms).
 
-#For these models use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
-#You can find the list of language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html) and learn about the Fairseq models [here](https://github.com/facebookresearch/fairseq/tree/main/examples/mms).
-
+```python
 # TTS with on the fly voice conversion
 api = TTS("tts_models/deu/fairseq/vits")
 api.tts_with_vc_to_file(
