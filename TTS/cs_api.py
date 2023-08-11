@@ -2,11 +2,11 @@ import http.client
 import json
 import os
 import tempfile
-from typing import Tuple
-import requests
 import urllib.request
-import numpy as np
+from typing import Tuple
 
+import numpy as np
+import requests
 from scipy.io import wavfile
 
 
@@ -324,12 +324,15 @@ if __name__ == "__main__":
 
     filepath = api.tts_to_file(text="Hello world!", speaker_name=api.speakers[0].name, file_path="output.wav")
 
-
     api = CS_API(model="XTTS-multilang")
     print(api.speakers)
 
     ts = time.time()
-    wav, sr = api.tts("It took me quite a long time to develop a voice.", speaker_name=api.speakers[0].name, language="en")
+    wav, sr = api.tts(
+        "It took me quite a long time to develop a voice.", speaker_name=api.speakers[0].name, language="en"
+    )
     print(f" [i] XTTS took {time.time() - ts:.2f}s")
 
-    filepath = api.tts_to_file(text="Hello world!", speaker_name=api.speakers[0].name, file_path="output.wav", language="en")
+    filepath = api.tts_to_file(
+        text="Hello world!", speaker_name=api.speakers[0].name, file_path="output.wav", language="en"
+    )

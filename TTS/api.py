@@ -1,11 +1,10 @@
-
 import tempfile
 from pathlib import Path
 from typing import Union
 
 import numpy as np
-from TTS.cs_api import CS_API
 
+from TTS.cs_api import CS_API
 from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
