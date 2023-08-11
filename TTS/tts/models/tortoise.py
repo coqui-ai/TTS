@@ -72,7 +72,7 @@ def load_discrete_vocoder_diffuser(
     )
 
 
-def format_conditioning(clip, cond_length=132300, device="cuda"):
+def format_conditioning(clip, cond_length=132300, device="cuda", **kwargs):
     """
     Converts the given conditioning signal to a MEL spectrogram and clips it as expected by the models.
     """
@@ -82,7 +82,7 @@ def format_conditioning(clip, cond_length=132300, device="cuda"):
     elif gap > 0:
         rand_start = random.randint(0, gap)
         clip = clip[:, rand_start : rand_start + cond_length]
-    mel_clip = TorchMelSpectrogram()(clip.unsqueeze(0)).squeeze(0)
+    mel_clip = TorchMelSpectrogram(**kwargs)(clip.unsqueeze(0)).squeeze(0)
     return mel_clip.unsqueeze(0).to(device)
 
 
@@ -321,6 +321,7 @@ class Tortoise(BaseTTS):
 
     def __init__(self, config: Coqpit):
         super().__init__(config, ap=None, tokenizer=None)
+        self.mel_norm_path = None
         self.config = config
         self.ar_checkpoint = self.args.ar_checkpoint
         self.diff_checkpoint = self.args.diff_checkpoint  # TODO: check if this is even needed
@@ -429,7 +430,7 @@ class Tortoise(BaseTTS):
 
             auto_conds = []
             for ls in voice_samples:
-                auto_conds.append(format_conditioning(ls[0], device=self.device))
+                auto_conds.append(format_conditioning(ls[0], device=self.device, mel_norm_file=self.mel_norm_path))
             auto_conds = torch.stack(auto_conds, dim=1)
             with self.temporary_cuda(self.autoregressive) as ar:
                 auto_latent = ar.get_conditioning(auto_conds)
@@ -873,6 +874,7 @@ class Tortoise(BaseTTS):
         diff_path = diff_checkpoint_path or os.path.join(checkpoint_dir, "diffusion_decoder.pth")
         clvp_path = clvp_checkpoint_path or os.path.join(checkpoint_dir, "clvp2.pth")
         vocoder_checkpoint_path = vocoder_checkpoint_path or os.path.join(checkpoint_dir, "vocoder.pth")
+        self.mel_norm_path = os.path.join(checkpoint_dir, "mel_norms.pth")
 
         if os.path.exists(ar_path):
             # remove keys from the checkpoint that are not in the model

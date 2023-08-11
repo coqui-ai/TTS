@@ -88,7 +88,7 @@ class ModelManager(object):
 
     def _list_models(self, model_type, model_count=0):
         if self.verbose:
-            print(" Name format: type/language/dataset/model")
+            print("\n Name format: type/language/dataset/model")
         model_list = []
         for lang in self.models_dict[model_type]:
             for dataset in self.models_dict[model_type][lang]:

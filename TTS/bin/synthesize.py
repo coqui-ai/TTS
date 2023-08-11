@@ -186,10 +186,21 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
     # args for coqui studio
     parser.add_argument(
+        "--cs_model",
+        type=str,
+        help="Name of the 🐸Coqui Studio model. Available models are `XTTS`, `XTTS-multilingual`, `V1`.",
+    )
+    parser.add_argument(
         "--emotion",
         type=str,
-        help="Emotion to condition the model with. Only available for 🐸Coqui Studio models.",
-        default="Neutral",
+        help="Emotion to condition the model with. Only available for 🐸Coqui Studio `V1` model.",
+        default=None,
+    )
+    parser.add_argument(
+        "--language",
+        type=str,
+        help="Language to condition the model with. Only available for 🐸Coqui Studio `XTTS-multilingual` model.",
+        default=None,
     )
 
     # args for multi-speaker synthesis
@@ -335,8 +346,8 @@ If you don't specify any models, then it uses LJSpeech based English model.
     # CASE3: TTS with coqui studio models
     if "coqui_studio" in args.model_name:
         print(" > Using 🐸Coqui Studio model: ", args.model_name)
-        api = TTS(model_name=args.model_name)
-        api.tts_to_file(text=args.text, emotion=args.emotion, file_path=args.out_path)
+        api = TTS(model_name=args.model_name, cs_api_model=args.cs_model)
+        api.tts_to_file(text=args.text, emotion=args.emotion, file_path=args.out_path, language=args.language)
         print(" > Saving output to ", args.out_path)
         return
 
