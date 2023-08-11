@@ -102,7 +102,7 @@ class HubertTokenizer(nn.Module):
             model_zip.close()
 
     @staticmethod
-    def load_from_checkpoint(path, map_location = None):
+    def load_from_checkpoint(path, map_location=None):
         old = True
         with ZipFile(path) as model_zip:
             filesMatch = [file for file in model_zip.namelist() if file.endswith("/.info")]

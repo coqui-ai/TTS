@@ -184,7 +184,6 @@ def generate_text_semantic(
     Returns:
         np.ndarray: The generated semantic tokens.
     """
-    print(f"history_prompt in gen: {history_prompt}")
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
     assert len(text.strip()) > 0
