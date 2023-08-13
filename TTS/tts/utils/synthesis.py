@@ -5,19 +5,17 @@ import torch
 from torch import nn
 
 
-def numpy_to_torch(np_array, dtype, cuda=False):
+def numpy_to_torch(np_array, dtype, device="cpu"):
     if np_array is None:
         return None
-    tensor = torch.as_tensor(np_array, dtype=dtype)
-    if cuda:
-        return tensor.cuda()
+    tensor = torch.as_tensor(np_array, dtype=dtype, device=device)
     return tensor
 
 
-def compute_style_mel(style_wav, ap, cuda=False):
-    style_mel = torch.FloatTensor(ap.melspectrogram(ap.load_wav(style_wav, sr=ap.sample_rate))).unsqueeze(0)
-    if cuda:
-        return style_mel.cuda()
+def compute_style_mel(style_wav, ap, device="cpu"):
+    style_mel = torch.FloatTensor(
+        ap.melspectrogram(ap.load_wav(style_wav, sr=ap.sample_rate)), device=device,
+    ).unsqueeze(0)
     return style_mel
 
 
@@ -73,22 +71,18 @@ def inv_spectrogram(postnet_output, ap, CONFIG):
     return wav
 
 
-def id_to_torch(aux_id, cuda=False):
+def id_to_torch(aux_id, device="cpu"):
     if aux_id is not None:
         aux_id = np.asarray(aux_id)
-        aux_id = torch.from_numpy(aux_id)
-    if cuda:
-        return aux_id.cuda()
+        aux_id = torch.from_numpy(aux_id).to(device)
     return aux_id
 
 
-def embedding_to_torch(d_vector, cuda=False):
+def embedding_to_torch(d_vector, device="cpu"):
     if d_vector is not None:
         d_vector = np.asarray(d_vector)
         d_vector = torch.from_numpy(d_vector).type(torch.FloatTensor)
-        d_vector = d_vector.squeeze().unsqueeze(0)
-    if cuda:
-        return d_vector.cuda()
+        d_vector = d_vector.squeeze().unsqueeze(0).to(device)
     return d_vector
 
 
@@ -162,6 +156,9 @@ def synthesis(
         language_id (int):
             Language ID passed to the language embedding layer in multi-langual model. Defaults to None.
     """
+    # device
+    device = next(model.parameters()).device
+
     # GST or Capacitron processing
     # TODO: need to handle the case of setting both gst and capacitron to true somewhere
     style_mel = None
@@ -169,10 +166,10 @@ def synthesis(
         if isinstance(style_wav, dict):
             style_mel = style_wav
         else:
-            style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
+            style_mel = compute_style_mel(style_wav, model.ap, device=device)
 
     if CONFIG.has("capacitron_vae") and CONFIG.use_capacitron_vae and style_wav is not None:
-        style_mel = compute_style_mel(style_wav, model.ap, cuda=use_cuda)
+        style_mel = compute_style_mel(style_wav, model.ap, device=device)
         style_mel = style_mel.transpose(1, 2)  # [1, time, depth]
 
     language_name = None
@@ -188,26 +185,26 @@ def synthesis(
     )
     # pass tensors to backend
     if speaker_id is not None:
-        speaker_id = id_to_torch(speaker_id, cuda=use_cuda)
+        speaker_id = id_to_torch(speaker_id, device=device)
 
     if d_vector is not None:
-        d_vector = embedding_to_torch(d_vector, cuda=use_cuda)
+        d_vector = embedding_to_torch(d_vector, device=device)
 
     if language_id is not None:
-        language_id = id_to_torch(language_id, cuda=use_cuda)
+        language_id = id_to_torch(language_id, device=device)
 
     if not isinstance(style_mel, dict):
         # GST or Capacitron style mel
-        style_mel = numpy_to_torch(style_mel, torch.float, cuda=use_cuda)
+        style_mel = numpy_to_torch(style_mel, torch.float, device=device)
         if style_text is not None:
             style_text = np.asarray(
                 model.tokenizer.text_to_ids(style_text, language=language_id),
                 dtype=np.int32,
             )
-            style_text = numpy_to_torch(style_text, torch.long, cuda=use_cuda)
+            style_text = numpy_to_torch(style_text, torch.long, device=device)
             style_text = style_text.unsqueeze(0)
 
-    text_inputs = numpy_to_torch(text_inputs, torch.long, cuda=use_cuda)
+    text_inputs = numpy_to_torch(text_inputs, torch.long, device=device)
     text_inputs = text_inputs.unsqueeze(0)
     # synthesize voice
     outputs = run_model_torch(

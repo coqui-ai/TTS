@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 import pysbd
 import torch
+from torch import nn
 
 from TTS.config import load_config
 from TTS.tts.configs.vits_config import VitsConfig
@@ -21,7 +22,7 @@ from TTS.vocoder.models import setup_model as setup_vocoder_model
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
 
 
-class Synthesizer(object):
+class Synthesizer(nn.Module):
     def __init__(
         self,
         tts_checkpoint: str = "",
@@ -60,6 +61,7 @@ class Synthesizer(object):
             vc_config (str, optional): path to the voice conversion config file. Defaults to `""`,
             use_cuda (bool, optional): enable/disable cuda. Defaults to False.
         """
+        super().__init__()
         self.tts_checkpoint = tts_checkpoint
         self.tts_config_path = tts_config_path
         self.tts_speakers_file = tts_speakers_file
