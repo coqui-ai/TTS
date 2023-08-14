@@ -126,7 +126,10 @@ def get_import_path(obj: object) -> str:
 
 
 def get_user_data_dir(appname):
-    if sys.platform == "win32":
+    XDG_DATA_HOME = os.environ.get("XDG_DATA_HOME")
+    if XDG_DATA_HOME is not None:
+        ans = Path(XDG_DATA_HOME).expanduser().resolve(strict=False)
+    elif sys.platform == "win32":
         import winreg  # pylint: disable=import-outside-toplevel
 
         key = winreg.OpenKey(
