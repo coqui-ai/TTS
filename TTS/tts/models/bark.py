@@ -1,36 +1,35 @@
-from torch.utils.data import DataLoader
 import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Union
-import torch
-from torch.nn import functional as F
 
 import numpy as np
-from coqpit import Coqpit
+import torch
+import torch.distributed as dist
 import torchaudio
+from coqpit import Coqpit
+from encodec import EncodecModel
+from torch.nn import functional as F
+from torch.utils.data import DataLoader, Dataset
+from trainer.trainer_utils import get_optimizer, get_scheduler
+from transformers import BertTokenizer
+
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.datasets.dataset import _parse_sample
-from torch.utils.data import Dataset
-from encodec import EncodecModel
-from transformers import BertTokenizer
-
 from TTS.tts.layers.bark.inference_funcs import (
     BarkHubertAudioTokenizer,
     codec_decode,
+    convert_audio,
     generate_coarse,
     generate_fine,
     generate_text_semantic,
     generate_voice,
     load_voice,
-    convert_audio,
 )
 from TTS.tts.layers.bark.load_model import load_model
 from TTS.tts.layers.bark.model import GPT
 from TTS.tts.layers.bark.model_fine import FineGPT
 from TTS.tts.models.base_tts import BaseTTS
-from trainer.trainer_utils import get_optimizer, get_scheduler
-import torch.distributed as dist
 
 
 def load_audio(file_path, sr):
@@ -149,7 +148,7 @@ class Bark(BaseTTS):
         self.fine_model = FineGPT(config.fine_config)
         self.encodec = EncodecModel.encodec_model_24khz()
         self.encodec.set_target_bandwidth(6.0)
-        self.semantic_tokenizer = BarkHubertAudioTokenizer(self.config, lazy_load=self.config.training_mode is None)
+        self.semantic_tokenizer = BarkHubertAudioTokenizer(self.config, lazy_load=self.config.training_mode)
 
     @property
     def device(self):
@@ -159,6 +158,7 @@ class Bark(BaseTTS):
         self.semantic_model, self.config = load_model(
             ckpt_path=self.config.LOCAL_MODEL_PATHS["text"], device=self.device, config=self.config, model_type="text"
         )
+
         self.coarse_model, self.config = load_model(
             ckpt_path=self.config.LOCAL_MODEL_PATHS["coarse"],
             device=self.device,
@@ -374,7 +374,7 @@ class Bark(BaseTTS):
         for i, tokens in enumerate(tokenss):
             tokenss[i] = torch.nn.functional.pad(tokens, (0, max_len - len(tokens)), value=PAD_TOKEN)
         tokens = torch.stack(tokenss, dim=0)
-        batch["input_ids"] = tokens[:, :self.config.max_text_tokens_len]
+        batch["input_ids"] = tokens[:, : self.config.max_text_tokens_len]
         return batch
 
     def format_batch_on_device(self, batch):
@@ -387,7 +387,9 @@ class Bark(BaseTTS):
             dict: Formatted batch.
         """
         if self.config.training_mode == "semantic":
-            batch["semantic_tokens"] = self.generate_semantic_tokens(batch["waveform"][:, 0])[:, : self.config.max_semantic_tokens_len]
+            batch["semantic_tokens"] = self.generate_semantic_tokens(batch["waveform"][:, 0])[
+                :, : self.config.max_semantic_tokens_len
+            ]
 
         return batch
 
@@ -402,9 +404,11 @@ class Bark(BaseTTS):
 
         semantic_logits = logits[:, batch["input_ids"].size(1) :].contiguous()
 
-        loss = criterion(semantic_logits.view(-1, self.semantic_model.config.output_vocab_size), target_tokens.view(-1))
+        loss = criterion(
+            semantic_logits.view(-1, self.config.semantic_config.output_vocab_size), target_tokens.view(-1)
+        )
         loss_dict = {"loss": loss}
-        return None, loss_dict
+        return {}, loss_dict
 
     def train_step_coarse(self):
         ...
@@ -416,8 +420,8 @@ class Bark(BaseTTS):
         if self.config.training_mode == "semantic":
             return self.train_step_semantic(*args, **kwargs)
 
-    def eval_step(self):
-        ...
+    def eval_step(self, *args, **kwargs):
+        self.train_step(*args, **kwargs)
 
     def test_run(self, *args, **kwargs):
         ...
@@ -433,9 +437,9 @@ class Bark(BaseTTS):
 
     def get_criterion(self):
         if self.config.training_mode in ["semantic", "coarse_encoder"]:
-            criterion = torch.nn.CrossEntropyLoss(ignore_index=self.config.COARSE_SEMANTIC_PAD_TOKEN)
+            return torch.nn.CrossEntropyLoss(ignore_index=self.config.COARSE_SEMANTIC_PAD_TOKEN)
         elif self.config.training_mode == "fine_encoder":
-            criterion = torch.nn.CrossEntropyLoss(ignore_index=self.config.FINE_COARSE_PAD_TOKEN)
+            return torch.nn.CrossEntropyLoss(ignore_index=self.config.FINE_COARSE_PAD_TOKEN)
         else:
             raise ValueError(f" ❗ Invalid training mode {self.config.training_mode}")
 
@@ -558,7 +562,7 @@ if __name__ == "__main__":
     from trainer import Trainer, TrainerArgs
 
     dataset_config = BaseDatasetConfig(
-        formatter="ljspeech", meta_file_train="metadata.csv", path="/Users/erengolge/Projects/TTS/tests/data/ljspeech/"
+        formatter="ljspeech", meta_file_train="metadata.csv", path="/data/TTS-public/tests/data/ljspeech/"
     )
 
     train_samples, eval_samples = load_tts_samples(

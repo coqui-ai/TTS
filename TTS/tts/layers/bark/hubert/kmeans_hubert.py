@@ -47,12 +47,11 @@ class CustomHubert(nn.Module):
         self.target_sample_hz = target_sample_hz
         self.seq_len_multiple_of = seq_len_multiple_of
         self.output_layer = output_layer
+
+        self.model = HubertModel.from_pretrained("facebook/hubert-base-ls960")
+        self.model.eval()
         if device is not None:
             self.to(device)
-        self.model = HubertModel.from_pretrained("facebook/hubert-base-ls960")
-        if device is not None:
-            self.model.to(device)
-        self.model.eval()
 
     @property
     def groups(self):

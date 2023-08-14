@@ -179,10 +179,8 @@ class GPT(nn.Module):
         device = idx.device
         _, t = idx.size()
         assert (
-                t <= self.config.block_size
-            ), f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
-
-        breakpoint()
+            t <= self.config.block_size
+        ), f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
 
         # forward the GPT model itself
         tok_emb = self.transformer.wte(idx)  # token embeddings of shape (b, t, n_embd)

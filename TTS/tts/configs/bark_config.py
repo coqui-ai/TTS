@@ -48,7 +48,18 @@ class BarkConfig(BaseTTSConfig):
     model: str = "bark"
     audio: BarkAudioConfig = field(default_factory=BarkAudioConfig)
     num_chars: int = 0
-    semantic_config: GPTConfig = field(default_factory=GPTConfig)
+    semantic_config: GPTConfig = field(
+        default_factory=lambda: GPTConfig(
+            block_size=1024,
+            input_vocab_size=129600,
+            output_vocab_size=10048,
+            n_layer=24,
+            n_head=16,
+            n_embd=1024,
+            dropout=0.0,
+            bias=False,
+        )
+    )
     fine_config: FineGPTConfig = field(default_factory=FineGPTConfig)
     coarse_config: GPTConfig = field(default_factory=GPTConfig)
     CONTEXT_WINDOW_SIZE: int = 1024
@@ -88,14 +99,13 @@ class BarkConfig(BaseTTSConfig):
     max_fine_tokens_len: int = 512
 
     # optimizer
-    grad_clip: List[float] = field(default_factory=lambda: [1000, 1000])
+    grad_clip: float = 1000
     lr: float = 0.0002
     lr_scheduler: str = "ExponentialLR"
     lr_scheduler_params: dict = field(default_factory=lambda: {"gamma": 0.999875, "last_epoch": -1})
     scheduler_after_epoch: bool = True
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
-
 
     def __post_init__(self):
         self.REMOTE_MODEL_PATHS = {

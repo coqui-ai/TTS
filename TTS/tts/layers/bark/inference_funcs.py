@@ -11,6 +11,7 @@ import torchaudio
 import tqdm
 from encodec.utils import convert_audio
 from scipy.special import softmax
+from torch import nn
 from torch.nn import functional as F
 
 from TTS.tts.layers.bark.hubert.hubert_manager import HubertManager
@@ -102,12 +103,18 @@ def compute_average_bass_energy(audio_data, sample_rate, max_bass_freq=250):
     return bass_energy
 
 
-class BarkHubertAudioTokenizer():
-    def __init__(self, config, lazy_load, device='cpu') -> None:
+class BarkHubertAudioTokenizer(nn.Module):
+    def __init__(self, config, lazy_load=True) -> None:
+        super().__init__()
+        self.__device_param = nn.Parameter(torch.empty(0))
         self.config = config
         self.lazy_load = lazy_load
-        if not lazy_load:
-            self.load_hubert(config, device)
+        if lazy_load:
+            self.load_hubert(config, self.device)
+
+    @property
+    def device(self):
+        return self.__device_param.device
 
     def load_hubert(self, config, device):
         hubert_manager = HubertManager()
@@ -132,8 +139,8 @@ class BarkHubertAudioTokenizer():
             audio = convert_audio(audio, sr, self.config.sample_rate, 1)
             audio = audio.to(device)
 
-        if self.lazy_load:
-            self.load_hubert(self.config, device)
+        if not self.lazy_load:
+            self.load_hubert(self.config, self.device)
 
         semantic_vectors = self.hubert_model.forward(audio, flatten=False, input_sample_hz=self.config.sample_rate)
         semantic_tokens = self.tokenizer.get_token(semantic_vectors)
