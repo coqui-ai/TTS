@@ -5,6 +5,7 @@ from typing import List
 import numpy as np
 import pysbd
 import torch
+from torch import nn
 
 from TTS.config import load_config
 from TTS.tts.configs.vits_config import VitsConfig
@@ -21,7 +22,7 @@ from TTS.vocoder.models import setup_model as setup_vocoder_model
 from TTS.vocoder.utils.generic_utils import interpolate_vocoder_input
 
 
-class Synthesizer(object):
+class Synthesizer(nn.Module):
     def __init__(
         self,
         tts_checkpoint: str = "",
@@ -60,6 +61,7 @@ class Synthesizer(object):
             vc_config (str, optional): path to the voice conversion config file. Defaults to `""`,
             use_cuda (bool, optional): enable/disable cuda. Defaults to False.
         """
+        super().__init__()
         self.tts_checkpoint = tts_checkpoint
         self.tts_config_path = tts_config_path
         self.tts_speakers_file = tts_speakers_file
@@ -356,7 +358,12 @@ class Synthesizer(object):
         if speaker_wav is not None and self.tts_model.speaker_manager is not None:
             speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)
 
+        vocoder_device = "cpu"
         use_gl = self.vocoder_model is None
+        if not use_gl:
+            vocoder_device = next(self.vocoder_model.parameters()).device
+        if self.use_cuda:
+            vocoder_device = "cuda"
 
         if not reference_wav:  # not voice conversion
             for sen in sens:
@@ -388,7 +395,6 @@ class Synthesizer(object):
                     mel_postnet_spec = outputs["outputs"]["model_outputs"][0].detach().cpu().numpy()
                     # denormalize tts output based on tts audio config
                     mel_postnet_spec = self.tts_model.ap.denormalize(mel_postnet_spec.T).T
-                    device_type = "cuda" if self.use_cuda else "cpu"
                     # renormalize spectrogram based on vocoder config
                     vocoder_input = self.vocoder_ap.normalize(mel_postnet_spec.T)
                     # compute scale factor for possible sample rate mismatch
@@ -403,8 +409,8 @@ class Synthesizer(object):
                         vocoder_input = torch.tensor(vocoder_input).unsqueeze(0)  # pylint: disable=not-callable
                     # run vocoder model
                     # [1, T, C]
-                    waveform = self.vocoder_model.inference(vocoder_input.to(device_type))
-                if self.use_cuda and not use_gl:
+                    waveform = self.vocoder_model.inference(vocoder_input.to(vocoder_device))
+                if torch.is_tensor(waveform) and waveform.device != torch.device("cpu") and not use_gl:
                     waveform = waveform.cpu()
                 if not use_gl:
                     waveform = waveform.numpy()
@@ -453,7 +459,6 @@ class Synthesizer(object):
                 mel_postnet_spec = outputs[0].detach().cpu().numpy()
                 # denormalize tts output based on tts audio config
                 mel_postnet_spec = self.tts_model.ap.denormalize(mel_postnet_spec.T).T
-                device_type = "cuda" if self.use_cuda else "cpu"
                 # renormalize spectrogram based on vocoder config
                 vocoder_input = self.vocoder_ap.normalize(mel_postnet_spec.T)
                 # compute scale factor for possible sample rate mismatch
@@ -468,8 +473,8 @@ class Synthesizer(object):
                     vocoder_input = torch.tensor(vocoder_input).unsqueeze(0)  # pylint: disable=not-callable
                 # run vocoder model
                 # [1, T, C]
-                waveform = self.vocoder_model.inference(vocoder_input.to(device_type))
-            if self.use_cuda:
+                waveform = self.vocoder_model.inference(vocoder_input.to(vocoder_device))
+            if torch.is_tensor(waveform) and waveform.device != torch.device("cpu"):
                 waveform = waveform.cpu()
             if not use_gl:
                 waveform = waveform.numpy()
