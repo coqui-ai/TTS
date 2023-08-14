@@ -193,7 +193,7 @@ from TTS.api import TTS
 # Running a multi-speaker and multi-lingual model
 
 # List available 🐸TTS models and choose the first one
-model_name = TTS.list_models()[0]
+model_name = TTS().list_models()[0]
 # Init TTS
 tts = TTS(model_name)
 
@@ -210,13 +210,13 @@ tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.langu
 
 ```python
 # Init TTS with the target model name
-tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
+tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False).to("cuda")
+
 # Run TTS
 tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path=OUTPUT_PATH)
 
 # Example voice cloning with YourTTS in English, French and Portuguese
-
-tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False, gpu=True)
+tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False).to("cuda")
 tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr-fr", file_path="output.wav")
 tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt-br", file_path="output.wav")
@@ -227,7 +227,7 @@ tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", 
 Converting the voice in `source_wav` to the voice of `target_wav`
 
 ```python
-tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=True)
+tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False).to("cuda")
 tts.voice_conversion_to_file(source_wav="my/source.wav", target_wav="my/target.wav", file_path="output.wav")
 ```
 
@@ -256,7 +256,7 @@ These models will follow the naming convention `coqui_studio/en/<studio_speaker_
 # XTTS model
 models = TTS(cs_api_model="XTTS").list_models()
 # Init TTS with the target studio speaker
-tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False, gpu=False)
+tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False)
 # Run TTS
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
 
