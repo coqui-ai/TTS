@@ -169,6 +169,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         help="Output wav file path.",
     )
     parser.add_argument("--use_cuda", type=bool, help="Run model on CUDA.", default=False)
+    parser.add_argument("--device", type=str, help="Device to run model on.", default="cpu")
     parser.add_argument(
         "--vocoder_path",
         type=str,
@@ -391,6 +392,10 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.encoder_path is not None:
         encoder_path = args.encoder_path
         encoder_config_path = args.encoder_config_path
+    
+    device = args.device
+    if args.use_cuda:
+        device = "cuda"
 
     # load models
     synthesizer = Synthesizer(
@@ -406,8 +411,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
         vc_config_path,
         model_dir,
         args.voice_dir,
-        args.use_cuda,
-    )
+    ).to(device)
 
     # query speaker ids of a multi-speaker model.
     if args.list_speaker_idxs:
