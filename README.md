@@ -1,5 +1,4 @@
 
-
 ## 🐸Coqui.ai News
 - 📣 [🐶Bark](https://github.com/suno-ai/bark) is now available for inference with uncontrained voice cloning. [Docs](https://tts.readthedocs.io/en/dev/models/bark.html)
 - 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
@@ -10,11 +9,20 @@
 - 📣 Voice generation with fusion - **Voice fusion** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
 - 📣 Voice cloning is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
 
+<div align="center">
+<img src="https://static.scarf.sh/a.png?x-pxid=cf317fe7-2188-4721-bc01-124bb5d5dbb2" />
+
 ## <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
 
 
-🐸TTS is a library for advanced Text-to-Speech generation. It's built on the latest research, was designed to achieve the best trade-off among ease-of-training, speed and quality.
-🐸TTS comes with pretrained models, tools for measuring dataset quality and already used in **20+ languages** for products and research projects.
+**🐸TTS is a library for advanced Text-to-Speech generation.**
+
+🚀 Pretrained models in +1100 languages.
+
+🛠️ Tools for training new models and fine-tuning existing models in any language.
+
+📚 Utilities for dataset analysis and curation.
+______________________________________________________________________
 
 [![Dicord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
@@ -36,13 +44,9 @@
 ![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests2.yml/badge.svg)
 [![Docs](<https://readthedocs.org/projects/tts/badge/?version=latest&style=plastic>)](https://tts.readthedocs.io/en/latest/)
 
-📰 [**Subscribe to 🐸Coqui.ai Newsletter**](https://coqui.ai/?subscription=true)
+</div>
 
-📢 [English Voice Samples](https://erogol.github.io/ddc-samples/) and [SoundCloud playlist](https://soundcloud.com/user-565970875/pocket-article-wavernn-and-tacotron2)
-
-📄 [Text-to-Speech paper collection](https://github.com/erogol/TTS-papers)
-
-<img src="https://static.scarf.sh/a.png?x-pxid=cf317fe7-2188-4721-bc01-124bb5d5dbb2" />
+______________________________________________________________________
 
 ## 💬 Where to ask questions
 Please use our dedicated channels for questions and discussion. Help is much more valuable if it's shared publicly so that more people can benefit from it.
@@ -68,12 +72,13 @@ Please use our dedicated channels for questions and discussion. Help is much mor
 | 👩‍💻 **Contributing**               | [CONTRIBUTING.md](https://github.com/coqui-ai/TTS/blob/main/CONTRIBUTING.md)|
 | 📌 **Road Map**                   | [Main Development Plans](https://github.com/coqui-ai/TTS/issues/378)
 | 🚀 **Released Models**            | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
+| 📰 **Papers**                    | [TTS Papers](https://github.com/erogol/TTS-papers)|
+
 
 ## 🥇 TTS Performance
 <p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
 
-Underlined "TTS*" and "Judy*" are 🐸TTS models
-<!-- [Details...](https://github.com/coqui-ai/TTS/wiki/Mean-Opinion-Score-Results) -->
+Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not released open-source. They are here to show the potential. Models prefixed with a dot (.Jofish .Abe and .Janice) are real human voices.
 
 ## Features
 - High-performance Deep Learning models for Text2Speech tasks.
@@ -89,7 +94,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Utilities to use and test your models.
 - Modular (but not too much) code base enabling easy implementation of new ideas.
 
-## Implemented Models
+## Model Implementations
 ### Spectrogram models
 - Tacotron: [paper](https://arxiv.org/abs/1703.10135)
 - Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
@@ -103,11 +108,13 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 - Capacitron: [paper](https://arxiv.org/abs/1906.03402)
 - OverFlow: [paper](https://arxiv.org/abs/2211.06892)
 - Neural HMM TTS: [paper](https://arxiv.org/abs/2108.13320)
+- Delightful TTS: [paper](https://arxiv.org/abs/2110.12612)
 
 ### End-to-End Models
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
-- YourTTS: [paper](https://arxiv.org/abs/2112.02418)
-- Tortoise: [orig. repo](https://github.com/neonbjb/tortoise-tts)
+- 🐸 YourTTS: [paper](https://arxiv.org/abs/2112.02418)
+- 🐢 Tortoise: [orig. repo](https://github.com/neonbjb/tortoise-tts)
+- 🐶 Bark: [orig. repo](https://github.com/suno-ai/bark)
 
 ### Attention Methods
 - Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
@@ -136,7 +143,7 @@ Underlined "TTS*" and "Judy*" are 🐸TTS models
 
 You can also help us implement more models.
 
-## Install TTS
+## Installation
 🐸TTS is tested on Ubuntu 18.04 with **python >= 3.7, < 3.11.**.
 
 If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
@@ -197,9 +204,11 @@ tts = TTS(model_name)
 wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
 # Text to speech to a file
 tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path="output.wav")
+```
 
-# Running a single speaker model
+#### Running a single speaker model
 
+```python
 # Init TTS with the target model name
 tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
 # Run TTS
@@ -211,55 +220,75 @@ tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_
 tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr-fr", file_path="output.wav")
 tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt-br", file_path="output.wav")
+```
 
+#### Example voice conversion
 
-# Example voice conversion converting speaker of the `source_wav` to the speaker of the `target_wav`
+Converting the voice in `source_wav` to the voice of `target_wav`
 
+```python
 tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=True)
 tts.voice_conversion_to_file(source_wav="my/source.wav", target_wav="my/target.wav", file_path="output.wav")
+```
 
-# Example voice cloning by a single speaker TTS model combining with the voice conversion model. This way, you can
-# clone voices by using any model in 🐸TTS.
+#### Example voice cloning together with the voice conversion model.
+This way, you can clone voices by using any model in 🐸TTS.
+
+```python
 
 tts = TTS("tts_models/de/thorsten/tacotron2-DDC")
 tts.tts_with_vc_to_file(
     "Wie sage ich auf Italienisch, dass ich dich liebe?",
     speaker_wav="target/speaker.wav",
-    file_path="ouptut.wav"
+    file_path="output.wav"
 )
+```
 
-# Example text to speech using [🐸Coqui Studio](https://coqui.ai) models.
+#### Example using [🐸Coqui Studio](https://coqui.ai) voices.
+You access all of your cloned voices and built-in speakers in [🐸Coqui Studio](https://coqui.ai). 
+To do this, you'll need an API token, which you can obtain from the [account page](https://coqui.ai/account).
+After obtaining the API token, you'll need to configure the COQUI_STUDIO_TOKEN environment variable.
 
-# You can use all of your available speakers in the studio.
-# [🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
-# You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
+Once you have a valid API token in place, the studio speakers will be displayed as distinct models within the list. 
+These models will follow the naming convention `coqui_studio/en/<studio_speaker_name>/coqui_studio`
 
-# If you have a valid API token set you will see the studio speakers as separate models in the list.
-# The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
-models = TTS().list_models()
+```python
+# XTTS model
+models = TTS(cs_api_model="XTTS").list_models()
 # Init TTS with the target studio speaker
 tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False, gpu=False)
 # Run TTS
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
+
+# V1 model
+models = TTS(cs_api_model="V1").list_models()
 # Run TTS with emotion and speed control
+# Emotion control only works with V1 model
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
 
+# XTTS-multilingual
+models = TTS(cs_api_model="XTTS-multilingual").list_models()
+# Run TTS with emotion and speed control
+# Emotion control only works with V1 model
+tts.tts_to_file(text="Das ist ein Test.", file_path=OUTPUT_PATH, language="de", speed=1.0)
+```
 
-#Example text to speech using **Fairseq models in ~1100 languages** 🤯.
+#### Example text to speech using **Fairseq models in ~1100 languages** 🤯.
+For Fairseq models, use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
+You can find the language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html)
+and learn about the Fairseq models [here](https://github.com/facebookresearch/fairseq/tree/main/examples/mms).
 
-#For these models use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
-#You can find the list of language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html) and learn about the Fairseq models [here](https://github.com/facebookresearch/fairseq/tree/main/examples/mms).
-
+```python
 # TTS with on the fly voice conversion
 api = TTS("tts_models/deu/fairseq/vits")
 api.tts_with_vc_to_file(
     "Wie sage ich auf Italienisch, dass ich dich liebe?",
     speaker_wav="target/speaker.wav",
-    file_path="ouptut.wav"
+    file_path="output.wav"
 )
 ```
 
-### Command line `tts`
+### Command-line `tts`
 #### Single Speaker Models
 
 - List provided models:

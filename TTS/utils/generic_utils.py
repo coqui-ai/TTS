@@ -37,6 +37,8 @@ def get_git_branch():
         current = "inside_docker"
     except FileNotFoundError:
         current = "unknown"
+    except StopIteration:
+        current = "unknown"
     return current
 
 

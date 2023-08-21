@@ -162,11 +162,19 @@ def index():
 
 @app.route("/details")
 def details():
-    model_config = load_config(args.tts_config)
-    if args.vocoder_config is not None and os.path.isfile(args.vocoder_config):
-        vocoder_config = load_config(args.vocoder_config)
+    if args.config_path is not None and os.path.isfile(args.config_path):
+        model_config = load_config(args.config_path)
     else:
-        vocoder_config = None
+        if args.model_name is not None:
+            model_config = load_config(config_path)
+
+    if args.vocoder_config_path is not None and os.path.isfile(args.vocoder_config_path):
+        vocoder_config = load_config(args.vocoder_config_path)
+    else:
+        if args.vocoder_name is not None:
+            vocoder_config = load_config(vocoder_config_path)
+        else:
+            vocoder_config = None
 
     return render_template(
         "details.html",
@@ -180,14 +188,15 @@ def details():
 lock = Lock()
 
 
-@app.route("/api/tts", methods=["GET"])
+@app.route("/api/tts", methods=["GET", "POST"])
 def tts():
     with lock:
-        text = request.args.get("text")
-        speaker_idx = request.args.get("speaker_id", "")
-        language_idx = request.args.get("language_id", "")
-        style_wav = request.args.get("style_wav", "")
+        text = request.headers.get("text") or request.values.get("text", "")
+        speaker_idx = request.headers.get("speaker-id") or request.values.get("speaker_id", "")
+        language_idx = request.headers.get("language-id") or request.values.get("language_id", "")
+        style_wav = request.headers.get("style-wav") or request.values.get("style_wav", "")
         style_wav = style_wav_uri_to_dict(style_wav)
+
         print(f" > Model input: {text}")
         print(f" > Speaker Idx: {speaker_idx}")
         print(f" > Language Idx: {language_idx}")

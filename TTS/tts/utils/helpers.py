@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+from scipy.stats import betabinom
 from torch.nn import functional as F
 
 try:
@@ -233,3 +234,25 @@ def maximum_path_numpy(value, mask, max_neg_val=None):
     path = path * mask.astype(np.float32)
     path = torch.from_numpy(path).to(device=device, dtype=dtype)
     return path
+
+
+def beta_binomial_prior_distribution(phoneme_count, mel_count, scaling_factor=1.0):
+    P, M = phoneme_count, mel_count
+    x = np.arange(0, P)
+    mel_text_probs = []
+    for i in range(1, M + 1):
+        a, b = scaling_factor * i, scaling_factor * (M + 1 - i)
+        rv = betabinom(P, a, b)
+        mel_i_prob = rv.pmf(x)
+        mel_text_probs.append(mel_i_prob)
+    return np.array(mel_text_probs)
+
+
+def compute_attn_prior(x_len, y_len, scaling_factor=1.0):
+    """Compute attention priors for the alignment network."""
+    attn_prior = beta_binomial_prior_distribution(
+        x_len,
+        y_len,
+        scaling_factor,
+    )
+    return attn_prior  # [y_len, x_len]

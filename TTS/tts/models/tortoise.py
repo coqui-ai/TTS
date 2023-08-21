@@ -1,6 +1,5 @@
 import os
 import random
-import re
 from contextlib import contextmanager
 from dataclasses import dataclass
 from time import time
@@ -73,7 +72,7 @@ def load_discrete_vocoder_diffuser(
     )
 
 
-def format_conditioning(clip, cond_length=132300, device="cuda"):
+def format_conditioning(clip, cond_length=132300, device="cuda", **kwargs):
     """
     Converts the given conditioning signal to a MEL spectrogram and clips it as expected by the models.
     """
@@ -83,7 +82,7 @@ def format_conditioning(clip, cond_length=132300, device="cuda"):
     elif gap > 0:
         rand_start = random.randint(0, gap)
         clip = clip[:, rand_start : rand_start + cond_length]
-    mel_clip = TorchMelSpectrogram()(clip.unsqueeze(0)).squeeze(0)
+    mel_clip = TorchMelSpectrogram(**kwargs)(clip.unsqueeze(0)).squeeze(0)
     return mel_clip.unsqueeze(0).to(device)
 
 
@@ -322,6 +321,7 @@ class Tortoise(BaseTTS):
 
     def __init__(self, config: Coqpit):
         super().__init__(config, ap=None, tokenizer=None)
+        self.mel_norm_path = None
         self.config = config
         self.ar_checkpoint = self.args.ar_checkpoint
         self.diff_checkpoint = self.args.diff_checkpoint  # TODO: check if this is even needed
@@ -430,7 +430,7 @@ class Tortoise(BaseTTS):
 
             auto_conds = []
             for ls in voice_samples:
-                auto_conds.append(format_conditioning(ls[0], device=self.device))
+                auto_conds.append(format_conditioning(ls[0], device=self.device, mel_norm_file=self.mel_norm_path))
             auto_conds = torch.stack(auto_conds, dim=1)
             with self.temporary_cuda(self.autoregressive) as ar:
                 auto_latent = ar.get_conditioning(auto_conds)
@@ -497,14 +497,14 @@ class Tortoise(BaseTTS):
         with torch.no_grad():
             return self.rlg_auto(torch.tensor([0.0])), self.rlg_diffusion(torch.tensor([0.0]))
 
-    def synthesize(self, text, config, speaker_id="random", extra_voice_dirs=None, **kwargs):
+    def synthesize(self, text, config, speaker_id="random", voice_dirs=None, **kwargs):
         """Synthesize speech with the given input text.
 
         Args:
             text (str): Input text.
             config (TortoiseConfig): Config with inference parameters.
             speaker_id (str): One of the available speaker names. If `random`, it generates a random speaker.
-            extra_voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
+            voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
             **kwargs: Inference settings. See `inference()`.
 
         Returns:
@@ -513,9 +513,13 @@ class Tortoise(BaseTTS):
             as latents used at inference.
 
         """
-        if extra_voice_dirs is not None:
-            extra_voice_dirs = [extra_voice_dirs]
-            voice_samples, conditioning_latents = load_voice(speaker_id, extra_voice_dirs)
+
+        speaker_id = "random" if speaker_id is None else speaker_id
+
+        if voice_dirs is not None:
+            voice_dirs = [voice_dirs]
+            voice_samples, conditioning_latents = load_voice(speaker_id, voice_dirs)
+
         else:
             voice_samples, conditioning_latents = load_voice(speaker_id)
 
@@ -870,18 +874,15 @@ class Tortoise(BaseTTS):
         diff_path = diff_checkpoint_path or os.path.join(checkpoint_dir, "diffusion_decoder.pth")
         clvp_path = clvp_checkpoint_path or os.path.join(checkpoint_dir, "clvp2.pth")
         vocoder_checkpoint_path = vocoder_checkpoint_path or os.path.join(checkpoint_dir, "vocoder.pth")
+        self.mel_norm_path = os.path.join(checkpoint_dir, "mel_norms.pth")
 
         if os.path.exists(ar_path):
-            keys_to_ignore = self.autoregressive.gpt._keys_to_ignore_on_load_missing  # pylint: disable=protected-access
             # remove keys from the checkpoint that are not in the model
             checkpoint = torch.load(ar_path, map_location=torch.device("cpu"))
-            for key in list(checkpoint.keys()):
-                for pat in keys_to_ignore:
-                    if re.search(pat, key) is not None:
-                        del checkpoint[key]
-                        break
 
-            self.autoregressive.load_state_dict(checkpoint, strict=strict)
+            # strict set False
+            # due to removed `bias` and `masked_bias` changes in Transformers
+            self.autoregressive.load_state_dict(checkpoint, strict=False)
 
         if os.path.exists(diff_path):
             self.diffusion.load_state_dict(torch.load(diff_path), strict=strict)

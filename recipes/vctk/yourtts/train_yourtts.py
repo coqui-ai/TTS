@@ -99,7 +99,7 @@ for dataset_conf in DATASETS_CONFIG_LIST:
             SPEAKER_ENCODER_CHECKPOINT_PATH,
             SPEAKER_ENCODER_CONFIG_PATH,
             embeddings_file,
-            old_spakers_file=None,
+            old_speakers_file=None,
             config_dataset_path=None,
             formatter_name=dataset_conf.formatter,
             dataset_name=dataset_conf.dataset_name,

@@ -88,7 +88,7 @@ class ModelManager(object):
 
     def _list_models(self, model_type, model_count=0):
         if self.verbose:
-            print(" Name format: type/language/dataset/model")
+            print("\n Name format: type/language/dataset/model")
         model_list = []
         for lang in self.models_dict[model_type]:
             for dataset in self.models_dict[model_type][lang]:
@@ -317,14 +317,19 @@ class ModelManager(object):
         else:
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
-            if "fairseq" in model_name:
-                self.download_fairseq_model(model_name, output_path)
-            elif "github_rls_url" in model_item:
-                self._download_github_model(model_item, output_path)
-            elif "hf_url" in model_item:
-                self._download_hf_model(model_item, output_path)
+            try:
+                if "fairseq" in model_name:
+                    self.download_fairseq_model(model_name, output_path)
+                elif "github_rls_url" in model_item:
+                    self._download_github_model(model_item, output_path)
+                elif "hf_url" in model_item:
+                    self._download_hf_model(model_item, output_path)
 
-        self.print_model_license(model_item=model_item)
+            except requests.Exception.RequestException as e:
+                print(f" > Failed to download the model file to {output_path}")
+                rmtree(output_path)
+                raise e
+            self.print_model_license(model_item=model_item)
         # find downloaded files
         output_model_path = output_path
         output_config_path = None
