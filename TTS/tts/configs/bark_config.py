@@ -48,7 +48,8 @@ class BarkConfig(BaseTTSConfig):
     model: str = "bark"
     audio: BarkAudioConfig = field(default_factory=BarkAudioConfig)
     num_chars: int = 0
-    semantic_config: GPTConfig = field(
+
+    semantic_gpt_config: GPTConfig = field(
         default_factory=lambda: GPTConfig(
             block_size=1024,
             input_vocab_size=129600,
@@ -60,8 +61,33 @@ class BarkConfig(BaseTTSConfig):
             bias=False,
         )
     )
-    fine_config: FineGPTConfig = field(default_factory=FineGPTConfig)
-    coarse_config: GPTConfig = field(default_factory=GPTConfig)
+    coarse_gpt_config: GPTConfig = field(
+        default_factory=lambda: GPTConfig(
+            block_size=1024,
+            input_vocab_size=12096,
+            output_vocab_size=12096,
+            n_layer=24,
+            n_head=16,
+            n_embd=1024,
+            dropout=0.0,
+            bias=False,
+        )
+    )
+    fine_gpt_config: FineGPTConfig = field(
+        default_factory=lambda: FineGPTConfig(
+            block_size=1024,
+            input_vocab_size=1056,
+            output_vocab_size=1056,
+            n_layer=24,
+            n_head=16,
+            n_embd=1024,
+            dropout=0.0,
+            bias=False,
+            n_codes_total=8,
+            n_codes_given=1,
+        )
+    )
+
     CONTEXT_WINDOW_SIZE: int = 1024
     SEMANTIC_RATE_HZ: float = 49.9
     SEMANTIC_VOCAB_SIZE: int = 10_000
@@ -93,10 +119,15 @@ class BarkConfig(BaseTTSConfig):
     epochs: int = 1000
 
     # data parameters
-    max_semantic_tokens_len: int = 512
-    max_text_tokens_len: int = 128
-    max_coarse_tokens_len: int = 512
-    max_fine_tokens_len: int = 512
+    train_semantic_data_settings: dict = field(
+        default_factory=lambda: {"max_semantic_tokens_len": 511, "max_text_tokens_len": 256}
+    )
+    train_coarse_data_settings: dict = field(
+        default_factory=lambda: {"max_semantic_tokens_len": 256, "max_coarse_tokens_len": 768}
+    )
+    train_fine_data_settings: dict = field(
+        default_factory=lambda: {"max_semantic_tokens_len": 256, "max_fine_tokens_len": 512}
+    )
 
     # optimizer
     grad_clip: float = 1000
