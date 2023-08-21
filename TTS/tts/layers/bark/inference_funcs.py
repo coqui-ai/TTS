@@ -167,6 +167,8 @@ def generate_voice(
 
     # Coarse and fine tokens
     fine_tokens, coarse_tokens = model.generate_coarse_fine_tokens(audio)
+    fine_tokens = fine_tokens.cpu().numpy()
+    coarse_tokens = coarse_tokens.cpu().numpy()
 
     # Semantic tokens
     semantic_tokens = model.generate_semantic_tokens(audio).cpu().numpy()
@@ -326,7 +328,7 @@ def generate_text_semantic(
 
 
 def _flatten_codebooks(arr, offset_size):
-    assert len(arr.shape) == 2
+    assert len(arr.shape) == 2, f" ❗ Codebooks must be 2D, got {len(arr.shape)}D"
     arr = arr.copy()
     if offset_size is not None:
         for n in range(1, arr.shape[0]):
