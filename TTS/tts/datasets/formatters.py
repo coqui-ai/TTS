@@ -390,7 +390,7 @@ def hifitts(root_path, meta_files=None, wavs_path="audio", ignored_speakers=None
         data = data.dropna()
         items.extend(data.to_dict('records'))
     return items
-def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic1", ignored_speakers=None):
+def vctk(root_path, meta_files=None, wavs_path="wav24", mic="mic1", ignored_speakers=None):
     """VCTK dataset v0.92.
 
     URL:
@@ -432,8 +432,6 @@ def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic
             items.append(
                 {"text": text, "audio_file": wav_file, "speaker_name": "VCTK_" + speaker_id, "root_path": root_path}
             )
-        else:
-            print(f" [!] wav files don't exist - {wav_file}")
     return items
 
 

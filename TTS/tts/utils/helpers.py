@@ -137,11 +137,12 @@ def average_over_durations(values, durs):
     dcs = durs_cums_starts[:, None, :].expand(bs, n_formants, l)
     dce = durs_cums_ends[:, None, :].expand(bs, n_formants, l)
 
-    values_sums = (torch.gather(values_cums, 2, dce) - torch.gather(values_cums, 2, dcs)).float()
-    values_nelems = (torch.gather(values_nonzero_cums, 2, dce) - torch.gather(values_nonzero_cums, 2, dcs)).float()
+    values_sums = (torch.gather(values_cums, 2, dce) - torch.gather(values_cums, 2, dcs)).to(values.dtype)
+    values_nelems = (torch.gather(values_nonzero_cums, 2, dce) - torch.gather(values_nonzero_cums, 2, dcs)).to(values.dtype)
 
-    avg = torch.where(values_nelems == 0.0, values_nelems, values_sums / values_nelems)
+    avg = torch.where(values_nelems == 0.0, values_nelems, values_sums / values_nelems).to(values.dtype)
     return avg
+
 
 
 def convert_pad_shape(pad_shape):

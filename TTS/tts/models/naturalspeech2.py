@@ -25,6 +25,7 @@ from TTS.tts.datasets.dataset import TTSDataset, _parse_sample, F0Dataset
 from TTS.tts.layers.generic.aligner import AlignmentNetwork
 from TTS.tts.layers.naturalspeech2.diffusion import Diffusion
 from TTS.tts.layers.naturalspeech2.hificodec.vqvae import VQVAE
+from TTS.utils.audio.numpy_transforms import f0_to_coarse
 # from TTS.tts.layers.naturalspeech2.descript_audio_codec.dac.utils import process as encode
 # from TTS.tts.layers.naturalspeech2.descript_audio_codec.dac.utils import process as decode
 # from TTS.tts.layers.naturalspeech2.descript_audio_codec.dac.utils import load_model
@@ -60,6 +61,8 @@ from TTS.vocoder.utils.generic_utils import plot_results
 # pylint: disable=global-statement
 hann_window = {}
 mel_basis = {}
+
+
 
 
 def dynamic_range_compression(x, C=1, clip_val=1e-5):
@@ -217,10 +220,10 @@ class Naturalspeech2AudioConfig(Coqpit):
     num_mels: int = 80
     mel_fmin: int = 0
     mel_fmax: int = None
-    pitch_fmax: int = 800 
-    pitch_fmin: int = 1
+    pitch_fmax: int = 1100.0
+    pitch_fmin: int = 50.0
     do_trim_silence: bool =True
-    trim_db: float = 50.0
+    trim_db: float = 45.0
 
 
 ##############################
@@ -300,7 +303,7 @@ class Naturalspeech2Dataset(TTSDataset):
         item = self.samples[idx]
         raw_text = item["text"]
 
-        wav = self.ap.load_wav(item["audio_file"])
+        wav = self.ap.load_wav(item["audio_file"],sr=self.ap.sample_rate)
         
         wav_filename = os.path.basename(item["audio_file"])
 
@@ -369,7 +372,7 @@ class Naturalspeech2Dataset(TTSDataset):
 
         # format F0
         pitch = prepare_data(batch["pitch"])
-        pitch = torch.FloatTensor(pitch)[:, None, :].contiguous() # B x 1 xT
+        pitch = torch.LongTensor(pitch)[:, None, :].contiguous() # B x 1 xT
 
         token_padded = torch.LongTensor(B, max_text_len)
         wav_padded = torch.FloatTensor(B, 1, wav_lens_max)
@@ -411,51 +414,51 @@ class Naturalspeech2Args(Coqpit):
     speaker_embedding_channels: int = 512
     num_speakers: int=0
     # DurationPredictor params
-    dp_hidden_dim: int = 384
-    dp_n_layers: int = 6
-    dp_n_attentions: int = 2
-    dp_attention_head: int = 4
+    dp_hidden_dim: int = 512
+    dp_n_layers: int = 9
+    dp_n_attentions: int = 3
+    dp_attention_head: int = 8
     dp_kernel_size: int = 3
     dp_dropout: float = 0.3
 
     # PitchPredictor params
-    pp_hidden_dim: int = 384
-    pp_n_layers: int = 15
+    pp_hidden_dim: int = 512
+    pp_n_layers: int = 9
     pp_n_attentions: int = 3
-    pp_attention_head: int = 4
+    pp_attention_head: int = 8
     pp_kernel_size: int = 3
-    pp_dropout: float = 0.3
+    pp_dropout: float = 0.5
 
     # PromptEncoder params
-    pre_hidden_dim: int = 384
-    pre_nhead: int = 4
+    pre_hidden_dim: int = 512
+    pre_nhead: int = 8
     pre_n_layers: int = 4
-    pre_dim_feedforward: int = 2048
+    pre_dim_feedforward: int = 1024
     pre_kernel_size: int = 9
     pre_dropout: float = 0.3
 
     # PhonemeEncoder params
     num_chars: int = 150
-    phe_hidden_dim: int = 384
-    phe_nhead: int = 4
+    phe_hidden_dim: int = 512
+    phe_nhead: int = 8
     phe_n_layers: int = 4
-    phe_dim_feedforward: int = 2048
+    phe_dim_feedforward: int = 1024
     phe_kernel_size: int = 9
     phe_dropout: float = 0.3
 
     # Diffusion params
     max_step: int = 1000
-    diff_size: int = 384
+    diff_size: int = 512
     audio_codec_size: int = 512
     pre_attention_query_token: int = 32
-    pre_attention_query_size: int = 384
-    pre_attention_head: int = 4
+    pre_attention_query_size: int = 512
+    pre_attention_head: int = 8
     wavenet_kernel_size: int = 3
     wavenet_dilation: int = 2
     wavenet_stack: int = 40
     wavenet_dropout_rate: float = 0.2
     wavenet_attention_apply_in_stack: int = 3
-    wavenet_attention_head: int = 4
+    wavenet_attention_head: int = 8
     noise_schedule: str = "sigmoid"
     diff_segment_size: int = 48
 
@@ -515,7 +518,12 @@ class Naturalspeech2(BaseTTS):
             ckpt_path= '/root/Desktop/Naturalspeech2/TTS/TTS/tts/layers/naturalspeech2/hificodec/HiFi-Codec-24k-320d',
             with_encoder= True
             ).eval().to('cuda')
-        # self.init_multispeaker(config)
+        # self.hificodec = VQVAE(
+        #     config_path= '/root/Desktop/Naturalspeech2/TTS/TTS/tts/layers/naturalspeech2/hificodec/config_16k_320d.json',
+        #     ckpt_path= '/root/Desktop/Naturalspeech2/TTS/TTS/tts/layers/naturalspeech2/hificodec/HiFi-Codec-16k-320d-large-universal',
+        #     with_encoder= True
+        #     ).eval().to('cuda')
+        self.init_multispeaker(config)
         self.embedded_language_dim = 0
         self.diff_segment_size = self.args.diff_segment_size
         self.phoneme_encoder = TransformerEncoder(
@@ -559,12 +567,22 @@ class Naturalspeech2(BaseTTS):
             self.args.pp_dropout,
             "pitch"
         )
+        self.pitch_emb = nn.Embedding(256, self.args.pp_hidden_dim)
+        # self.prior_net = ConvBlockWithPrompting(
+        #     self.args.pr_hidden_dim,
+        #     self.args.pr_n_layers,
+        #     self.args.pr_n_attentions,
+        #     self.args.pr_attention_head,
+        #     self.args.pr_kernel_size,
+        #     self.args.pr_dropout,
+        #     "prior"
+        # )
 
-        self.combination_network = nn.Sequential(
-            nn.Linear(768, 192),
-            nn.ReLU(),
-            nn.Linear(192, 384)
-        )
+        # self.combination_network = nn.Sequential(
+        #     nn.Linear(1024, 256),
+        #     nn.ReLU(),
+        #     nn.Linear(256, 512)
+        # )
 
         self.diffusion = Diffusion(
             max_step=self.args.max_step,
@@ -721,14 +739,16 @@ class Naturalspeech2(BaseTTS):
         attn_mask = torch.unsqueeze(x_mask, -1) * torch.unsqueeze(y_mask, 2)
         attn = generate_path(dr, attn_mask.squeeze(1)).to(dr.dtype)
         return attn
-    @staticmethod
-    def expand_encodings(combination_network, phoneme_enc, attn, pitch):
+
+    def expand_encodings(self, phoneme_enc, attn, pitch):
         expanded_dur = torch.einsum("klmn, kjm -> kjn", [attn, phoneme_enc])
-        expanded_pitch = torch.einsum("klmn, kjm -> kjn", [attn, pitch])
-        expanded_pitch = expanded_pitch.expand(-1, expanded_dur.shape[1], -1)  # Now shape is (batch, time, 512)
-        expanded_encodings = torch.cat([expanded_dur, expanded_pitch], dim=1)
-        expanded_encodings = combination_network(expanded_encodings.transpose(1,2))
-        return expanded_encodings.transpose(1,2)
+        # expanded_pitch = torch.einsum("klmn, kjm -> kjn", [attn, pitch])
+        # expanded_pitch = expanded_pitch.expand(-1, expanded_dur.shape[1], -1)  # Now shape is (batch, time, 512)
+        pitch_emb = self.pitch_emb(f0_to_coarse(pitch).squeeze(1)).transpose(1,2)
+        expanded_pitch = torch.einsum("klmn, kjm -> kjn", [attn, pitch_emb])
+        expanded_encodings = expanded_dur + expanded_pitch
+        # expanded_encodings = expanded_dur * expanded_pitch
+        return expanded_encodings
 
     def forward(  # pylint: disable=dangerous-default-value
         self,
@@ -778,47 +798,64 @@ class Naturalspeech2(BaseTTS):
         durations_pred = self.duration_predictor(phoneme_enc, speech_prompts_enc, tokens_mask)
         durations_pred = durations_pred.squeeze(1)
         pitch = average_over_durations(pitch, alignment_hard)
-        pitch_pred = self.pitch_predictor(phoneme_enc,speech_prompts_enc, tokens_mask)
-        expanded_encodings = self.expand_encodings(self.combination_network, phoneme_enc, alignment_mas.unsqueeze(1), pitch)
-
+        pitch_pred = self.pitch_predictor(phoneme_enc, speech_prompts_enc, tokens_mask)
+        expanded_encodings = self.expand_encodings(phoneme_enc, alignment_mas.unsqueeze(1), pitch)
 
         out_len = torch.stack([
                 duration.sum() + 1
                 for duration in alignment_hard
                 ], dim= 0)
 
-        diffusion_targets, diffusion_predictions, diffusion_starts = self.diffusion(
+        diffusion_targets, diffusion_predictions, diffusion_starts, loss_weight = self.diffusion(
             latents=latents,
             encodings=expanded_encodings,
             lengths=out_len,
             speech_prompts=speech_prompts_enc,
         )
         latents_hat = diffusion_starts.masked_select(remaining_mask).view(diffusion_starts.shape[0], diffusion_starts.shape[1], -1)
+        # linear_latent = linear_latent.masked_select(remaining_mask).view(linear_latent.shape[0], linear_latent.shape[1], -1)
+
         # predictions = self.hificodec.generator(latents_hat)
         
         outputs.update(
             {
                 "input_lens": tokens_lens,
                 "spec_lens": mel_lens,
-                # "audio_hat": predictions,
+                # "linear_latent": None,
                 "diffusion_targets": diffusion_targets,
                 "diffusion_predictions": diffusion_predictions,
                 "latent_hat": latents_hat,
                 "speech_prompts": speech_prompts,
                 "durations": alignment_hard,
                 "durations_pred": durations_pred,
-                "pitch": pitch,
+                "pitch": 2595. * torch.log10(1. + pitch / 700.) / 500,
                 "pitch_pred": pitch_pred,
                 "alignment_hard": alignment_mas.transpose(1,2),
-                "alignment_soft": alignment_soft,
                 "alignment_logprob": alignment_logprob,
                 "segment_indices": segment_indices,
-                "remaining_mask": remaining_mask
+                "remaining_mask": remaining_mask,
+                "loss_weight": loss_weight
             }
         )
 
         return outputs
+    def remove_spikes(self, tensor, window_size):
+        # Make sure the tensor has the right size
+        assert len(tensor.shape) == 3, "Tensor must be of size [1, 1, time]"
 
+        # Make sure the window size is odd
+        assert window_size % 2 == 1, "Window size must be odd"
+
+        # Pad the tensor to handle edges using 'replicate' mode
+        pad_size = window_size // 2
+        padded_tensor = torch.nn.functional.pad(tensor, (pad_size, pad_size), mode='replicate')
+
+        # Apply the median filter
+        result = torch.zeros_like(tensor)
+        for i in range(tensor.size(2)):
+            result[0, 0, i] = padded_tensor[0, 0, i:i+window_size].median()
+
+        return result
     @torch.no_grad()
     def inference(self, x, aux_input={"style_mel": None, "speaker_ids": None}):  # pylint: disable=dangerous-default-value
         outputs = {}
@@ -831,43 +868,47 @@ class Naturalspeech2(BaseTTS):
         voice_prompt = aux_input["style_mel"].unsqueeze(0)
         print(voice_prompt.shape)
         with torch.no_grad():
-            codes = self.hificodec.encode(voice_prompt.unsqueeze(0))
-            voice_prompt = self.hificodec.quantizer.embed(codes) # type: ignore
-        # voice_prompt, _, _ = self.encodec(voice_prompt, return_encoded=True)
+            voice_prompt = self.hificodec.encoder(voice_prompt.unsqueeze(0))
+            # voice_prompt = self.hificodec.quantizer.embed(codes) # type: ignore
         print(voice_prompt.shape)
         # Encode speech prompt
-        speech_prompts_enc = self.prompt_encoder(voice_prompt[:,:,:48]).transpose(1, 2)
+        speech_prompts_enc = self.prompt_encoder(voice_prompt).transpose(1, 2)
 
         #Encode Phonemes
         tokens_lens = torch.tensor(x.shape[1:2]).to(x.device)
-        print(tokens_lens)
-        print(x.shape)
+        # print(tokens_lens)
+        # print(x.shape)
         tokens_mask = torch.unsqueeze(sequence_mask(tokens_lens, x.shape[1]), 1).float()
         phoneme_enc = self.phoneme_encoder(x.unsqueeze(2), g=g).transpose(1, 2)
         
         #duration predict
         durations_pred = self.duration_predictor(phoneme_enc, speech_prompts_enc)
+        # print(durations_pred)
         durations_pred = torch.round(durations_pred) * 1.0
 
         attn = self.generate_attn(durations_pred.squeeze(0), tokens_mask.squeeze(0))
         attn = attn.unsqueeze(1)
         # print(durations_pred)
         pitch_pred = self.pitch_predictor(phoneme_enc, speech_prompts_enc)
+        pitch_pred = (700 * (torch.pow(10, pitch_pred * 500 / 2595) - 1))
         # print(pitch_pred)
-        expanded_encodings = self.expand_encodings(self.combination_network, phoneme_enc, attn, pitch_pred)
+        expanded_encodings = self.expand_encodings(phoneme_enc, attn, pitch_pred)
+
         out_len = torch.stack([
                 duration.sum() + 1
                 for duration in durations_pred
                 ], dim = 0)
-        latents = self.diffusion.ddim(
+        latents = self.diffusion.ddpm(
             encodings=expanded_encodings,
             lengths=out_len,
             speech_prompts=speech_prompts_enc,
-            ddim_steps=250)
-        print(latents.shape)
+            ddim_steps=150)
         with torch.no_grad():
-            wav = self.hificodec.generator(latents).squeeze(1)
-        # wav = self.encodec.decode(latents.transpose(1,2))
+            *_, latents = self.hificodec.quantizer(latents)
+            latents = [code.reshape(x.size(0), -1) for code in latents]
+            latents = torch.stack(latents,-1)
+            wav = self.hificodec(latents).squeeze(1)
+            # wav = self.hificodec.generator(latents).squeeze(1)
         print(wav.squeeze(1).shape)
         outputs["model_outputs"] = wav.squeeze(1)
         outputs["durations"] = durations_pred
@@ -878,7 +919,7 @@ class Naturalspeech2(BaseTTS):
     def train_step(self, batch: dict, criterion: nn.Module) -> Tuple[Dict, Dict]:
         latents_lens = batch["latents_lens"]
         latents = batch["latents"]
-
+        # codes = batch["codes"]
         tokens = batch["tokens"]
         token_lenghts = batch["token_lens"]
         language_ids = batch["language_ids"]
@@ -900,26 +941,18 @@ class Naturalspeech2(BaseTTS):
         )
 
         latents = latents.masked_select(outputs["remaining_mask"]).view(latents.shape[0], latents.shape[1], -1)
-
-        
         outputs["latents"] = latents
-        # codes = batch["codes"].transpose(1, 2)
-
-        # # create masks for the segments and remaining parts
-        # codes_mask = torch.ones_like(codes, dtype=torch.bool)
-
-        # # iterate over the batch dimension
-        # for i in range(latents.size(0)):
-        #     codes_mask[i, :, outputs["segment_indices"][i] : outputs["segment_indices"][i] + self.diff_segment_size] = 0
-        # codes_slice = codes.masked_select(codes_mask).view(codes.shape[0], codes.shape[1], -1)
-        ce_loss = None
-        # if self.config.ce_loss_alpha > 0:
-        #     _, ce_loss = self.encodec.rq(outputs["latent_hat"].transpose(1, 2), codes_slice.transpose(1, 2))
+ 
+        # ce_loss = None
+        # if self.config.upsampler_loss_alpha > 0:
+        #     _,q_loss,_ = self.hificodec.quantizer(latents)
+        #     _,q_loss_hat,_ = self.hificodec.quantizer(outputs["latent_hat"])
         
         # compute losses
         with autocast(enabled=False):  # use float32 for the criterion
             loss_dict = criterion(
-                ce_loss=ce_loss,
+                q_loss=None,
+                q_loss_hat=None,
                 duration = outputs["durations"],
                 duration_pred=outputs["durations_pred"],
                 pitch=outputs["pitch"],
@@ -931,8 +964,7 @@ class Naturalspeech2(BaseTTS):
                 input_lens=token_lenghts,
                 spec_lens=latents_lens,
                 alignment_logprob=outputs["alignment_logprob"],
-                alignment_soft=outputs["alignment_soft"],
-                alignment_hard=outputs["alignment_hard"]
+                diff_loss_weight=outputs["loss_weight"]
             )
 
         return outputs, loss_dict
@@ -1083,11 +1115,11 @@ class Naturalspeech2(BaseTTS):
         # print(waveform_lens)
 
         with torch.no_grad():
-            codes = self.hificodec.encode(wav)
-            latents = self.hificodec.quantizer.embed(codes) # type: ignore
+            latents = self.hificodec.encoder(wav)
+            # latents = self.hificodec.quantizer.embed(codes) # type: ignore
 
         batch["latents"] = latents
-        batch["codes"] = codes.squeeze(1)
+        # batch["codes"] = codes.squeeze(1)
         
         # Compute spectrograms
         batch["spec"] = wav_to_spec(wav, ac.fft_size, ac.hop_length, ac.win_length, center=False)
@@ -1107,6 +1139,7 @@ class Naturalspeech2(BaseTTS):
         # batch["latents_min"] = latents_min
         # batch["latents_max"] = latents_max
         # Padding adjustments
+        # print(batch["latents"].shape[-1], batch["mel"].shape[-1])
         if batch["latents"].shape[-1] < batch["mel"].shape[-1]:
             diff = batch["mel"].shape[-1] - batch["latents"].shape[-1]
             batch["latents"] = torch.nn.functional.pad(batch["latents"], (0, diff), mode='constant', value=0)

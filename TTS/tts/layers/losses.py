@@ -5,7 +5,7 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 from torch.nn import functional
-
+from einops import rearrange, reduce, repeat
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.utils.ssim import SSIMLoss as _SSIMLoss
 from TTS.utils.audio.torch_transforms import TorchSTFT
@@ -57,7 +57,7 @@ class IntegerLoss(nn.Module):
         self.threshold = threshold
         self.weight = weight
     def forward(self, output, target):
-        loss = functional.mse_loss(output, target)  # Mean Squared Error (MSE) loss
+        loss = functional.l1_loss(output, target)  # Mean Squared Error (MSE) loss
         
         # Additional term to penalize values below the threshold
         # int_out = torch.exp(output)
@@ -908,12 +908,12 @@ class Naturalspeech2Loss(nn.Module):
         super().__init__()
         # init loss alpha
         self.data_loss_alpha = c.data_loss_alpha
-        self.ce_loss_alpha = c.ce_loss_alpha
+        self.upsampler_loss_alpha = c.upsampler_loss_alpha
         self.duration_loss_alpha = c.duration_loss_alpha
         self.pitch_loss_alpha = c.pitch_loss_alpha
         self.pitch_loss = MSELossMasked(False)
         # self.pitch_loss = Huber()
-        # self.data_loss = Huber()
+        # self.duration_loss = Huber()
         self.duration_loss = IntegerLoss()
         self.diffusion_loss_alpha = c.diffusion_loss_alpha
         # use aligner if needed
@@ -930,9 +930,8 @@ class Naturalspeech2Loss(nn.Module):
 
     def forward(
         self,
-        ce_loss=None,
-        mel_slice=None,
-        mel_slice_hat=None,
+        q_loss=None,
+        q_loss_hat=None,
         duration = None,
         duration_pred=None,
         pitch=None,
@@ -944,32 +943,106 @@ class Naturalspeech2Loss(nn.Module):
         input_lens=None,
         spec_lens=None,
         alignment_logprob=None,
+        diff_loss_weight=None
     ):
         loss = 0
         return_dict = {}
-        if ce_loss is not None:
-            ce_loss = ce_loss * self.ce_loss_alpha
-            return_dict["ce_loss"] = ce_loss
-            loss += ce_loss
+
+        # if q_loss is not None:
+        #     quant_loss = functional.mse_loss(q_loss, q_loss_hat) * self.data_loss_alpha
+        #     loss += quant_loss 
+        #     return_dict["quant_loss"] = quant_loss
 
         data_loss = functional.mse_loss(latents, latent_z_hat) * self.data_loss_alpha
         loss += data_loss 
         return_dict["data_loss"] = data_loss
         # if self.diffusion_loss_alpha > 0.0:
-        diffusion_loss = functional.mse_loss(diffusion_targets, diffusion_predictions) * self.diffusion_loss_alpha
-        loss += diffusion_loss 
-        return_dict["diffusion_loss"] = diffusion_loss
+        # diff_loss_weight
+        diffusion_loss_mse = functional.mse_loss(diffusion_targets, diffusion_predictions, reduction = 'none')
+        diffusion_loss_mse = reduce(diffusion_loss_mse, 'b ... -> b', 'mean')
+        diffusion_loss_mse =  (diffusion_loss_mse * diff_loss_weight).mean() * self.diffusion_loss_alpha
+        loss += diffusion_loss_mse
+        return_dict["diffusion_mse_loss"] = diffusion_loss_mse
+
+        # diffusion_loss_l1 = functional.l1_loss(diffusion_targets, diffusion_predictions) * 0.5
+        # loss += diffusion_loss_l1 
+        # return_dict["diffusion_l1_loss"] = diffusion_loss_l1
 
         if self.duration_loss_alpha > 0:
             # log_dur_tgt = torch.log(duration.float() + 1e-7)
             # log_dur_pred = torch.log(duration_pred.float() + 1e-7)
+            # duration_loss = functional.l1_loss(duration_pred, duration)
+            duration_loss = self.duration_loss(duration_pred, duration)
+            loss += duration_loss * self.duration_loss_alpha
+            return_dict["duration_loss"] = duration_loss * self.duration_loss_alpha
+
+        if self.pitch_loss_alpha > 0:
+            # pitch_loss = torch.sum((pitch_pred - pitch) ** 2) / torch.sum(input_lens)
+            pitch_loss = functional.l1_loss(pitch_pred,pitch)
+            loss += pitch_loss * self.pitch_loss_alpha
+            return_dict["pitch_loss"] = pitch_loss * self.pitch_loss_alpha
+
+        if hasattr(self, "aligner_loss") and self.aligner_loss_alpha > 0:
+            aligner_loss = self.aligner_loss(alignment_logprob, input_lens, spec_lens)
+            loss += self.aligner_loss_alpha * aligner_loss
+            return_dict["loss_aligner"] = self.aligner_loss_alpha * aligner_loss
+
+        return_dict["loss"] = loss
+        return return_dict
+class NaturalspeechLoss(nn.Module):
+    """Generic configurable EncodecnaturalspeechLoss loss."""
+
+    def __init__(self, c):
+        super().__init__()
+        # init loss alpha
+        self.data_loss_alpha = c.data_loss_alpha
+        self.duration_loss_alpha = c.duration_loss_alpha
+        self.pitch_loss_alpha = c.pitch_loss_alpha
+        self.pitch_loss = MSELossMasked(False)
+        self.duration_loss = IntegerLoss()
+        # use aligner if needed
+        self.aligner_loss = ForwardSumLoss()
+        self.aligner_loss_alpha = c.aligner_loss_alpha
+
+    @staticmethod
+    def _binary_alignment_loss(alignment_hard, alignment_soft):
+        """Binary loss that forces soft alignments to match the hard alignments as
+        explained in `https://arxiv.org/pdf/2108.10447.pdf`.
+        """
+        log_sum = torch.log(torch.clamp(alignment_soft[alignment_hard == 1], min=1e-12)).sum()
+        return -log_sum / alignment_hard.sum()
+
+    def forward(
+        self,
+        q_loss=None,
+        q_loss_hat=None,
+        duration = None,
+        duration_pred=None,
+        pitch=None,
+        pitch_pred=None,
+        latents=None,
+        latent_z_hat=None,
+        input_lens=None,
+        spec_lens=None,
+        alignment_logprob=None,
+    ):
+        loss = 0
+        return_dict = {}
+        data_loss = functional.mse_loss(latents, latent_z_hat) * self.data_loss_alpha
+        loss += data_loss 
+        return_dict["data_loss"] = data_loss
+        if q_loss is not None:
+            quant_loss = functional.mse_loss(q_loss, q_loss_hat) * self.data_loss_alpha
+            loss += quant_loss 
+            return_dict["quant_loss"] = quant_loss
+        if self.duration_loss_alpha > 0:
             duration_loss = self.duration_loss(duration_pred, duration)
             loss += duration_loss * self.duration_loss_alpha
             return_dict["duration_loss"] = duration_loss * self.duration_loss_alpha
 
         if self.pitch_loss_alpha > 0:
             pitch_loss = torch.sum((pitch_pred - pitch) ** 2) / torch.sum(input_lens)
-            # pitch_loss = functional.l1_loss(pitch_pred,pitch)
+            # pitch_loss = functional.mse_loss(pitch_pred,pitch)
             loss += pitch_loss * self.pitch_loss_alpha
             return_dict["pitch_loss"] = pitch_loss * self.pitch_loss_alpha
 

@@ -44,13 +44,13 @@ class TransformerEncoder(nn.Module):
             self.cond_ch = nn.Conv1d(cond_channels, d_model, 1)
         # self.pos_enc = PositionalEncoding(d_model, max_len=max_len)
         self.transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout), num_layers
+            nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward, dropout,activation="gelu"), num_layers
         )
-        self.conv = nn.Sequential(
-            nn.Conv1d(d_model, dim_feedforward, kernel_size, padding=kernel_size // 2),
-            nn.ReLU(),
-            nn.Conv1d(dim_feedforward, d_model, kernel_size, padding=kernel_size // 2),
-        )
+        # self.conv = nn.Sequential(
+        #     nn.Conv1d(d_model, dim_feedforward, kernel_size, padding=kernel_size // 2),
+        #     nn.ReLU(),
+        #     nn.Conv1d(dim_feedforward, d_model, kernel_size, padding=kernel_size // 2),
+        # )
 
     def forward(self, x, x_mask=None,g=None):
         if x_mask is None:
@@ -66,7 +66,7 @@ class TransformerEncoder(nn.Module):
             x = x + cond.transpose(1,2)
         # x = self.pos_enc(x * x_mask.transpose(1,2))
         x = self.transformer(x * x_mask.transpose(1,2))
-        x = x.transpose(1, 2)
-        x = self.conv(x * x_mask)
-        x = x.transpose(1, 2)
+        # x = x.transpose(1, 2)
+        # x = self.conv(x * x_mask)
+        # x = x.transpose(1, 2)
         return x

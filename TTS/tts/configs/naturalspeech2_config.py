@@ -88,18 +88,18 @@ class Naturalspeech2Config(BaseTTSConfig):
 
     # optimizer
     lr_scheduler: str = "NoamLR"
-    lr_scheduler_params: dict = field(default_factory=lambda: {"warmup_steps": 32000})
+    lr_scheduler_params: dict = field(default_factory=lambda: {"warmup_steps": 48000})
     # lr_scheduler: str = "ExponentialLR"
     # lr_scheduler_params: dict = field(default_factory=lambda: {"gamma": 0.98, "last_epoch": -1})
     lr: float = 1e-4
     scheduler_after_epoch: bool = False
     optimizer: str = "AdamW"
     optimizer_params: dict = field(default_factory=lambda: {"betas": [0.8, 0.99], "eps": 1e-9, "weight_decay": 0.01})
-    grad_clip: float = 500.0
+    grad_clip: float = 5.0
 
     # loss params
     data_loss_alpha: float = 1.0
-    ce_loss_alpha: float = 0.01
+    upsampler_loss_alpha: float = 1.0
     aligner_loss_alpha: float = 1.0
     duration_loss_alpha: float = 1.0
     pitch_loss_alpha: float = 1.0
@@ -125,10 +125,10 @@ class Naturalspeech2Config(BaseTTSConfig):
     # testing
     test_sentences: List[List] = field(
         default_factory=lambda: [
-            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "/datasets/Final_mailabs_vctk/en_UK/wav24/elizabeth_klett_Female_en_UK/jane_eyre_01_f000007.wav"],
-            ["Be a voice, not an echo, keep speaking and smiling.", "/datasets/Final_mailabs_vctk/en_UK/wav24/elizabeth_klett_Female_en_UK/jane_eyre_01_f000007.wav"],
-            ["I'm sorry Dave. I'm afraid I can't do that.", "/datasets/en/libri+vctk/wav24/p281/p281_395.wav"],
-            ["This cake is great. It's so delicious and moist.", "/datasets/en/libri+vctk/wav24/p281/p281_334.wav"],
-            ["Prior to November 22, 1963.", "/datasets/en/libri+vctk/wav24/p281/p281_395.wav"],
+            ["It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "/root/Desktop/datasets/libritts_r/LibriTTS_R/train-clean-100/26/495/26_495_000006_000001.wav"],
+            ["Be a voice, not an echo, keep speaking and smiling.", "/root/Desktop/datasets/libritts_r/LibriTTS_R/train-clean-100/26/495/26_495_000006_000001.wav"],
+            ["I'm sorry Dave. I'm afraid I can't do that.", "/root/Desktop/datasets/libritts_r/LibriTTS_R/train-clean-100/8465/246943/8465_246943_000005_000000.wav"],
+            ["This cake is great. It's so delicious and moist.", "/root/Desktop/datasets/libritts_r/LibriTTS_R/train-clean-100/8465/246943/8465_246943_000005_000000.wav"],
+            ["Prior to November 22, 1963.", "/root/Desktop/datasets/libritts_r/LibriTTS_R/train-clean-100/8465/246943/8465_246943_000005_000000.wav"],
         ]
     )

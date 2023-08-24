@@ -504,8 +504,8 @@ class Quantizer(torch.nn.Module):
             all_indices.extend(indices)  # 
             all_losses.append(loss)
         all_losses = torch.stack(all_losses)
-        loss = torch.mean(all_losses)
-        return quantized_out, loss, all_indices
+        # loss = torch.mean(all_losses)
+        return quantized_out, all_losses, all_indices
 
     def embed(self, x):
         #idx: N, T, 4

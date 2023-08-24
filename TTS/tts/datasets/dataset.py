@@ -615,7 +615,7 @@ class PhonemeDataset(Dataset):
         cache_path = os.path.join(self.cache_path, file_name + file_ext)
         try:
             ids = np.load(cache_path)
-        except FileNotFoundError:
+        except (FileNotFoundError, ValueError):
             ids = self.tokenizer.text_to_ids(text, language=language)
             np.save(cache_path, ids)
         return ids
@@ -689,7 +689,7 @@ class F0Dataset:
         verbose=False,
         cache_path: str = None,
         precompute_num_workers=0,
-        normalize_f0=True,
+        normalize_f0=False,
     ):
         self.samples = samples
         self.ap = ap
@@ -749,7 +749,7 @@ class F0Dataset:
 
     @staticmethod
     def _compute_and_save_pitch(ap, wav_file, pitch_file=None):
-        wav = ap.load_wav(wav_file)
+        wav = ap.load_wav(wav_file, sr=ap.sample_rate)
         pitch = ap.compute_f0(wav)
         if pitch_file:
             np.save(pitch_file, pitch)
@@ -789,7 +789,12 @@ class F0Dataset:
         if not os.path.exists(pitch_file):
             pitch = self._compute_and_save_pitch(self.ap, wav_file, pitch_file)
         else:
-            pitch = np.load(pitch_file)
+            try:
+                pitch = np.load(pitch_file)
+            except:
+                print(wav_file)
+                pitch = self._compute_and_save_pitch(self.ap, wav_file, pitch_file)
+
         return pitch.astype(np.float32)
 
     def collate_fn(self, batch):
