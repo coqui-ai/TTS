@@ -1,8 +1,10 @@
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Union
 
 import numpy as np
+from torch import nn
 
 from TTS.cs_api import CS_API
 from TTS.utils.audio.numpy_transforms import save_wav
@@ -10,7 +12,7 @@ from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
 
 
-class TTS:
+class TTS(nn.Module):
     """TODO: Add voice conversion and Capacitron support."""
 
     def __init__(
@@ -62,6 +64,7 @@ class TTS:
                 Defaults to "XTTS".
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
+        super().__init__()
         self.manager = ModelManager(models_file=self.get_models_file_path(), progress_bar=progress_bar, verbose=False)
 
         self.synthesizer = None
@@ -69,6 +72,9 @@ class TTS:
         self.csapi = None
         self.cs_api_model = cs_api_model
         self.model_name = None
+
+        if gpu:
+            warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
 
         if model_name is not None:
             if "tts_models" in model_name or "coqui_studio" in model_name:

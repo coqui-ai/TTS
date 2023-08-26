@@ -15,8 +15,10 @@
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf/bark/coarse_2.pt",
                         "https://coqui.gateway.scarf.sh/hf/bark/fine_2.pt",
-                        "https://coqui.gateway.scarf.sh/hf/bark/text_2.pt",
-                        "https://coqui.gateway.scarf.sh/hf/bark/config.json"
+                        "https://app.coqui.ai/tts_model/text_2.pt",
+                        "https://coqui.gateway.scarf.sh/hf/bark/config.json",
+                        "https://coqui.gateway.scarf.sh/hf/bark/hubert.pt",
+                        "https://coqui.gateway.scarf.sh/hf/bark/tokenizer.pth"
                     ],
                     "default_vocoder": null,
                     "commit": "e9a1953e",
@@ -238,7 +240,7 @@
                 "tortoise-v2": {
                     "description": "Tortoise tts model https://github.com/neonbjb/tortoise-tts",
                     "github_rls_url": [
-                        "https://coqui.gateway.scarf.sh/v0.14.1_models/autoregressive.pth",
+                        "https://app.coqui.ai/tts_model/autoregressive.pth",
                         "https://coqui.gateway.scarf.sh/v0.14.1_models/clvp2.pth",
                         "https://coqui.gateway.scarf.sh/v0.14.1_models/cvvp.pth",
                         "https://coqui.gateway.scarf.sh/v0.14.1_models/diffusion_decoder.pth",
