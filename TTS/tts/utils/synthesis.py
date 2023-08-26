@@ -18,7 +18,8 @@ def compute_style_mel(style_wav, ap, cuda=False, device="cpu"):
     if cuda:
         device = "cuda"
     style_mel = torch.FloatTensor(
-        ap.melspectrogram(ap.load_wav(style_wav, sr=ap.sample_rate)), device=device,
+        ap.melspectrogram(ap.load_wav(style_wav, sr=ap.sample_rate)),
+        device=device,
     ).unsqueeze(0)
     return style_mel
 

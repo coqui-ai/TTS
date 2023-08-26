@@ -246,6 +246,8 @@ class Bark(BaseTTS):
         text_model_path=None,
         coarse_model_path=None,
         fine_model_path=None,
+        hubert_model_path=None,
+        hubert_tokenizer_path=None,
         eval=False,
         strict=True,
         **kwargs,
@@ -267,10 +269,14 @@ class Bark(BaseTTS):
         text_model_path = text_model_path or os.path.join(checkpoint_dir, "text_2.pt")
         coarse_model_path = coarse_model_path or os.path.join(checkpoint_dir, "coarse_2.pt")
         fine_model_path = fine_model_path or os.path.join(checkpoint_dir, "fine_2.pt")
+        hubert_model_path = hubert_model_path or os.path.join(checkpoint_dir, "hubert.pt")
+        hubert_tokenizer_path = hubert_tokenizer_path or os.path.join(checkpoint_dir, "tokenizer.pth")
 
         self.config.LOCAL_MODEL_PATHS["text"] = text_model_path
         self.config.LOCAL_MODEL_PATHS["coarse"] = coarse_model_path
         self.config.LOCAL_MODEL_PATHS["fine"] = fine_model_path
+        self.config.LOCAL_MODEL_PATHS["hubert"] = hubert_model_path
+        self.config.LOCAL_MODEL_PATHS["hubert_tokenizer"] = hubert_tokenizer_path
 
         self.load_bark_models()
 
