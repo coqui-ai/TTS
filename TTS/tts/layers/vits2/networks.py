@@ -3,8 +3,8 @@ import math
 import torch
 from torch import nn
 
-from TTS.tts.layers.glow_tts.glow import WN
-from TTS.tts.layers.glow_tts.transformer import ConditionalRelativePositionTransformer, RelativePositionTransformer
+from TTS.tts.layers.generic.wavenet import WN
+from TTS.tts.layers.vits2.transformer import ConditionalRelativePositionTransformer, RelativePositionTransformer
 from TTS.tts.utils.helpers import sequence_mask
 
 LRELU_SLOPE = 0.1
@@ -41,7 +41,7 @@ class TextEncoder(nn.Module):
         speaker_emb_dim: int = None,
         speaker_emb_layer_idx: int = None
     ):
-        """Text Encoder for VITS model.
+        """Text Encoder for VITS-2 model.
 
         Args:
             n_vocab (int): Number of characters for the embedding layer.
@@ -116,62 +116,38 @@ class TextEncoder(nn.Module):
         return x, m, logs, x_mask
 
 
-class ResidualCouplingBlock(nn.Module):
+class ResidualCouplingTransformerLayer(nn.Module):
     def __init__(
         self,
         channels,
         hidden_channels,
-        kernel_size,
-        dilation_rate,
-        num_layers,
-        dropout_p=0,
-        cond_channels=0,
+        kernel_size=3,
+        num_layers=2,
+        dropout_p=0.1,
         mean_only=False,
     ):
         assert channels % 2 == 0, "channels should be divisible by 2"
         super().__init__()
         self.half_channels = channels // 2
         self.mean_only = mean_only
-        # transformer for x0 
+        # input layer
+        self.pre = nn.Conv1d(self.half_channels, hidden_channels, 1)
+        # coupling layers
         self.pre_transformer = RelativePositionTransformer(
             in_channels=self.half_channels,
             out_channels=self.half_channels,
             hidden_channels=hidden_channels,
             hidden_channels_ffn=768,
             num_heads=2,
-            num_layers=2,
-            kernel_size=3,
-            dropout_p=0.1,
-            layer_norm_type="2",
-            rel_attn_window_size=4
-        )
-        # input layer
-        self.pre = nn.Conv1d(self.half_channels, hidden_channels, 1)
-        # coupling layers
-        self.enc = WN(
-            hidden_channels,
-            hidden_channels,
-            kernel_size,
-            dilation_rate,
-            num_layers,
+            num_layers=num_layers,
+            kernel_size=kernel_size,
             dropout_p=dropout_p,
-            c_in_channels=cond_channels,
+            layer_norm_type="2",
+            rel_attn_window_size=None
         )
         # output layer
         # Initializing last layer to 0 makes the affine coupling layers
         # do nothing at first.  This helps with training stability
-        self.post_transformer = RelativePositionTransformer(
-            in_channels=self.half_channels,
-            out_channels=self.half_channels,
-            hidden_channels=hidden_channels,
-            hidden_channels_ffn=768,
-            num_heads=2,
-            num_layers=2,
-            kernel_size=3,
-            dropout_p=0.1,
-            layer_norm_type="2",
-            rel_attn_window_size=4
-        )
         self.post = nn.Conv1d(hidden_channels, self.half_channels * (2 - mean_only), 1)
         self.post.weight.data.zero_()
         self.post.bias.data.zero_()
@@ -190,8 +166,6 @@ class ResidualCouplingBlock(nn.Module):
         x0_ = self.pre_transformer(x0 * x_mask, x_mask)
         x0_ = x0_ + x0
         h = self.pre(x0_) * x_mask
-        h = self.enc(h, x_mask, g=g)
-        h = self.post_transformer(h * x_mask, x_mask)
         stats = self.post(h) * x_mask
         if not self.mean_only:
             m, log_scale = torch.split(stats, [self.half_channels] * 2, 1)
@@ -209,6 +183,70 @@ class ResidualCouplingBlock(nn.Module):
             x = torch.cat([x0, x1], 1)
             return x
 
+class ResidualCouplingBlock(nn.Module):
+    def __init__(
+        self,
+        channels,
+        hidden_channels,
+        kernel_size,
+        dilation_rate,
+        num_layers,
+        dropout_p=0,
+        cond_channels=0,
+        mean_only=False,
+    ):
+        assert channels % 2 == 0, "channels should be divisible by 2"
+        super().__init__()
+        self.half_channels = channels // 2
+        self.mean_only = mean_only
+        # input layer
+        self.pre = nn.Conv1d(self.half_channels, hidden_channels, 1)
+        # coupling layers
+        self.enc = WN(
+            hidden_channels,
+            hidden_channels,
+            kernel_size,
+            dilation_rate,
+            num_layers,
+            dropout_p=dropout_p,
+            c_in_channels=cond_channels,
+        )
+        # output layer
+        # Initializing last layer to 0 makes the affine coupling layers
+        # do nothing at first.  This helps with training stability
+        self.post = nn.Conv1d(hidden_channels, self.half_channels * (2 - mean_only), 1)
+        self.post.weight.data.zero_()
+        self.post.bias.data.zero_()
+
+    def forward(self, x, x_mask, g=None, reverse=False):
+        """
+        Note:
+            Set `reverse` to True for inference.
+
+        Shapes:
+            - x: :math:`[B, C, T]`
+            - x_mask: :math:`[B, 1, T]`
+            - g: :math:`[B, C, 1]`
+        """
+        x0, x1 = torch.split(x, [self.half_channels] * 2, 1)
+        h = self.pre(x0) * x_mask
+        h = self.enc(h, x_mask, g=g)
+        stats = self.post(h) * x_mask
+        if not self.mean_only:
+            m, log_scale = torch.split(stats, [self.half_channels] * 2, 1)
+        else:
+            m = stats
+            log_scale = torch.zeros_like(m)
+
+        if not reverse:
+            x1 = m + x1 * torch.exp(log_scale) * x_mask
+            x = torch.cat([x0, x1], 1)
+            logdet = torch.sum(log_scale, [1, 2])
+            return x, logdet
+        else:
+            x1 = (x1 - m) * torch.exp(-log_scale) * x_mask
+            x = torch.cat([x0, x1], 1)
+            return x
 
 class ResidualCouplingBlocks(nn.Module):
     def __init__(
@@ -220,8 +258,9 @@ class ResidualCouplingBlocks(nn.Module):
         num_layers: int,
         num_flows=4,
         cond_channels=0,
+        use_transformer_flow_layer=True,
     ):
-        """Redisual Coupling blocks for VITS flow layers.
+        """Redisual Coupling blocks for VITS-2 flow layers.
 
         Args:
             channels (int): Number of input and output tensor channels.
@@ -231,6 +270,7 @@ class ResidualCouplingBlocks(nn.Module):
             num_layers (int): Number of the WaveNet layers.
             num_flows (int, optional): Number of Residual Coupling blocks. Defaults to 4.
             cond_channels (int, optional): Number of channels of the conditioning tensor. Defaults to 0.
+            use_transformer_flow_layer (bool, optional): Use Transformer flow layer. Defaults to True.
         """
         super().__init__()
         self.channels = channels
@@ -254,6 +294,16 @@ class ResidualCouplingBlocks(nn.Module):
                     mean_only=True,
                 )
             )
+        self.use_transformer_flow_layer = use_transformer_flow_layer
+        if self.use_transformer_flow_layer:
+           self.TransformerFlowLayer = ResidualCouplingTransformerLayer(
+                channels=channels,
+                hidden_channels=hidden_channels,
+                kernel_size=kernel_size,
+                num_layers=num_layers,
+                mean_only=True,
+           )
+           self.flows.append(self.TransformerFlowLayer)
 
     def forward(self, x, x_mask, g=None, reverse=False):
         """
@@ -287,7 +337,7 @@ class PosteriorEncoder(nn.Module):
         num_layers: int,
         cond_channels=0,
     ):
-        """Posterior Encoder of VITS model.
+        """Posterior Encoder of VITS-2 model.
 
         ::
             x -> conv1x1() -> WaveNet() (non-causal) -> conv1x1() -> split() -> [m, s] -> sample(m, s) -> z

@@ -740,6 +740,39 @@ class VitsGeneratorLoss(nn.Module):
         return_dict["loss"] = loss
         return return_dict
 
+class Vits2DurationLoss(nn.Module):
+    def __init__(self, c: Coqpit):
+        super().__init__()
+        self.disc_loss_alpha = c.disc_loss_alpha
+
+    @staticmethod
+    def discriminator_loss(scores_real, scores_fake):
+        loss = 0
+        real_losses = []
+        fake_losses = []
+        for dr, dg in zip(scores_real, scores_fake):
+            dr = dr.float()
+            dg = dg.float()
+            real_loss = torch.mean((1 - dr) ** 2)
+            fake_loss = torch.mean(dg**2)
+            loss += real_loss + fake_loss
+            real_losses.append(real_loss.item())
+            fake_losses.append(fake_loss.item())
+        return loss, real_losses, fake_losses
+
+    def forward(self, scores_disc_real, scores_disc_fake):
+        loss = 0.0
+        return_dict = {}
+        loss_disc, loss_disc_real, _ = self.discriminator_loss(
+            scores_real=scores_disc_real, scores_fake=scores_disc_fake
+        )
+        return_dict["loss_dur_disc"] = loss_disc * self.disc_loss_alpha
+        loss = loss + return_dict["loss_dur_disc"]
+        return_dict["loss"] = loss
+
+        for i, ldr in enumerate(loss_disc_real):
+            return_dict[f"loss_dur_disc_real_{i}"] = ldr
+        return return_dict
 
 class VitsDiscriminatorLoss(nn.Module):
     def __init__(self, c: Coqpit):

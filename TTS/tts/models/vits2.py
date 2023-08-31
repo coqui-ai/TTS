@@ -21,9 +21,10 @@ from trainer.trainer_utils import get_optimizer, get_scheduler
 from TTS.tts.configs.shared_configs import CharactersConfig
 from TTS.tts.datasets.dataset import TTSDataset, _parse_sample
 from TTS.tts.layers.glow_tts.duration_predictor import DurationPredictor
-from TTS.tts.layers.vits.discriminator import VitsDiscriminator
-from TTS.tts.layers.vits.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
-from TTS.tts.layers.vits.stochastic_duration_predictor import StochasticDurationPredictor
+from TTS.tts.layers.vits2.duration_discriminator import DurationDiscriminator
+from TTS.tts.layers.vits2.discriminator import VitsDiscriminator
+from TTS.tts.layers.vits2.networks import PosteriorEncoder, ResidualCouplingBlocks, TextEncoder
+from TTS.tts.layers.vits2.stochastic_duration_predictor import StochasticDurationPredictor
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.tts.utils.fairseq import rehash_fairseq_vits_checkpoint
 from TTS.tts.utils.helpers import generate_path, maximum_path, rand_segments, segment, sequence_mask
@@ -214,7 +215,7 @@ def wav_to_mel(y, n_fft, num_mels, sample_rate, hop_length, win_length, fmin, fm
 
 
 @dataclass
-class VitsAudioConfig(Coqpit):
+class Vits2AudioConfig(Coqpit):
     fft_size: int = 1024
     sample_rate: int = 22050
     win_length: int = 1024
@@ -253,7 +254,7 @@ def get_attribute_balancer_weights(items: list, attr_name: str, multi_dict: dict
     )
 
 
-class VitsDataset(TTSDataset):
+class Vits2Dataset(TTSDataset):
     def __init__(self, model_args, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pad_id = self.tokenizer.characters.pad_id
@@ -363,8 +364,8 @@ class VitsDataset(TTSDataset):
 
 
 @dataclass
-class VitsArgs(Coqpit):
-    """VITS model arguments.
+class Vits2Args(Coqpit):
+    """VITS2 model arguments.
 
     Args:
 
@@ -372,7 +373,7 @@ class VitsArgs(Coqpit):
             Number of characters in the vocabulary. Defaults to 100.
 
         out_channels (int):
-            Number of output channels of the decoder. Defaults to 513.
+            Number of output channels of the decoder. Defaults to 80 since we use mel-spec in vits2.
 
         spec_segment_size (int):
             Decoder input segment size. Defaults to 32 `(32 * hoplength = waveform length)`.
@@ -539,10 +540,12 @@ class VitsArgs(Coqpit):
             to the `config.audio.sample_rate`. If it is False you will need to add extra
             `upsample_rates_decoder` to match the shape. Defaults to True.
 
+        use_transformer_flow_layer (bool):
+            Use Transformer Flow layer inside of Residual Coupling Blocks. Defaults to True.
     """
 
     num_chars: int = 100
-    out_channels: int = 513
+    out_channels: int = 80
     spec_segment_size: int = 32
     hidden_channels: int = 192
     hidden_channels_ffn_text_encoder: int = 768
@@ -598,34 +601,28 @@ class VitsArgs(Coqpit):
     interpolate_z: bool = True
     reinit_DP: bool = False
     reinit_text_encoder: bool = False
+    use_transformer_flow: bool = True
+    use_noise_scaled_MAS: bool = True
+    init_dur_discriminator: bool = True
+    mas_noise_scale_initial: float = 2e-6
+    noise_scale_delta: float = 0.01
 
-
-class Vits(BaseTTS):
-    """VITS TTS model
+class Vits2(BaseTTS):
+    """VITS2 TTS model
 
     Paper::
-        https://arxiv.org/pdf/2106.06103.pdf
+        https://arxiv.org/pdf/2307.16430.pdf
 
     Paper Abstract::
-        Several recent end-to-end text-to-speech (TTS) models enabling single-stage training and parallel
-        sampling have been proposed, but their sample quality does not match that of two-stage TTS systems.
-        In this work, we present a parallel endto-end TTS method that generates more natural sounding audio than
-        current two-stage models. Our method adopts variational inference augmented with normalizing flows and
-        an adversarial training process, which improves the expressive power of generative modeling. We also propose a
-        stochastic duration predictor to synthesize speech with diverse rhythms from input text. With the
-        uncertainty modeling over latent variables and the stochastic duration predictor, our method expresses the
-        natural one-to-many relationship in which a text input can be spoken in multiple ways
-        with different pitches and rhythms. A subjective human evaluation (mean opinion score, or MOS)
-        on the LJ Speech, a single speaker dataset, shows that our method outperforms the best publicly
-        available TTS systems and achieves a MOS comparable to ground truth.
+        ## TODO : add paper abstract
 
-    Check :class:`TTS.tts.configs.vits_config.VitsConfig` for class arguments.
+    Check :class:`TTS.tts.configs.vits2_config.Vits2Config` for class arguments.
 
     Examples:
-        >>> from TTS.tts.configs.vits_config import VitsConfig
-        >>> from TTS.tts.models.vits import Vits
-        >>> config = VitsConfig()
-        >>> model = Vits(config)
+        >>> from TTS.tts.configs.vits_config import Vits2Config
+        >>> from TTS.tts.models.vits import Vits2
+        >>> config = Vits2Config()
+        >>> model = Vits2(config)
     """
 
     def __init__(
@@ -647,9 +644,12 @@ class Vits(BaseTTS):
         self.inference_noise_scale = self.args.inference_noise_scale
         self.inference_noise_scale_dp = self.args.inference_noise_scale_dp
         self.noise_scale_dp = self.args.noise_scale_dp
+        self.mas_noise_scale_initial=self.args.mas_noise_scale_initial
+        self.noise_scale_delta=self.args.noise_scale_delta
+
         self.max_inference_len = self.args.max_inference_len
         self.spec_segment_size = self.args.spec_segment_size
-
+        self.use_transformer_flow_layer = self.args.use_transformer_flow_layer
         self.text_encoder = TextEncoder(
             self.args.num_chars,
             self.args.hidden_channels,
@@ -679,6 +679,7 @@ class Vits(BaseTTS):
             dilation_rate=self.args.dilation_rate_flow,
             num_layers=self.args.num_layers_flow,
             cond_channels=self.embedded_speaker_dim,
+            use_transformer_flow_layer=self.use_transformer_flow_layer,
         )
 
         if self.args.use_sdp:
@@ -722,6 +723,16 @@ class Vits(BaseTTS):
                 periods=self.args.periods_multi_period_discriminator,
                 use_spectral_norm=self.args.use_spectral_norm_disriminator,
             )
+
+        if self.args.init_dur_discriminator:
+            self.dur_disc = DurationDiscriminator(
+                in_channels=self.args.hidden_channels,
+                filter_channels=self.args.hidden_channels,
+                kernel_size=3,
+                p_dropout=0.1,
+                gin_channels=0 #chnage this if condition on spekaer in future
+            )
+
 
     @property
     def device(self):
@@ -919,13 +930,10 @@ class Vits(BaseTTS):
             logp3 = torch.einsum("klm, kln -> kmn", [m_p * o_scale, z_p])
             logp4 = torch.sum(-0.5 * (m_p**2) * o_scale, [1]).unsqueeze(-1)  # [b, t, 1]
             logp = logp2 + logp3 + logp1 + logp4
+            if self.use_noise_scaled_mas:
+                epsilon = torch.std(logs_p) * torch.randn_like(logs_p) * self.current_mas_noise_scale
+                logp = logp + epsilon
             attn = maximum_path(logp, attn_mask.squeeze(1)).unsqueeze(1).detach()  # [b, 1, t, t']
-
-        noise_scale_initial = 0.01
-        noise_scale_delta = 2e-6
-        # noise_curent = noise_scale_initial - (noise_scale_delta * self.step) TODO
-        epsilon = torch.sum(logs_p, dim=1).exp() * torch.randn_like(logp) * 0.01
-        logp = logp + epsilon
         
         # duration predictor
         attn_durations = attn.sum(3)
@@ -948,7 +956,7 @@ class Vits(BaseTTS):
             )
             loss_duration = torch.sum((log_durations - attn_log_durations) ** 2, [1, 2]) / torch.sum(x_mask)
         outputs["loss_duration"] = loss_duration
-        return outputs, attn
+        return outputs, attn, attn_log_durations, log_durations
 
     def upsampling_z(self, z, slice_ids=None, y_lengths=None, y_mask=None):
         spec_segment_size = self.spec_segment_size
@@ -974,6 +982,7 @@ class Vits(BaseTTS):
         y: torch.tensor,
         y_lengths: torch.tensor,
         waveform: torch.tensor,
+        current_mas_noise_scale,
         aux_input={"d_vectors": None, "speaker_ids": None, "language_ids": None},
     ) -> Dict:
         """Forward pass of the model.
@@ -984,6 +993,7 @@ class Vits(BaseTTS):
             y (torch.tensor): Batch of input spectrograms.
             y_lengths (torch.tensor): Batch of input spectrogram lengths.
             waveform (torch.tensor): Batch of ground truth waveforms per sample.
+            current_mas_noise_scale (float): Current MAS noise scale.
             aux_input (dict, optional): Auxiliary inputs for multi-speaker and multi-lingual training.
                 Defaults to {"d_vectors": None, "speaker_ids": None, "language_ids": None}.
 
@@ -1012,6 +1022,8 @@ class Vits(BaseTTS):
             - waveform_seg: :math:`[B, 1, spec_seg_size * hop_length]`
             - gt_spk_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
             - syn_spk_emb: :math:`[B, 1, speaker_encoder.proj_dim]`
+            - hidden_encoded_text: :math:`[B, T_seq, hidden_channels]`
+            - hidden_encoded_text_mask: :math:`[B, 1, T_seq]`
         """
         outputs = {}
         sid, g, lid, _ = self._set_cond_input(aux_input)
@@ -1033,7 +1045,8 @@ class Vits(BaseTTS):
         z_p = self.flow(z, y_mask, g=g)
 
         # duration predictor
-        outputs, attn = self.forward_mas(outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g=g, lang_emb=lang_emb)
+        self.current_mas_noise_scale = current_mas_noise_scale
+        outputs, attn, attn_log_durations, log_durations = self.forward_mas(outputs, z_p, m_p, logs_p, x, x_mask, y_mask, g=g, lang_emb=lang_emb)
 
         # expand prior
         m_p = torch.einsum("klmn, kjm -> kjn", [attn, m_p])
@@ -1084,6 +1097,10 @@ class Vits(BaseTTS):
                 "gt_spk_emb": gt_spk_emb,
                 "syn_spk_emb": syn_spk_emb,
                 "slice_ids": slice_ids,
+                "hidden_encoded_text": x,
+                "hidden_encoded_text_mask": x_mask,
+                "real_durations": attn_log_durations,
+                "predicted_durations": log_durations,
             }
         )
         return outputs
@@ -1248,12 +1265,14 @@ class Vits(BaseTTS):
             Tuple[Dict, Dict]: Model ouputs and computed losses.
         """
 
-        spec_lens = batch["spec_lens"]
+        # spec_lens = batch["spec_lens"]
+        spec_lens = batch["mel_lens"] #vits2
 
         if optimizer_idx == 0:
             tokens = batch["tokens"]
             token_lenghts = batch["token_lens"]
-            spec = batch["spec"]
+            # spec = batch["spec"]
+            spec = batch["mel"] #vits2
 
             d_vectors = batch["d_vectors"]
             speaker_ids = batch["speaker_ids"]
@@ -1337,6 +1356,27 @@ class Vits(BaseTTS):
 
             return self.model_outputs_cache, loss_dict
 
+        if optimizer_idx == 2:
+            output_prob_for_real, output_probs_for_pred = self.dur_disc(
+                self.model_outputs_cache['hidden_encoded_text'],
+                self.model_outputs_cache['hidden_encoded_text_mask'],
+                self.model_outputs_cache['real_durations'], #logscaled
+                self.model_outputs_cache['predicted_durations'] #logscaled
+            )
+            
+            outputs = {
+                "hidden_encoded_text" : self.model_outputs_cache['hidden_encoded_text'],
+                "hidden_encoded_text_mask" : self.model_outputs_cache['hidden_encoded_text_mask'],
+                "real_durations" : self.model_outputs_cache['real_durations'], #logscaled
+                "predicted_durations" : self.model_outputs_cache['predicted_durations'] #logscaled
+            }
+            with autocast(enabled=False):
+                loss_dict = criterion[optimizer_idx](
+                    output_prob_for_real,
+                    output_probs_for_pred,
+                )
+            return outputs, loss_dict
+        
         raise ValueError(" [!] Unexpected `optimizer_idx`.")
 
     def _log(self, ap, batch, outputs, name_prefix="train"):  # pylint: disable=unused-argument,no-self-use
@@ -1604,7 +1644,7 @@ class Vits(BaseTTS):
             loader = None
         else:
             # init dataloader
-            dataset = VitsDataset(
+            dataset = Vits2Dataset(
                 model_args=self.args,
                 samples=samples,
                 batch_group_size=0 if is_eval else config.batch_group_size * config.batch_size,
@@ -1660,7 +1700,7 @@ class Vits(BaseTTS):
 
     def get_optimizer(self) -> List:
         """Initiate and return the GAN optimizers based on the config parameters.
-        It returnes 2 optimizers in a list. First one is for the generator and the second one is for the discriminator.
+        It returnes 3 optimizers in a list. First one is for the generator and the second one is for the discriminator.
         Returns:
             List: optimizers.
         """
@@ -1671,7 +1711,8 @@ class Vits(BaseTTS):
         optimizer1 = get_optimizer(
             self.config.optimizer, self.config.optimizer_params, self.config.lr_gen, parameters=gen_parameters
         )
-        return [optimizer0, optimizer1]
+        optimizer2 = get_optimizer(self.config.optimizer, self.config.optimizer_params, self.config.lr_dur, self.dur_disc)
+        return [optimizer0, optimizer1, optimizer2]
 
     def get_lr(self) -> List:
         """Set the initial learning rates for each optimizer.
@@ -1679,7 +1720,7 @@ class Vits(BaseTTS):
         Returns:
             List: learning rates for each optimizer.
         """
-        return [self.config.lr_disc, self.config.lr_gen]
+        return [self.config.lr_disc, self.config.lr_gen, self.config.lr_dur]
 
     def get_scheduler(self, optimizer) -> List:
         """Set the schedulers for each optimizer.
@@ -1692,6 +1733,7 @@ class Vits(BaseTTS):
         """
         scheduler_D = get_scheduler(self.config.lr_scheduler_disc, self.config.lr_scheduler_disc_params, optimizer[0])
         scheduler_G = get_scheduler(self.config.lr_scheduler_gen, self.config.lr_scheduler_gen_params, optimizer[1])
+        scheduler_DUR = get_scheduler(self.config.lr_scheduler_dur, self.config.lr_scheduler_dur_params, optimizer[2])
         return [scheduler_D, scheduler_G]
 
     def get_criterion(self):
@@ -1700,9 +1742,16 @@ class Vits(BaseTTS):
         from TTS.tts.layers.losses import (  # pylint: disable=import-outside-toplevel
             VitsDiscriminatorLoss,
             VitsGeneratorLoss,
+            Vits2DurationLoss
         )
 
-        return [VitsDiscriminatorLoss(self.config), VitsGeneratorLoss(self.config)]
+        return [VitsDiscriminatorLoss(self.config), VitsGeneratorLoss(self.config), Vits2DurationLoss(self.config)]
+
+    def on_train_step_start(self, trainer):
+        """MAS noise scale."""
+        current_mas_noise_scale = self.mas_noise_scale_initial - self.noise_scale_delta * trainer.epochs_done
+        #TODO is steps = epochs done * batch size * deivces?
+        self.current_mas_noise_scale = max(current_mas_noise_scale, 0.0)
 
     def load_checkpoint(
         self, config, checkpoint_path, eval=False, strict=True, cache=False
@@ -1733,52 +1782,52 @@ class Vits(BaseTTS):
             self.eval()
             assert not self.training
 
-    def load_fairseq_checkpoint(
-        self, config, checkpoint_dir, eval=False, strict=True
-    ):  # pylint: disable=unused-argument, redefined-builtin
-        """Load VITS checkpoints released by fairseq here: https://github.com/facebookresearch/fairseq/tree/main/examples/mms
-        Performs some changes for compatibility.
+    # def load_fairseq_checkpoint(
+    #     self, config, checkpoint_dir, eval=False, strict=True
+    # ):  # pylint: disable=unused-argument, redefined-builtin
+    #     """Load VITS checkpoints released by fairseq here: https://github.com/facebookresearch/fairseq/tree/main/examples/mms
+    #     Performs some changes for compatibility.
 
-        Args:
-            config (Coqpit): 🐸TTS model config.
-            checkpoint_dir (str): Path to the checkpoint directory.
-            eval (bool, optional): Set to True for evaluation. Defaults to False.
-        """
-        import json
+    #     Args:
+    #         config (Coqpit): 🐸TTS model config.
+    #         checkpoint_dir (str): Path to the checkpoint directory.
+    #         eval (bool, optional): Set to True for evaluation. Defaults to False.
+    #     """
+    #     import json
 
-        from TTS.tts.utils.text.cleaners import basic_cleaners
+    #     from TTS.tts.utils.text.cleaners import basic_cleaners
 
-        self.disc = None
-        # set paths
-        config_file = os.path.join(checkpoint_dir, "config.json")
-        checkpoint_file = os.path.join(checkpoint_dir, "G_100000.pth")
-        vocab_file = os.path.join(checkpoint_dir, "vocab.txt")
-        # set config params
-        with open(config_file, "r", encoding="utf-8") as file:
-            # Load the JSON data as a dictionary
-            config_org = json.load(file)
-        self.config.audio.sample_rate = config_org["data"]["sampling_rate"]
-        # self.config.add_blank = config['add_blank']
-        # set tokenizer
-        vocab = FairseqVocab(vocab_file)
-        self.text_encoder.emb = nn.Embedding(vocab.num_chars, config.model_args.hidden_channels)
-        self.tokenizer = TTSTokenizer(
-            use_phonemes=False,
-            text_cleaner=basic_cleaners,
-            characters=vocab,
-            phonemizer=None,
-            add_blank=config_org["data"]["add_blank"],
-            use_eos_bos=False,
-        )
-        # load fairseq checkpoint
-        new_chk = rehash_fairseq_vits_checkpoint(checkpoint_file)
-        self.load_state_dict(new_chk, strict=strict)
-        if eval:
-            self.eval()
-            assert not self.training
+    #     self.disc = None
+    #     # set paths
+    #     config_file = os.path.join(checkpoint_dir, "config.json")
+    #     checkpoint_file = os.path.join(checkpoint_dir, "G_100000.pth")
+    #     vocab_file = os.path.join(checkpoint_dir, "vocab.txt")
+    #     # set config params
+    #     with open(config_file, "r", encoding="utf-8") as file:
+    #         # Load the JSON data as a dictionary
+    #         config_org = json.load(file)
+    #     self.config.audio.sample_rate = config_org["data"]["sampling_rate"]
+    #     # self.config.add_blank = config['add_blank']
+    #     # set tokenizer
+    #     vocab = FairseqVocab(vocab_file)
+    #     self.text_encoder.emb = nn.Embedding(vocab.num_chars, config.model_args.hidden_channels)
+    #     self.tokenizer = TTSTokenizer(
+    #         use_phonemes=False,
+    #         text_cleaner=basic_cleaners,
+    #         characters=vocab,
+    #         phonemizer=None,
+    #         add_blank=config_org["data"]["add_blank"],
+    #         use_eos_bos=False,
+    #     )
+    #     # load fairseq checkpoint
+    #     new_chk = rehash_fairseq_vits_checkpoint(checkpoint_file)
+    #     self.load_state_dict(new_chk, strict=strict)
+    #     if eval:
+    #         self.eval()
+    #         assert not self.training
 
     @staticmethod
-    def init_from_config(config: "VitsConfig", samples: Union[List[List], List[Dict]] = None, verbose=True):
+    def init_from_config(config: "Vits2Config", samples: Union[List[List], List[Dict]] = None, verbose=True):
         """Initiate model from config
 
         Args:
@@ -1810,7 +1859,7 @@ class Vits(BaseTTS):
             speaker_manager.init_encoder(
                 config.model_args.speaker_encoder_model_path, config.model_args.speaker_encoder_config_path
             )
-        return Vits(new_config, ap, tokenizer, speaker_manager, language_manager)
+        return Vits2(new_config, ap, tokenizer, speaker_manager, language_manager)
 
     def export_onnx(self, output_path: str = "coqui_vits.onnx", verbose: bool = True):
         """Export model to ONNX format for inference
@@ -1940,11 +1989,11 @@ class Vits(BaseTTS):
 
 
 ##################################
-# VITS CHARACTERS
+# VITS-2 CHARACTERS
 ##################################
 
 
-class VitsCharacters(BaseCharacters):
+class Vits2Characters(BaseCharacters):
     """Characters class for VITs model for compatibility with pre-trained models"""
 
     def __init__(
@@ -1972,10 +2021,10 @@ class VitsCharacters(BaseCharacters):
             _letters = config.characters["characters"]
             _letters_ipa = config.characters["phonemes"]
             return (
-                VitsCharacters(graphemes=_letters, ipa_characters=_letters_ipa, punctuations=_punctuations, pad=_pad),
+                Vits2Characters(graphemes=_letters, ipa_characters=_letters_ipa, punctuations=_punctuations, pad=_pad),
                 config,
             )
-        characters = VitsCharacters()
+        characters = Vits2Characters()
         new_config = replace(config, characters=characters.to_config())
         return characters, new_config
 
