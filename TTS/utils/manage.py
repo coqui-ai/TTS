@@ -325,7 +325,7 @@ class ModelManager(object):
                 elif "hf_url" in model_item:
                     self._download_hf_model(model_item, output_path)
 
-            except requests.Exception.RequestException as e:
+            except requests.RequestException as e:
                 print(f" > Failed to download the model file to {output_path}")
                 rmtree(output_path)
                 raise e
