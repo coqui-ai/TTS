@@ -117,7 +117,7 @@ You can run a multi-speaker and multi-lingual model in Python as
 from TTS.api import TTS
 
 # List available 🐸TTS models and choose the first one
-model_name = TTS.list_models()[0]
+model_name = TTS().list_models()[0]
 # Init TTS
 tts = TTS(model_name)
 # Run TTS
