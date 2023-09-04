@@ -720,7 +720,7 @@
             "common-voice": {
                 "glow-tts":{
                     "description": "Belarusian GlowTTS model created by @alex73 (Github).",
-                    "hf_url":"",
+                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.16.6/tts_models--be--common-voice--glow-tts.zip",
                     "default_vocoder": "vocoder_models/be/common-voice/hifigan",
                     "commit": "c0aabb85",
                     "license": "CC-BY-SA 4.0",
@@ -882,7 +882,7 @@
         "be": {
             "common-voice": {
                 "hifigan": {
-                    "hf_url": "https://huggingface.co/coqui/hifigan-be",
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.16.6/vocoder_models--be--common-voice--hifigan.zip",
                     "description": "Belarusian HiFiGAN model created by @alex73 (Github).",
                     "author": "@alex73",
                     "license": "CC-BY-SA 4.0",
