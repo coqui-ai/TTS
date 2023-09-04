@@ -392,7 +392,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.encoder_path is not None:
         encoder_path = args.encoder_path
         encoder_config_path = args.encoder_config_path
-    
+
     device = args.device
     if args.use_cuda:
         device = "cuda"
