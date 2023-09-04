@@ -2,7 +2,7 @@
 numpy==1.22.0;python_version<="3.10"
 numpy==1.24.3;python_version>"3.10"
 cython==0.29.30
-scipy>=1.4.0
+scipy>=1.11.2
 torch>=1.7
 torchaudio
 soundfile
