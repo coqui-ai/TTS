@@ -91,12 +91,6 @@ tts --model_name  tts_models/multilingual/multi-dataset/bark \
     :members:
 ```
 
-## BarkArgs
-```{eval-rst}
-.. autoclass:: TTS.tts.models.bark.BarkArgs
-    :members:
-```
-
 ## Bark Model
 ```{eval-rst}
 .. autoclass:: TTS.tts.models.bark.Bark

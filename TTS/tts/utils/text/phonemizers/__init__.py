@@ -1,4 +1,5 @@
 from TTS.tts.utils.text.phonemizers.bangla_phonemizer import BN_Phonemizer
+from TTS.tts.utils.text.phonemizers.belarusian_phonemizer import BEL_Phonemizer
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 from TTS.tts.utils.text.phonemizers.espeak_wrapper import ESpeak
 from TTS.tts.utils.text.phonemizers.gruut_wrapper import Gruut
@@ -35,6 +36,7 @@ DEF_LANG_TO_PHONEMIZER["en"] = DEF_LANG_TO_PHONEMIZER["en-us"]
 DEF_LANG_TO_PHONEMIZER["zh-cn"] = ZH_CN_Phonemizer.name()
 DEF_LANG_TO_PHONEMIZER["ko-kr"] = KO_KR_Phonemizer.name()
 DEF_LANG_TO_PHONEMIZER["bn"] = BN_Phonemizer.name()
+DEF_LANG_TO_PHONEMIZER["be"] = BEL_Phonemizer.name()
 
 
 # JA phonemizer has deal breaking dependencies like MeCab for some systems.
@@ -68,6 +70,8 @@ def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
         return KO_KR_Phonemizer(**kwargs)
     if name == "bn_phonemizer":
         return BN_Phonemizer(**kwargs)
+    if name == "be_phonemizer":
+        return BEL_Phonemizer(**kwargs)
     raise ValueError(f"Phonemizer {name} not found")
 
 
