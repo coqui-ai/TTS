@@ -652,11 +652,14 @@ def artic(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
     items = []
     # Speaker name is the name of the directory with the data (last part of `root_path`)
     speaker_name = os.path.basename(os.path.normpath(root_path))
-    # Speaker name can consists of language code (eg. cs-CZ) and gender (m/f) separated by dots
-    # Example: AndJa.cs-CZ.m
-    parts = speaker_name.split(".")
-    lang = parts[1] if len(parts) == 3 and "-" in parts[1] else None
-    print(f" > ARTIC dataset: voice {parts[0]}, language {lang}")
+    # Speaker name can consists of language code (eg. cs-CZ or en) and gender (m/f) separated by dots
+    # Example: AndJa.cs-CZ.m, LJS.en.f
+    try:
+        voice, lang, sex = speaker_name.split(".")
+    except ValueError:
+        voice = speaker_name
+        lang, sex = None, None
+    print(f" > ARTIC dataset: voice={voice}, sex={sex}, language={lang}")
     with open(txt_file, "r", encoding="utf-8") as ttf:
         for line in ttf:
             # Check the number of standard separators
