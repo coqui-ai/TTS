@@ -1,7 +1,7 @@
 from typing import Dict
 
-from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 from TTS.tts.utils.text.belarusian.phonemizer import belarusian_text_to_phonemes
+from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 
 _DEF_BE_PUNCS = ",!."  # TODO
 

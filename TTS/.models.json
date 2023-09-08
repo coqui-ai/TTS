@@ -2,6 +2,18 @@
     "tts_models": {
         "multilingual": {
             "multi-dataset": {
+                "xtts_v1": {
+                    "description": "XTTS-v1 by Coqui with 13 languages and cross-language voice cloning.",
+                    "hf_url": [
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/vocab.json"
+                    ],
+                    "default_vocoder": null,
+                    "commit": "e9a1953e",
+                    "license": "Coqui Community Model License",
+                    "contact": "info@coqui.ai"
+                },
                 "your_tts": {
                     "description": "Your TTS model accompanying the paper https://arxiv.org/abs/2112.02418",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.1_models/tts_models--multilingual--multi-dataset--your_tts.zip",

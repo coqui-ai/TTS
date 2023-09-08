@@ -8,7 +8,9 @@ def init():
         import jpype
         import jpype.imports
     except ModuleNotFoundError:
-        raise ModuleNotFoundError("Belarusian phonemizer requires to install module 'jpype1' manually. Try `pip install jpype1`.")
+        raise ModuleNotFoundError(
+            "Belarusian phonemizer requires to install module 'jpype1' manually. Try `pip install jpype1`."
+        )
 
     try:
         jar_path = os.environ["BEL_FANETYKA_JAR"]
@@ -31,4 +33,5 @@ def belarusian_text_to_phonemes(text: str) -> str:
         init()
 
     from org.alex73.fanetyka.impl import FanetykaText
+
     return str(FanetykaText(finder, text).ipa)
