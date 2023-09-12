@@ -57,17 +57,23 @@ def split_dataset(items, eval_split_max_size=None, eval_split_size=0.01):
 
 
 def add_extra_keys(metadata, language, dataset_name):
+    changes = {}
     for item in metadata:
         # JMa: Add language name only if not defined at the sample level. Could  be good for multi-language datasets.
         if not item["language"]:
             item["language"] = language
         # JMa: Prepend dataset name to speaker name. Could be good for multispeaker datasets.
-        if item["speaker_name"] != dataset_name and not item["speaker_name"].startswith(dataset_name+"_"):
+        if dataset_name and item["speaker_name"] != dataset_name and not item["speaker_name"].startswith(dataset_name+"_"):
+            changes[item["speaker_name"]] = f'{dataset_name}_{item["speaker_name"]}'
             item["speaker_name"] = f'{dataset_name}_{item["speaker_name"]}'
         # add unique audio name
         relfilepath = os.path.splitext(os.path.relpath(item["audio_file"], item["root_path"]))[0]
         audio_unique_name = f"{dataset_name}#{relfilepath}"
         item["audio_unique_name"] = audio_unique_name
+    # JMa: print changed speaker names if any
+    if changes:
+        for k, v in changes.items():
+            print(f" | > speaker name changed: {k} --> {v}")
     return metadata
 
 
