@@ -9,6 +9,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager
 
+
 MODELS_WITH_SEP_TESTS = ["bark", "xtts"]
 
 
@@ -65,22 +66,6 @@ def run_models(offset=0, step=1):
             manager.download_model(model_name)
         print(f" | > OK: {model_name}")
 
-    # folders = glob.glob(os.path.join(manager.output_prefix, "*"))
-    # assert len(folders) == len(model_names) // step
-
-
-def test_models_offset_0_step_3():
-    run_models(offset=0, step=3)
-
-
-def test_models_offset_1_step_3():
-    run_models(offset=1, step=3)
-
-
-def test_models_offset_2_step_3():
-    run_models(offset=2, step=3)
-    test_xtts()
-
 
 def test_xtts():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
@@ -112,3 +97,18 @@ def test_voice_conversion():
         f"tts --model_name  {model_name}"
         f" --out_path {output_path} --speaker_wav {speaker_wav} --reference_wav {reference_wav} --language_idx {language_id} --progress_bar False"
     )
+
+"""
+These are used to split tests into different actions on Github.
+"""
+def test_models_offset_0_step_3():
+    run_models(offset=0, step=3)
+
+
+def test_models_offset_1_step_3():
+    run_models(offset=1, step=3)
+
+
+def test_models_offset_2_step_3():
+    run_models(offset=2, step=3)
+    test_xtts()
