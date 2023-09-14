@@ -70,7 +70,7 @@ def run_models(offset=0, step=1):
 def test_xtts():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
-    run_cli(
+    run_cli("yes | "
         f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
         f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
         f'--speaker_wav "{speaker_wav}" --language_idx "en"'
