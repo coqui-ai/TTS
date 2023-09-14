@@ -111,4 +111,3 @@ def test_models_offset_1_step_3():
 
 def test_models_offset_2_step_3():
     run_models(offset=2, step=3)
-    test_xtts()
