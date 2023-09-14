@@ -307,8 +307,9 @@ class ModelManager(object):
             if answer.lower() == "y":
                 with open(tos_path, "w") as f:
                     f.write("I have read, understood ad agree the Terms and Conditions.")
+                return True
             else:
-                raise Exception("You must agree to the terms of service to use this model.")
+                return False
 
     def tos_agreed(self, model_item, model_full_path):
         """Check if the user has agreed to the terms of service"""
@@ -342,7 +343,9 @@ class ModelManager(object):
             os.makedirs(output_path, exist_ok=True)
              # handle TOS
             if not self.tos_agreed(model_item, output_path):
-                self.ask_tos(output_path)
+                if not self.ask_tos(output_path):
+                    os.rmdir(output_path)
+                    raise Exception(" [!] You must agree to the terms of service to use this model.")
             print(f" > Downloading model to {output_path}")
             try:
                 if "fairseq" in model_name:
