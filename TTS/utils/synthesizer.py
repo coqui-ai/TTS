@@ -338,7 +338,7 @@ class Synthesizer(nn.Module):
 
             elif language_name and isinstance(language_name, str):
                 try:
-                    language_id = self.tts_model.language_manager.name_to_id[language_id]
+                    language_id = self.tts_model.language_manager.name_to_id[language_name]
                 except KeyError as e:
                     raise ValueError(
                         f" [!] Looks like you use a multi-lingual model. "

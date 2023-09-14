@@ -27,7 +27,7 @@ RUN_NAME = "YourTTS-CML-TTS"
 OUT_PATH = os.path.dirname(os.path.abspath(__file__))  # "/raid/coqui/Checkpoints/original-YourTTS/"
 
 # If you want to do transfer learning and speedup your training you can set here the path to the CML-TTS available checkpoint that cam be downloaded here:  https://drive.google.com/u/2/uc?id=1yDCSJ1pFZQTHhL09GMbOrdjcPULApa0p
-RESTORE_PATH = "/raid/edresson/CML_YourTTS/checkpoints_yourtts_cml_tts_dataset/best_model.pth" # Download the checkpoint here:  https://drive.google.com/u/2/uc?id=1yDCSJ1pFZQTHhL09GMbOrdjcPULApa0p
+RESTORE_PATH = "/raid/edresson/CML_YourTTS/checkpoints_yourtts_cml_tts_dataset/best_model.pth"  # Download the checkpoint here:  https://drive.google.com/u/2/uc?id=1yDCSJ1pFZQTHhL09GMbOrdjcPULApa0p
 
 # This paramter is useful to debug, it skips the training epochs and just do the evaluation  and produce the test sentences
 SKIP_TRAIN_EPOCH = False
@@ -47,7 +47,7 @@ MAX_AUDIO_LEN_IN_SECONDS = float("inf")
 CML_DATASET_PATH = "./datasets/CML-TTS-Dataset/"
 
 
-### Download LibriTTS dataset 
+### Download LibriTTS dataset
 # it will automatic download the dataset, if you have problems you can comment it and manually donwload and extract it ! Download link: https://www.openslr.org/resources/60/train-clean-360.tar.gz
 LIBRITTS_DOWNLOAD_PATH = "./datasets/LibriTTS/"
 # Check if LibriTTS dataset is not already downloaded, if not download it
@@ -62,7 +62,7 @@ libritts_config = BaseDatasetConfig(
     meta_file_train="",
     meta_file_val="",
     path=os.path.join(LIBRITTS_DOWNLOAD_PATH, "train-clean-360/"),
-    language="en"
+    language="en",
 )
 
 # init CML-TTS configs
@@ -71,8 +71,8 @@ pt_config = BaseDatasetConfig(
     dataset_name="cml_tts",
     meta_file_train="train.csv",
     meta_file_val="",
-    path=os.path.join(CML_DATASET_PATH,"cml_tts_dataset_portuguese_v0.1/"),
-    language="pt-br"
+    path=os.path.join(CML_DATASET_PATH, "cml_tts_dataset_portuguese_v0.1/"),
+    language="pt-br",
 )
 
 pl_config = BaseDatasetConfig(
@@ -80,8 +80,8 @@ pl_config = BaseDatasetConfig(
     dataset_name="cml_tts",
     meta_file_train="train.csv",
     meta_file_val="",
-    path=os.path.join(CML_DATASET_PATH,"cml_tts_dataset_polish_v0.1/"),
-    language="pl"
+    path=os.path.join(CML_DATASET_PATH, "cml_tts_dataset_polish_v0.1/"),
+    language="pl",
 )
 
 it_config = BaseDatasetConfig(
@@ -89,8 +89,8 @@ it_config = BaseDatasetConfig(
     dataset_name="cml_tts",
     meta_file_train="train.csv",
     meta_file_val="",
-    path=os.path.join(CML_DATASET_PATH,"cml_tts_dataset_italian_v0.1/"),
-    language="it"
+    path=os.path.join(CML_DATASET_PATH, "cml_tts_dataset_italian_v0.1/"),
+    language="it",
 )
 
 fr_config = BaseDatasetConfig(
@@ -98,8 +98,8 @@ fr_config = BaseDatasetConfig(
     dataset_name="cml_tts",
     meta_file_train="train.csv",
     meta_file_val="",
-    path=os.path.join(CML_DATASET_PATH,"cml_tts_dataset_french_v0.1/"),
-    language="fr"
+    path=os.path.join(CML_DATASET_PATH, "cml_tts_dataset_french_v0.1/"),
+    language="fr",
 )
 
 du_config = BaseDatasetConfig(
@@ -107,8 +107,8 @@ du_config = BaseDatasetConfig(
     dataset_name="cml_tts",
     meta_file_train="train.csv",
     meta_file_val="",
-    path=os.path.join(CML_DATASET_PATH,"cml_tts_dataset_dutch_v0.1/"),
-    language="du"
+    path=os.path.join(CML_DATASET_PATH, "cml_tts_dataset_dutch_v0.1/"),
+    language="du",
 )
 
 ge_config = BaseDatasetConfig(
@@ -116,8 +116,8 @@ ge_config = BaseDatasetConfig(
     dataset_name="cml_tts",
     meta_file_train="train.csv",
     meta_file_val="",
-    path=os.path.join(CML_DATASET_PATH,"cml_tts_dataset_german_v0.1/"),
-    language="ge"
+    path=os.path.join(CML_DATASET_PATH, "cml_tts_dataset_german_v0.1/"),
+    language="ge",
 )
 
 sp_config = BaseDatasetConfig(
@@ -125,8 +125,8 @@ sp_config = BaseDatasetConfig(
     dataset_name="cml_tts",
     meta_file_train="train.csv",
     meta_file_val="",
-    path=os.path.join(CML_DATASET_PATH,"cml_tts_dataset_spanish_v0.1/"),
-    language="sp"
+    path=os.path.join(CML_DATASET_PATH, "cml_tts_dataset_spanish_v0.1/"),
+    language="sp",
 )
 
 # Add here all datasets configs Note: If you want to add new datasets, just add them here and it will automatically compute the speaker embeddings (d-vectors) for this new dataset :)
@@ -247,150 +247,55 @@ config = VitsConfig(
     max_audio_len=SAMPLE_RATE * MAX_AUDIO_LEN_IN_SECONDS,
     mixed_precision=False,
     test_sentences=[
-        [
-            "Voc\u00ea ter\u00e1 a vista do topo da montanha que voc\u00ea escalar.",
-            "9351",
-            None,
-            "pt-br"
-        ],
-        [
-            "Quando voc\u00ea n\u00e3o corre nenhum risco, voc\u00ea arrisca tudo.",
-            "12249",
-            None,
-            "pt-br"
-        ],
+        ["Voc\u00ea ter\u00e1 a vista do topo da montanha que voc\u00ea escalar.", "9351", None, "pt-br"],
+        ["Quando voc\u00ea n\u00e3o corre nenhum risco, voc\u00ea arrisca tudo.", "12249", None, "pt-br"],
         [
             "S\u00e3o necess\u00e1rios muitos anos de trabalho para ter sucesso da noite para o dia.",
             "2961",
             None,
-            "pt-br"
+            "pt-br",
         ],
-        [
-            "You'll have the view of the top of the mountain that you climb.",
-            "LTTS_6574",
-            None,
-            "en"
-        ],
-        [
-            "When you don\u2019t take any risks, you risk everything.",
-            "LTTS_6206",
-            None,
-            "en"
-        ],
-        [
-            "Are necessary too many years of work to succeed overnight.",
-            "LTTS_5717",
-            None,
-            "en"
-        ],
-        [
-            "Je hebt uitzicht op de top van de berg die je beklimt.",
-            "960",
-            None,
-            "du"
-        ],
-        [
-            "Als je geen risico neemt, riskeer je alles.",
-            "2450",
-            None,
-            "du"
-        ],
-        [
-            "Zijn te veel jaren werk nodig om van de ene op de andere dag te slagen.",
-            "10984",
-            None,
-            "du"
-        ],
-        [
-            "Vous aurez la vue sur le sommet de la montagne que vous gravirez.",
-            "6381",
-            None,
-            "fr"
-        ],
-        [
-            "Quand tu ne prends aucun risque, tu risques tout.",
-            "2825",
-            None,
-            "fr"
-        ],
+        ["You'll have the view of the top of the mountain that you climb.", "LTTS_6574", None, "en"],
+        ["When you don\u2019t take any risks, you risk everything.", "LTTS_6206", None, "en"],
+        ["Are necessary too many years of work to succeed overnight.", "LTTS_5717", None, "en"],
+        ["Je hebt uitzicht op de top van de berg die je beklimt.", "960", None, "du"],
+        ["Als je geen risico neemt, riskeer je alles.", "2450", None, "du"],
+        ["Zijn te veel jaren werk nodig om van de ene op de andere dag te slagen.", "10984", None, "du"],
+        ["Vous aurez la vue sur le sommet de la montagne que vous gravirez.", "6381", None, "fr"],
+        ["Quand tu ne prends aucun risque, tu risques tout.", "2825", None, "fr"],
         [
             "Sont n\u00e9cessaires trop d'ann\u00e9es de travail pour r\u00e9ussir du jour au lendemain.",
             "1844",
             None,
-            "fr"
+            "fr",
         ],
-        [
-            "Sie haben die Aussicht auf die Spitze des Berges, den Sie erklimmen.",
-            "2314",
-            None,
-            "ge"
-        ],
-        [
-            "Wer nichts riskiert, riskiert alles.",
-            "7483",
-            None,
-            "ge"
-        ],
-        [
-            "Es sind zu viele Jahre Arbeit notwendig, um \u00fcber Nacht erfolgreich zu sein.",
-            "12461",
-            None,
-            "ge"
-        ],
-        [
-            "Avrai la vista della cima della montagna che sali.",
-            "4998",
-            None,
-            "it"
-        ],
-        [
-            "Quando non corri alcun rischio, rischi tutto.",
-            "6744",
-            None,
-            "it"
-        ],
-        [
-            "Are necessary too many years of work to succeed overnight.",
-            "1157",
-            None,
-            "it"
-        ],
+        ["Sie haben die Aussicht auf die Spitze des Berges, den Sie erklimmen.", "2314", None, "ge"],
+        ["Wer nichts riskiert, riskiert alles.", "7483", None, "ge"],
+        ["Es sind zu viele Jahre Arbeit notwendig, um \u00fcber Nacht erfolgreich zu sein.", "12461", None, "ge"],
+        ["Avrai la vista della cima della montagna che sali.", "4998", None, "it"],
+        ["Quando non corri alcun rischio, rischi tutto.", "6744", None, "it"],
+        ["Are necessary too many years of work to succeed overnight.", "1157", None, "it"],
         [
             "B\u0119dziesz mie\u0107 widok na szczyt g\u00f3ry, na kt\u00f3r\u0105 si\u0119 wspinasz.",
             "7014",
             None,
-            "pl"
+            "pl",
         ],
-        [
-            "Kiedy nie podejmujesz \u017cadnego ryzyka, ryzykujesz wszystko.",
-            "3492",
-            None,
-            "pl"
-        ],
+        ["Kiedy nie podejmujesz \u017cadnego ryzyka, ryzykujesz wszystko.", "3492", None, "pl"],
         [
             "Potrzebne s\u0105 zbyt wiele lat pracy, aby odnie\u015b\u0107 sukces z dnia na dzie\u0144.",
             "1890",
             None,
-            "pl"
+            "pl",
         ],
-        [
-            "Tendr\u00e1s la vista de la cima de la monta\u00f1a que subes",
-            "101",
-            None,
-            "sp"
-        ],
-        [
-            "Cuando no te arriesgas, lo arriesgas todo.",
-            "5922",
-            None,
-            "sp"
-        ],
+        ["Tendr\u00e1s la vista de la cima de la monta\u00f1a que subes", "101", None, "sp"],
+        ["Cuando no te arriesgas, lo arriesgas todo.", "5922", None, "sp"],
         [
             "Son necesarios demasiados a\u00f1os de trabajo para triunfar de la noche a la ma\u00f1ana.",
             "10246",
             None,
-            "sp"
-        ]
+            "sp",
+        ],
     ],
     # Enable the weighted sampler
     use_weighted_sampler=True,
@@ -399,10 +304,10 @@ config = VitsConfig(
     weighted_sampler_attrs={"language": 1.0},
     weighted_sampler_multipliers={
         # "speaker_name": {
-            # you can force the batching scheme to give a higher weight to a certain speaker and then this speaker will appears more frequently on the batch.
-            # It will speedup the speaker adaptation process. Considering the CML train dataset and "new_speaker" as the speaker name of the speaker that you want to adapt.
-            # The line above will make the balancer consider the "new_speaker" as 106 speakers so 1/4 of the number of speakers present on CML dataset.
-            # 'new_speaker': 106, # (CML tot. train speaker)/4 = (424/4) = 106
+        # you can force the batching scheme to give a higher weight to a certain speaker and then this speaker will appears more frequently on the batch.
+        # It will speedup the speaker adaptation process. Considering the CML train dataset and "new_speaker" as the speaker name of the speaker that you want to adapt.
+        # The line above will make the balancer consider the "new_speaker" as 106 speakers so 1/4 of the number of speakers present on CML dataset.
+        # 'new_speaker': 106, # (CML tot. train speaker)/4 = (424/4) = 106
         # }
     },
     # It defines the Speaker Consistency Loss (SCL) α to 9 like the YourTTS paper
@@ -414,7 +319,7 @@ train_samples, eval_samples = load_tts_samples(
     config.datasets,
     eval_split=True,
     eval_split_max_size=config.eval_split_max_size,
-    eval_split_size=config.eval_split_size
+    eval_split_size=config.eval_split_size,
 )
 
 # Init the model
