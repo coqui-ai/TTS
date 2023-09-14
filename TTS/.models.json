@@ -12,7 +12,8 @@
                     "default_vocoder": null,
                     "commit": "e9a1953e",
                     "license": "Coqui Community Model License",
-                    "contact": "info@coqui.ai"
+                    "contact": "info@coqui.ai",
+                    "tos_required": true
                 },
                 "your_tts": {
                     "description": "Your TTS model accompanying the paper https://arxiv.org/abs/2112.02418",
