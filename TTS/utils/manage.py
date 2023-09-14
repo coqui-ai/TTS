@@ -21,7 +21,7 @@ LICENSE_URLS = {
     "apache 2.0": "https://choosealicense.com/licenses/apache-2.0/",
     "apache2": "https://choosealicense.com/licenses/apache-2.0/",
     "cc-by-sa 4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
-    "CPML": "https://coqui.ai/cpml.txt"
+    "cpml": "https://coqui.ai/cpml.txt"
 }
 
 
@@ -302,7 +302,7 @@ class ModelManager(object):
         if not os.path.exists(tos_path):
             print(" > You must agree to the terms of service to use this model.")
             print(" | > Please see the terms of service at https://coqui.ai/cpml.txt")
-            print(' | > "I have read, understood ad agree the Terms and Conditions." - [y/n]')
+            print(' | > "I have read, understood and agreed the Terms and Conditions." - [y/n]')
             answer = input(" | | > ")
             if answer.lower() == "y":
                 with open(tos_path, "w") as f:

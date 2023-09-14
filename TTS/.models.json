@@ -11,7 +11,7 @@
                     ],
                     "default_vocoder": null,
                     "commit": "e9a1953e",
-                    "license": "Coqui Community Model License",
+                    "license": "CPML",
                     "contact": "info@coqui.ai",
                     "tos_required": true
                 },
