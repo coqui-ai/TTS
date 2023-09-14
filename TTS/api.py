@@ -105,6 +105,9 @@ class TTS(nn.Module):
 
     @property
     def is_multi_lingual(self):
+        # TODO: fix this
+        if "xtts" in self.model_name:
+            return True
         if hasattr(self.synthesizer.tts_model, "language_manager") and self.synthesizer.tts_model.language_manager:
             return self.synthesizer.tts_model.language_manager.num_languages > 1
         return False

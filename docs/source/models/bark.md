@@ -1,4 +1,4 @@
-# Bark 🐶
+# 🐶 Bark
 
 Bark is a multi-lingual TTS model created by [Suno-AI](https://www.suno.ai/). It can generate conversational speech as well as  music and sound effects.
 It is architecturally very similar to Google's [AudioLM](https://arxiv.org/abs/2209.03143). For more information, please refer to the [Suno-AI's repo](https://github.com/suno-ai/bark).

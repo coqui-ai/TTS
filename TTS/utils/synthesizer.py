@@ -242,7 +242,11 @@ class Synthesizer(nn.Module):
             wav (List[int]): waveform as a list of values.
             path (str): output path to save the waveform.
         """
-        wav = np.array(wav)
+        # if tensor convert to numpy
+        if torch.is_tensor(wav):
+            wav = wav.cpu().numpy()
+        if isinstance(wav, list):
+            wav = np.array(wav)
         save_wav(wav=wav, path=path, sample_rate=self.output_sample_rate)
 
     def voice_conversion(self, source_wav: str, target_wav: str) -> List[int]:
@@ -374,6 +378,8 @@ class Synthesizer(nn.Module):
                         speaker_id=speaker_name,
                         voice_dirs=self.voice_dir,
                         d_vector=speaker_embedding,
+                        speaker_wav=speaker_wav,
+                        language=language_name,
                         **kwargs,
                     )
                 else:

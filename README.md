@@ -111,6 +111,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 - Delightful TTS: [paper](https://arxiv.org/abs/2110.12612)
 
 ### End-to-End Models
+- ⓍTTS: [blog]()
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
 - 🐸 YourTTS: [paper](https://arxiv.org/abs/2112.02418)
 - 🐢 Tortoise: [orig. repo](https://github.com/neonbjb/tortoise-tts)
@@ -248,11 +249,11 @@ tts.tts_with_vc_to_file(
 ```
 
 #### Example using [🐸Coqui Studio](https://coqui.ai) voices.
-You access all of your cloned voices and built-in speakers in [🐸Coqui Studio](https://coqui.ai). 
+You access all of your cloned voices and built-in speakers in [🐸Coqui Studio](https://coqui.ai).
 To do this, you'll need an API token, which you can obtain from the [account page](https://coqui.ai/account).
 After obtaining the API token, you'll need to configure the COQUI_STUDIO_TOKEN environment variable.
 
-Once you have a valid API token in place, the studio speakers will be displayed as distinct models within the list. 
+Once you have a valid API token in place, the studio speakers will be displayed as distinct models within the list.
 These models will follow the naming convention `coqui_studio/en/<studio_speaker_name>/coqui_studio`
 
 ```python

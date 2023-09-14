@@ -5,15 +5,14 @@ from tokenizers import Tokenizer
 
 from TTS.tts.utils.text.cleaners import english_cleaners
 
-DEFAULT_VOCAB_FILE = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/tokenizer.json"
-)
-
 
 class VoiceBpeTokenizer:
-    def __init__(self, vocab_file=DEFAULT_VOCAB_FILE):
+    def __init__(self, vocab_file=None, vocab_str=None):
+        self.tokenizer = None
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
+        if vocab_str is not None:
+            self.tokenizer = Tokenizer.from_str(vocab_str)
 
     def preprocess_text(self, txt):
         txt = english_cleaners(txt)
