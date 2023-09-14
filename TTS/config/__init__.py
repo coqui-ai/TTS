@@ -97,7 +97,6 @@ def load_config(config_path: str) -> Coqpit:
         raise TypeError(f" [!] Unknown config file type {ext}")
     config_dict.update(data)
     model_name = _process_model_name(config_dict)
-    breakpoint
     config_class = register_config(model_name.lower())
     config = config_class()
     config.from_dict(config_dict)
