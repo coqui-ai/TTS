@@ -392,7 +392,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
     if args.encoder_path is not None:
         encoder_path = args.encoder_path
         encoder_config_path = args.encoder_config_path
-    
+
     device = args.device
     if args.use_cuda:
         device = "cuda"
@@ -459,7 +459,9 @@ If you don't specify any models, then it uses LJSpeech based English model.
             target_wav=args.target_wav,
         )
     elif model_dir is not None:
-        wav = synthesizer.tts(args.text, speaker_name=args.speaker_idx)
+        wav = synthesizer.tts(
+            args.text, speaker_name=args.speaker_idx, language_name=args.language_idx, speaker_wav=args.speaker_wav
+        )
 
     # save the results
     print(" > Saving output to {}".format(args.out_path))

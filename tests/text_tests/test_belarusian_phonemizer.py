@@ -1,6 +1,6 @@
 import os
-import warnings
 import unittest
+import warnings
 
 from TTS.tts.utils.text.belarusian.phonemizer import belarusian_text_to_phonemes
 
@@ -17,7 +17,8 @@ class TestText(unittest.TestCase):
         except KeyError:
             warnings.warn(
                 "You need to define 'BEL_FANETYKA_JAR' environment variable as path to the fanetyka.jar file to test Belarusian phonemizer",
-                Warning)
+                Warning,
+            )
             return
 
         for line in _TEST_CASES.strip().split("\n"):
