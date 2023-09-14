@@ -41,6 +41,7 @@ def register_config(model_name: str) -> Coqpit:
     # TODO: fix this
     if model_name == "xtts":
         from TTS.tts.configs.xtts_config import XttsConfig
+
         config_class = XttsConfig
     paths = ["TTS.tts.configs", "TTS.vocoder.configs", "TTS.encoder.configs", "TTS.vc.configs"]
     for path in paths:

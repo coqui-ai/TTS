@@ -9,13 +9,15 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager
 
+MODELS_WITH_SEP_TESTS = ["bark", "xtts"]
+
 
 def run_models(offset=0, step=1):
     """Check if all the models are downloadable and tts models run correctly."""
     print(" > Run synthesizer with all the models.")
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     manager = ModelManager(output_prefix=get_tests_output_path(), progress_bar=False)
-    model_names = [name for name in manager.list_models() if "bark" not in name]
+    model_names = [name for name in manager.list_models() if name in MODELS_WITH_SEP_TESTS]
     for model_name in model_names[offset::step]:
         print(f"\n > Run - {model_name}")
         model_path, _, _ = manager.download_model(model_name)
@@ -77,6 +79,17 @@ def test_models_offset_1_step_3():
 
 def test_models_offset_2_step_3():
     run_models(offset=2, step=3)
+    test_xtts()
+
+
+def test_xtts():
+    output_path = os.path.join(get_tests_output_path(), "output.wav")
+    speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
+    run_cli(
+        f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
+        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
+        f'--speaker_wav "{speaker_wav}" --language_idx "en"'
+    )
 
 
 def test_bark():
@@ -84,7 +97,7 @@ def test_bark():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     run_cli(
         f" tts --model_name  tts_models/multilingual/multi-dataset/bark "
-        f'--text "This is an example." --out_path "{output_path}" --progress_bar False'
+        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True'
     )
 
 
