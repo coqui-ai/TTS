@@ -21,7 +21,7 @@ LICENSE_URLS = {
     "apache 2.0": "https://choosealicense.com/licenses/apache-2.0/",
     "apache2": "https://choosealicense.com/licenses/apache-2.0/",
     "cc-by-sa 4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
-    "cpml": "https://coqui.ai/cpml.txt"
+    "cpml": "https://coqui.ai/cpml.txt",
 }
 
 
@@ -341,7 +341,7 @@ class ModelManager(object):
             print(f" > {model_name} is already downloaded.")
         else:
             os.makedirs(output_path, exist_ok=True)
-             # handle TOS
+            # handle TOS
             if not self.tos_agreed(model_item, output_path):
                 if not self.ask_tos(output_path):
                     os.rmdir(output_path)

@@ -9,7 +9,6 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager
 
-
 MODELS_WITH_SEP_TESTS = ["bark", "xtts"]
 
 
@@ -70,7 +69,8 @@ def run_models(offset=0, step=1):
 def test_xtts():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
-    run_cli("yes | "
+    run_cli(
+        "yes | "
         f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
         f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
         f'--speaker_wav "{speaker_wav}" --language_idx "en"'
@@ -98,9 +98,12 @@ def test_voice_conversion():
         f" --out_path {output_path} --speaker_wav {speaker_wav} --reference_wav {reference_wav} --language_idx {language_id} --progress_bar False"
     )
 
+
 """
 These are used to split tests into different actions on Github.
 """
+
+
 def test_models_offset_0_step_3():
     run_models(offset=0, step=3)
 
