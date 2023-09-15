@@ -642,7 +642,7 @@ class Xtts(BaseTTS):
         self.init_models()
         if eval:
             self.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache)
-        self.load_state_dict(load_fsspec(model_path)["model"], strict=strict)
+        self.load_state_dict(load_fsspec(model_path,self.device)["model"], strict=strict)
 
         if eval:
             self.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache)
