@@ -49,4 +49,4 @@ transformers
 #deps for bark
 encodec
 # deps for XTTS
-unidecode
+Unidecode
