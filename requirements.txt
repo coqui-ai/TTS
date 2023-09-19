@@ -13,7 +13,7 @@ inflect==5.6.0
 tqdm
 anyascii
 pyyaml
-fsspec==2023.9.1 # 2023.9.2 makes aux tests fail
+fsspec==2023.6.0 # <= 2023.9.1 makes aux tests fail
 aiohttp
 packaging
 # deps for examples
