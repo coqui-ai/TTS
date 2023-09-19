@@ -1,6 +1,7 @@
 
 ## 🐸Coqui.ai News
-- 📣 [🐶Bark](https://github.com/suno-ai/bark) is now available for inference with uncontrained voice cloning. [Docs](https://tts.readthedocs.io/en/dev/models/bark.html)
+- 📣 ⓍTTS, our production TTS model that can speak 13 languages, is released [Blog Post](https://coqui.ai/blog/tts/open_xtts), [Demo](https://huggingface.co/spaces/coqui/xtts), [Docs](https://tts.readthedocs.io/en/dev/models/xtts.html)
+- 📣 [🐶Bark](https://github.com/suno-ai/bark) is now available for inference with unconstrained voice cloning. [Docs](https://tts.readthedocs.io/en/dev/models/bark.html)
 - 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
 - 📣 🐸TTS now supports 🐢Tortoise with faster inference. [Docs](https://tts.readthedocs.io/en/dev/models/tortoise.html)
 - 📣 **Coqui Studio API** is landed on 🐸TTS. - [Example](https://github.com/coqui-ai/TTS/blob/dev/README.md#-python-api)
@@ -111,7 +112,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 - Delightful TTS: [paper](https://arxiv.org/abs/2110.12612)
 
 ### End-to-End Models
-- ⓍTTS: [blog]()
+- ⓍTTS: [blog](https://coqui.ai/blog/tts/open_xtts)
 - VITS: [paper](https://arxiv.org/pdf/2106.06103)
 - 🐸 YourTTS: [paper](https://arxiv.org/abs/2112.02418)
 - 🐢 Tortoise: [orig. repo](https://github.com/neonbjb/tortoise-tts)
