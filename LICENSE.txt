@@ -35,8 +35,8 @@ Mozilla Public License Version 2.0
     means any form of the work other than Source Code Form.
 
 1.7. "Larger Work"
-    means a work that combines Covered Software with other material, in 
-    a separate file or files, that is not Covered Software.
+    means a work that combines Covered Software with other materials, in 
+    a separate file or files, that are not Covered Software.
 
 1.8. "License"
     means this document.
@@ -81,7 +81,7 @@ Mozilla Public License Version 2.0
     or indirect, to cause the direction or management of such entity,
     whether by contract or otherwise, or (b) ownership of more than
     fifty percent (50%) of the outstanding shares or beneficial
-    ownership of such entity.
+    ownership of such an entity.
 
 2. License Grants and Conditions
 --------------------------------
@@ -140,7 +140,7 @@ permitted under the terms of Section 3.3).
 2.5. Representation
 
 Each Contributor represents that the Contributor believes its
-Contributions are its original creation(s) or it has sufficient rights
+Contributions are their original creation(s) or it has sufficient rights
 to grant the rights to its Contributions conveyed by this License.
 
 2.6. Fair Use
@@ -171,7 +171,7 @@ Form.
 
 If You distribute Covered Software in Executable Form then:
 
-(a) such Covered Software must also be made available in Source Code
+(a) Such Covered Software must also be made available in Source Code
     Form, as described in Section 3.1, and You must inform recipients of
     the Executable Form how they can obtain a copy of such Source Code
     Form by reasonable means in a timely manner, at a charge no more
@@ -180,7 +180,7 @@ If You distribute Covered Software in Executable Form then:
 (b) You may distribute such Executable Form under the terms of this
     License, or sublicense it under different terms, provided that the
     license for the Executable Form does not attempt to limit or alter
-    the recipients' rights in the Source Code Form under this License.
+    the recipient's rights in the Source Code Form under this License.
 
 3.3. Distribution of a Larger Work
 
