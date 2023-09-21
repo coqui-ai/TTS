@@ -169,3 +169,6 @@ wandb
 depot/*
 coqui_recipes/*
 local_scripts/*
+
+# SVN
+.svn/

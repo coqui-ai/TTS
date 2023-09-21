@@ -1084,12 +1084,47 @@ class Vits(BaseTTS):
         if "x_lengths" in aux_input and aux_input["x_lengths"] is not None:
             return aux_input["x_lengths"]
         return torch.tensor(x.shape[1:2]).to(x.device)
+    
+    # JMa: set minimum duration if predicted duration is lower than threshold
+    # Workaround to avoid short durations that cause some chars/phonemes to be reduced
+    # @staticmethod
+    # def _set_min_inference_length(d, threshold):
+    #     d_mask = d < threshold
+    #     d[d_mask] = threshold
+    #     return d
+    
+    def _set_min_inference_length(self, x, durs, threshold):
+        punctlike = list(self.config.characters.punctuations) + [self.config.characters.blank]
+        # Get list of tokens from IDs
+        tokens = x.squeeze().tolist()
+        # Check current and next token
+        n = self.tokenizer.characters.id_to_char(tokens[0])
+        # for ix, (c, n) in enumerate(zip(tokens[:-1], tokens[1:])):
+        for ix, idx in enumerate(tokens[1:]):
+            # c = self.tokenizer.characters.id_to_char(id_c)
+            c = n
+            n = self.tokenizer.characters.id_to_char(idx)
+            if c in punctlike:
+                # Skip thresholding for punctuation
+                continue
+            # Add duration from next punctuation if possible
+            d = durs[:,:,ix] + durs[:,:,ix+1] if n in punctlike else durs[:,:,ix]
+            # Threshold duration if duration lower than threshold
+            if d < threshold:
+                durs[:,:,ix] = threshold
+        return durs
 
     @torch.no_grad()
     def inference(
         self,
         x,
-        aux_input={"x_lengths": None, "d_vectors": None, "speaker_ids": None, "language_ids": None, "durations": None},
+        aux_input={"x_lengths": None,
+                   "d_vectors": None,
+                   "speaker_ids": None,
+                   "language_ids": None,
+                   "durations": None,
+                   "min_input_length": 0    # JMa: set minimum length if predicted length is lower than `min_input_length`
+                  },
     ):  # pylint: disable=dangerous-default-value
         """
         Note:
@@ -1100,6 +1135,8 @@ class Vits(BaseTTS):
             - x_lengths: :math:`[B]`
             - d_vectors: :math:`[B, C]`
             - speaker_ids: :math:`[B]`
+            - durations: :math: `[B, T_seq]`
+            - length_scale: :math: `[B, T_seq]` or `[B]` 
 
         Return Shapes:
             - model_outputs: :math:`[B, 1, T_wav]`
@@ -1109,6 +1146,9 @@ class Vits(BaseTTS):
             - m_p: :math:`[B, C, T_dec]`
             - logs_p: :math:`[B, C, T_dec]`
         """
+        # JMa: Save input
+        x_input = x
+
         sid, g, lid, durations = self._set_cond_input(aux_input)
         x_lengths = self._set_x_lengths(x, aux_input)
 
@@ -1137,8 +1177,28 @@ class Vits(BaseTTS):
                 logw = self.duration_predictor(
                     x, x_mask, g=g if self.args.condition_dp_on_speaker else None, lang_emb=lang_emb
                 )
-            w = torch.exp(logw) * x_mask * self.length_scale
+            # JMa: set minimum duration if required
+            w = self._set_min_inference_length(x_input, torch.exp(logw) * x_mask, aux_input["min_input_length"]) if aux_input.get("min_input_length", 0) else torch.exp(logw) * x_mask
+            
+            # JMa: length scale for the given sentence-like input
+            # ORIG: w = torch.exp(logw) * x_mask * self.length_scale
+            # If `length_scale` is in `aux_input`, it resets the default value given by `self.length_scale`,
+            # otherwise the default `self.length_scale` from `config.json` is used.
+            length_scale = aux_input.get("length_scale", self.length_scale)
+            # JMa: `length_scale` is used to scale duration relatively to the predicted values, it should be:
+            # - float (or int) => duration of the output speech will be linearly scaled
+            # - torch vector `[B, T_seq]`` (`B`` is batch size, `T_seq`` is the length of the input symbols)
+            #   => each input symbol (phone or char) is scaled according to the corresponding value in the torch vector
+            if isinstance(length_scale, float) or isinstance(length_scale, int):
+                w *= length_scale
+            else:
+                assert length_scale.shape[-1] == w.shape[-1]
+                w *= length_scale.unsqueeze(0)
+        
         else:
+            # To force absolute durations (in frames), "durations" has to be in `aux_input`.
+            # The durations should be a torch vector [B, N] (`B`` is batch size, `T_seq`` is the length of the input symbols)
+            # => each input symbol (phone or char) will have the duration given by the corresponding value (number of frames) in the torch vector
             assert durations.shape[-1] == x.shape[-1]
             w = durations.unsqueeze(0)
 
@@ -1439,7 +1499,8 @@ class Vits(BaseTTS):
         test_sentences = self.config.test_sentences
         for idx, s_info in enumerate(test_sentences):
             aux_inputs = self.get_aux_input_from_test_sentences(s_info)
-            wav, alignment, _, _ = synthesis(
+            # JMa: replace individual variables with dictionary
+            outputs = synthesis(
                 self,
                 aux_inputs["text"],
                 self.config,
@@ -1450,9 +1511,9 @@ class Vits(BaseTTS):
                 language_id=aux_inputs["language_id"],
                 use_griffin_lim=True,
                 do_trim_silence=False,
-            ).values()
-            test_audios["{}-audio".format(idx)] = wav
-            test_figures["{}-alignment".format(idx)] = plot_alignment(alignment.T, output_fig=False)
+            )
+            test_audios["{}-audio".format(idx)] = outputs["wav"]
+            test_figures["{}-alignment".format(idx)] = plot_alignment(outputs["alignments"].T, output_fig=False)
         return {"figures": test_figures, "audios": test_audios}
 
     def test_log(
@@ -1618,7 +1679,8 @@ class Vits(BaseTTS):
             dataset.preprocess_samples()
 
             # get samplers
-            sampler = self.get_sampler(config, dataset, num_gpus)
+            # JMa: Add `is_eval` parameter because the default is `False` and `batch_size` was used instead of `eval_batch_size`
+            sampler = self.get_sampler(config, dataset, num_gpus, is_eval)
             if sampler is None:
                 loader = DataLoader(
                     dataset,

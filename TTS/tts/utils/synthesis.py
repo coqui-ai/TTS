@@ -24,6 +24,7 @@ def compute_style_mel(style_wav, ap, cuda=False, device="cpu"):
     return style_mel
 
 
+# JMa: add `aux_input` to enable extra input (length_scale, durations) 
 def run_model_torch(
     model: nn.Module,
     inputs: torch.Tensor,
@@ -32,6 +33,7 @@ def run_model_torch(
     style_text: str = None,
     d_vector: torch.Tensor = None,
     language_id: torch.Tensor = None,
+    aux_input: Dict = {},
 ) -> Dict:
     """Run a torch model for inference. It does not support batch inference.
 
@@ -50,17 +52,19 @@ def run_model_torch(
         _func = model.module.inference
     else:
         _func = model.inference
-    outputs = _func(
-        inputs,
-        aux_input={
-            "x_lengths": input_lengths,
-            "speaker_ids": speaker_id,
-            "d_vectors": d_vector,
-            "style_mel": style_mel,
-            "style_text": style_text,
-            "language_ids": language_id,
-        },
-    )
+    # JMa: propagate other inputs like `durations``, `length_scale``, and  `min_input_length`
+    #      to `aux_input` to enable changing length (durations) per each input text (sentence)
+    #      and to set minimum allowed length of each input char/phoneme
+    #   - `length_scale` changes length of the whole generated wav
+    #   - `durations` sets up duration (in frames) for each input text ID
+    #   -  minimum allowed length (in frames) per input ID (char/phoneme) during inference
+    aux_input["x_lengths"] = input_lengths
+    aux_input["speaker_ids"] = speaker_id
+    aux_input["d_vectors"] = d_vector
+    aux_input["style_mel"] = style_mel
+    aux_input["style_text"] = style_text
+    aux_input["language_ids"] = language_id
+    outputs = _func(inputs, aux_input)
     return outputs
 
 
@@ -113,6 +117,7 @@ def apply_griffin_lim(inputs, input_lens, CONFIG, ap):
     return wavs
 
 
+# JMa: add `aux_input` to enable extra input (like length_scale, durations)
 def synthesis(
     model,
     text,
@@ -125,6 +130,7 @@ def synthesis(
     do_trim_silence=False,
     d_vector=None,
     language_id=None,
+    aux_input={},
 ):
     """Synthesize voice for the given text using Griffin-Lim vocoder or just compute output features to be passed to
     the vocoder model.
@@ -217,6 +223,7 @@ def synthesis(
 
     text_inputs = numpy_to_torch(text_inputs, torch.long, device=device)
     text_inputs = text_inputs.unsqueeze(0)
+
     # synthesize voice
     outputs = run_model_torch(
         model,
@@ -226,10 +233,14 @@ def synthesis(
         style_text,
         d_vector=d_vector,
         language_id=language_id,
+        # JMa: add `aux_input` to enable extra input (length_scale, durations)
+        aux_input=aux_input,
     )
     model_outputs = outputs["model_outputs"]
     model_outputs = model_outputs[0].data.cpu().numpy()
     alignments = outputs["alignments"]
+    # JMa: extract durations
+    durations = outputs.get("durations", None)
 
     # convert outputs to numpy
     # plot results
@@ -248,6 +259,8 @@ def synthesis(
         "alignments": alignments,
         "text_inputs": text_inputs,
         "outputs": outputs,
+        # JMa: return durations
+        "durations": durations,
     }
     return return_dict
 

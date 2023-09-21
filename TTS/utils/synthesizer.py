@@ -233,7 +233,21 @@ class Synthesizer(nn.Module):
         Returns:
             List[str]: list of sentences.
         """
-        return self.seg.segment(text)
+        # JMa
+        if "!" in self.tts_config.characters.characters:
+            # Our proprietary phonetic mode enabled: the input text is assumed
+            # to be a sequence of phones plus punctuations (without "!") and pauses (#, $).
+            # (!) is a regular character, not a punctuation
+            # WA: Glottal stop [!] is temporarily replaced with [*] to prevent
+            # boundary detection.
+            #
+            # Example: "!ahoj, !adame." -> ["!ahoj, !", "adame."]
+            # Fix:     "!ahoj, !adame." -> ["!ahoj, !adame."]
+            text = text.replace("!", "*")
+            sents = self.seg.segment(text)
+            return [s.replace("*", "!") for s in sents]
+        else: # Original code
+            return self.seg.segment(text)
 
     def save_wav(self, wav: List[int], path: str) -> None:
         """Save the waveform as a file.
