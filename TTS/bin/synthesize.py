@@ -12,6 +12,121 @@ from TTS.api import TTS
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
 
+description = """
+Synthesize speech on command line.
+
+You can either use your trained model or choose a model from the provided list.
+
+If you don't specify any models, then it uses LJSpeech based English model.
+
+#### Single Speaker Models
+
+- List provided models:
+
+  ```
+  $ tts --list_models
+  ```
+
+- Get model info (for both tts_models and vocoder_models):
+
+  - Query by type/name:
+    The model_info_by_name uses the name as it from the --list_models.
+    ```
+    $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
+    ```
+    For example:
+    ```
+    $ tts --model_info_by_name tts_models/tr/common-voice/glow-tts
+    $ tts --model_info_by_name vocoder_models/en/ljspeech/hifigan_v2
+    ```
+  - Query by type/idx:
+    The model_query_idx uses the corresponding idx from --list_models.
+
+    ```
+    $ tts --model_info_by_idx "<model_type>/<model_query_idx>"
+    ```
+
+    For example:
+
+    ```
+    $ tts --model_info_by_idx tts_models/3
+    ```
+
+  - Query info for model info by full name:
+    ```
+    $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
+    ```
+
+- Run TTS with default models:
+
+  ```
+  $ tts --text "Text for TTS" --out_path output/path/speech.wav
+  ```
+
+- Run a TTS model with its default vocoder model:
+
+  ```
+  $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
+  ```
+
+  For example:
+
+  ```
+  $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --out_path output/path/speech.wav
+  ```
+
+- Run with specific TTS and vocoder models from the list:
+
+  ```
+  $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --vocoder_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
+  ```
+
+  For example:
+
+  ```
+  $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --vocoder_name "vocoder_models/en/ljspeech/univnet" --out_path output/path/speech.wav
+  ```
+
+- Run your own TTS model (Using Griffin-Lim Vocoder):
+
+  ```
+  $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
+  ```
+
+- Run your own TTS and Vocoder models:
+
+  ```
+  $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
+      --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
+  ```
+
+#### Multi-speaker Models
+
+- List the available speakers and choose a <speaker_id> among them:
+
+  ```
+  $ tts --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs
+  ```
+
+- Run the multi-speaker TTS model with the target speaker ID:
+
+  ```
+  $ tts --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx <speaker_id>
+  ```
+
+- Run your own multi-speaker TTS model:
+
+  ```
+  $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/model.pth --config_path path/to/config.json --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
+  ```
+
+### Voice Conversion Models
+
+```
+$ tts --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>" --source_wav <path/to/speaker/wav> --target_wav <path/to/reference/wav>
+```
+"""
+
 
 def str2bool(v):
     if isinstance(v, bool):
@@ -24,92 +139,6 @@ def str2bool(v):
 
 
 def main():
-    description = """Synthesize speech on command line.
-
-You can either use your trained model or choose a model from the provided list.
-
-If you don't specify any models, then it uses LJSpeech based English model.
-
-## Example Runs
-
-### Single Speaker Models
-
-- List provided models:
-
-    ```
-    $ tts --list_models
-    ```
-
-- Query info for model info by idx:
-
-    ```
-    $ tts --model_info_by_idx "<model_type>/<model_query_idx>"
-    ```
-
-- Query info for model info by full name:
-
-    ```
-    $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
-    ```
-
-- Run TTS with default models:
-
-    ```
-    $ tts --text "Text for TTS"
-    ```
-
-- Run a TTS model with its default vocoder model:
-
-    ```
-    $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>
-    ```
-
-- Run with specific TTS and vocoder models from the list:
-
-    ```
-    $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --vocoder_name "<model_type>/<language>/<dataset>/<model_name>" --output_path
-    ```
-
-- Run your own TTS model (Using Griffin-Lim Vocoder):
-
-    ```
-    $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
-    ```
-
-- Run your own TTS and Vocoder models:
-    ```
-    $ tts --text "Text for TTS" --model_path path/to/config.json --config_path path/to/model.pth --out_path output/path/speech.wav
-        --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
-    ```
-
-### Multi-speaker Models
-
-- List the available speakers and choose as <speaker_id> among them:
-
-    ```
-    $ tts --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs
-    ```
-
-- Run the multi-speaker TTS model with the target speaker ID:
-
-    ```
-    $ tts --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx <speaker_id>
-    ```
-
-- Run your own multi-speaker TTS model:
-
-    ```
-    $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/config.json --config_path path/to/model.pth --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
-    ```
-
-### Voice Conversion Models
-
-    ```
-    $ tts --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>" --source_wav <path/to/speaker/wav> --target_wav <path/to/reference/wav>
-    ```
-    """
-    # We remove Markdown code formatting programmatically here to allow us to copy-and-paste from main README to keep
-    # documentation in sync more easily.
     parser = argparse.ArgumentParser(
         description=description.replace("    ```\n", ""),
         formatter_class=RawTextHelpFormatter,
