@@ -8,10 +8,6 @@ from argparse import RawTextHelpFormatter
 # pylint: disable=redefined-outer-name, unused-argument
 from pathlib import Path
 
-from TTS.api import TTS
-from TTS.utils.manage import ModelManager
-from TTS.utils.synthesizer import Synthesizer
-
 description = """
 Synthesize speech on command line.
 
@@ -338,6 +334,11 @@ def main():
     ]
     if not any(check_args):
         parser.parse_args(["-h"])
+
+    # Late-import to make things load faster
+    from TTS.api import TTS
+    from TTS.utils.manage import ModelManager
+    from TTS.utils.synthesizer import Synthesizer
 
     # load model manager
     path = Path(__file__).parent / "../.models.json"
