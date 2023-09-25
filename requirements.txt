@@ -46,7 +46,7 @@ bnunicodenormalizer==0.1.1
 #deps for tortoise
 k_diffusion
 einops==0.6.1
-transformers==4.30.2
+transformers==4.33.2
 #deps for bark
 encodec==0.1.1
 # deps for XTTS
