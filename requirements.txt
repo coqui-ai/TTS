@@ -22,7 +22,7 @@ flask==2.2.2
 # deps for inference
 pysbd==0.3.4
 # deps for notebooks
-#umap-learn==0.5.1
+umap-learn==0.5.4
 pandas==1.4.3
 # deps for training
 matplotlib==3.7.3
