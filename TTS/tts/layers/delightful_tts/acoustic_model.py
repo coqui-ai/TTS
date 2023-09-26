@@ -362,7 +362,7 @@ class AcousticModel(torch.nn.Module):
 
         pos_encoding = positional_encoding(
             self.emb_dim,
-            max(token_embeddings.shape[1], max(mel_lens)),
+            max(token_embeddings.shape[1], *mel_lens),
             device=token_embeddings.device,
         )
         encoder_outputs = self.encoder(
