@@ -48,8 +48,8 @@ style:	## update code style.
 	black ${target_dirs}
 	isort ${target_dirs}
 
-lint:	## run pylint linter.
-	pylint ${target_dirs}
+lint:	## run linters.
+	ruff ${target_dirs}
 	black ${target_dirs} --check
 	isort ${target_dirs} --check-only
 

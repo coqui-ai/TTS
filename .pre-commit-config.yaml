@@ -16,11 +16,10 @@ repos:
     rev: 5.13.1
     hooks:
       - id: isort
-        name: isort (python)
-      - id: isort
         name: isort (cython)
         types: [cython]
-  - repo: https://github.com/pycqa/pylint
-    rev: v2.8.2
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.7
     hooks:
-      - id: pylint
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]

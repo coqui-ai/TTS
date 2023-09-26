@@ -7,8 +7,59 @@ requires = [
     "packaging",
 ]
 
-[flake8]
-max-line-length=120
+[tool.ruff]
+line-length = 120
+extend-select = [
+    "B033", # duplicate-value
+    "C416", # unnecessary-comprehension
+    "D419", # empty-docstring
+    "E999", # syntax-error
+    "F401", # unused-import
+    "F704", # yield-outside-function
+    "F706", # return-outside-function
+    "F841", # unused-variable
+    "I", # import sorting
+    "PIE790", # unnecessary-pass
+    "PLC",
+    "PLE",
+    "PLR0124", # comparison-with-itself
+    "PLR0206", # property-with-parameters
+    "PLR0911", # too-many-return-statements
+    "PLR1711", # useless-return
+    "PLW",
+    "W291", # trailing-whitespace
+]
+
+ignore = [
+    "E501", # line too long
+    "E722", # bare except (TODO: fix these)
+    "E731", # don't use lambdas
+    "E741", # ambiguous variable name
+    "PLR0912", # too-many-branches
+    "PLR0913", # too-many-arguments
+    "PLR0915", # too-many-statements
+    "UP004", # useless-object-inheritance
+    "F821", # TODO: enable
+    "F841", # TODO: enable
+    "PLW0602", # TODO: enable
+    "PLW2901", # TODO: enable
+    "PLW0127", # TODO: enable
+    "PLW0603", # TODO: enable
+]
+
+[tool.ruff.pylint]
+max-args = 5
+max-public-methods = 20
+max-returns = 7
+
+[tool.ruff.per-file-ignores]
+"**/__init__.py" = [
+    "F401", # init files may have "unused" imports for now
+    "F403", # init files may have star imports for now
+]
+"hubconf.py" = [
+    "E402", # module level import not at top of file
+]
 
 [tool.black]
 line-length = 120
