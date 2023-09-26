@@ -298,7 +298,7 @@ class GeneratorLoss(nn.Module):
             adv_loss = adv_loss + self.hinge_gan_loss_weight * hinge_fake_loss
 
         # Feature Matching Loss
-        if self.use_feat_match_loss and not feats_fake is None:
+        if self.use_feat_match_loss and feats_fake is not None:
             feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
             return_dict["G_feat_match_loss"] = feat_match_loss
             adv_loss = adv_loss + self.feat_match_loss_weight * feat_match_loss

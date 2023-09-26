@@ -34,7 +34,7 @@ class AugmentWAV(object):
                     # ignore not listed directories
                     if noise_dir not in self.additive_noise_types:
                         continue
-                    if not noise_dir in self.noise_list:
+                    if noise_dir not in self.noise_list:
                         self.noise_list[noise_dir] = []
                     self.noise_list[noise_dir].append(wav_file)
 

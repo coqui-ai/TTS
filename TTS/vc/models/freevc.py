@@ -164,7 +164,7 @@ class DiscriminatorP(torch.nn.Module):
         super(DiscriminatorP, self).__init__()
         self.period = period
         self.use_spectral_norm = use_spectral_norm
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if use_spectral_norm is False else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(Conv2d(1, 32, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
@@ -201,7 +201,7 @@ class DiscriminatorP(torch.nn.Module):
 class DiscriminatorS(torch.nn.Module):
     def __init__(self, use_spectral_norm=False):
         super(DiscriminatorS, self).__init__()
-        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        norm_f = weight_norm if use_spectral_norm is False else spectral_norm
         self.convs = nn.ModuleList(
             [
                 norm_f(Conv1d(1, 16, 15, 1, padding=7)),
@@ -468,7 +468,7 @@ class FreeVC(BaseVC):
         Returns:
             torch.Tensor: Output tensor.
         """
-        if c_lengths == None:
+        if c_lengths is None:
             c_lengths = (torch.ones(c.size(0)) * c.size(-1)).to(c.device)
         if not self.use_spk:
             g = self.enc_spk.embed_utterance(mel)

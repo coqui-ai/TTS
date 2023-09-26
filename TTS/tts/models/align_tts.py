@@ -415,7 +415,7 @@ class AlignTTS(BaseTTS):
         """Decide AlignTTS training phase"""
         if isinstance(config.phase_start_steps, list):
             vals = [i < global_step for i in config.phase_start_steps]
-            if not True in vals:
+            if True not in vals:
                 phase = 0
             else:
                 phase = (

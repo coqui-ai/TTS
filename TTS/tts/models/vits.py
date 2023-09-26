@@ -1880,7 +1880,7 @@ class Vits(BaseTTS):
         self.forward = _forward
         if training:
             self.train()
-        if not disc is None:
+        if disc is not None:
             self.disc = disc
 
     def load_onnx(self, model_path: str, cuda=False):
@@ -1914,9 +1914,9 @@ class Vits(BaseTTS):
             dtype=np.float32,
         )
         input_params = {"input": x, "input_lengths": x_lengths, "scales": scales}
-        if not speaker_id is None:
+        if speaker_id is not None:
             input_params["sid"] = torch.tensor([speaker_id]).cpu().numpy()
-        if not language_id is None:
+        if language_id is not None:
             input_params["langid"] = torch.tensor([language_id]).cpu().numpy()
 
         audio = self.onnx_sess.run(
