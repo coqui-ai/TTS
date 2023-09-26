@@ -15,4 +15,3 @@ markComment: >
   for your contributions. You might also look our discussion channels.
 # Comment to post when closing a stale issue. Set to `false` to disable
 closeComment: false
-

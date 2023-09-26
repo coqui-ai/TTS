@@ -61,5 +61,3 @@ Currently we provide the following pre-configured architectures:
 .. autoclass:: TTS.tts.configs.fast_speech_config.FastSpeechConfig
     :members:
 ```
-
-

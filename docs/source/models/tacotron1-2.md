@@ -59,5 +59,3 @@ If you have a limited VRAM, then you can try using the Guided Attention Loss or 
 .. autoclass:: TTS.tts.configs.tacotron2_config.Tacotron2Config
     :members:
 ```
-
-
