@@ -2,4 +2,4 @@ black
 coverage
 isort
 nose2
-pylint==2.10.2
+ruff==0.1.3

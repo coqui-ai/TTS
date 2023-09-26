@@ -88,7 +88,7 @@ The following steps are tested on an Ubuntu system.
     $ make style
     ```
 
-10. Run the linter and correct the issues raised. We use ```pylint``` for linting.  It helps to enforce a coding standard, offers simple refactoring suggestions.
+10. Run the linter and correct the issues raised. We use ```ruff``` for linting.  It helps to enforce a coding standard, offers simple refactoring suggestions.
 
     ```bash
     $ make lint
