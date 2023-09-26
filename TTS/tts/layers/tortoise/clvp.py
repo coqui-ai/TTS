@@ -126,7 +126,7 @@ class CLVP(nn.Module):
         text_latents = self.to_text_latent(text_latents)
         speech_latents = self.to_speech_latent(speech_latents)
 
-        text_latents, speech_latents = map(lambda t: F.normalize(t, p=2, dim=-1), (text_latents, speech_latents))
+        text_latents, speech_latents = (F.normalize(t, p=2, dim=-1) for t in (text_latents, speech_latents))
 
         temp = self.temperature.exp()
 

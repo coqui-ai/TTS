@@ -193,7 +193,7 @@ class EmbeddingManager(BaseIDManager):
         embeddings = load_file(file_path)
         speakers = sorted({x["name"] for x in embeddings.values()})
         name_to_id = {name: i for i, name in enumerate(speakers)}
-        clip_ids = list(set(sorted(clip_name for clip_name in embeddings.keys())))
+        clip_ids = list(set(clip_name for clip_name in embeddings.keys()))
         # cache embeddings_by_names for fast inference using a bigger speakers.json
         embeddings_by_names = {}
         for x in embeddings.values():

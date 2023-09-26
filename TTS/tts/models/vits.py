@@ -1948,8 +1948,7 @@ class VitsCharacters(BaseCharacters):
     def _create_vocab(self):
         self._vocab = [self._pad] + list(self._punctuations) + list(self._characters) + [self._blank]
         self._char_to_id = {char: idx for idx, char in enumerate(self.vocab)}
-        # pylint: disable=unnecessary-comprehension
-        self._id_to_char = {idx: char for idx, char in enumerate(self.vocab)}
+        self._id_to_char = dict(enumerate(self.vocab))
 
     @staticmethod
     def init_from_config(config: Coqpit):
@@ -1996,4 +1995,4 @@ class FairseqVocab(BaseVocabulary):
         self.blank = self._vocab[0]
         self.pad = " "
         self._char_to_id = {s: i for i, s in enumerate(self._vocab)}  # pylint: disable=unnecessary-comprehension
-        self._id_to_char = {i: s for i, s in enumerate(self._vocab)}  # pylint: disable=unnecessary-comprehension
+        self._id_to_char = dict(enumerate(self._vocab))

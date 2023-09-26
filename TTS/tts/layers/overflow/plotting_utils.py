@@ -71,7 +71,7 @@ def plot_transition_probabilities_to_numpy(states, transition_probabilities, out
     ax.set_title("Transition probability of state")
     ax.set_xlabel("hidden state")
     ax.set_ylabel("probability")
-    ax.set_xticks([i for i in range(len(transition_probabilities))])  # pylint: disable=unnecessary-comprehension
+    ax.set_xticks(list(range(len(transition_probabilities))))
     ax.set_xticklabels([int(x) for x in states], rotation=90)
     plt.tight_layout()
     if not output_fig:

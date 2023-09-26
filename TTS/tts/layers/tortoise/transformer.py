@@ -37,7 +37,7 @@ def route_args(router, args, depth):
     for key in matched_keys:
         val = args[key]
         for depth, ((f_args, g_args), routes) in enumerate(zip(routed_args, router[key])):
-            new_f_args, new_g_args = map(lambda route: ({key: val} if route else {}), routes)
+            new_f_args, new_g_args = (({key: val} if route else {}) for route in routes)
             routed_args[depth] = ({**f_args, **new_f_args}, {**g_args, **new_g_args})
     return routed_args
 
@@ -152,7 +152,7 @@ class Attention(nn.Module):
         softmax = torch.softmax
 
         qkv = self.to_qkv(x).chunk(3, dim=-1)
-        q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=h), qkv)
+        q, k, v = (rearrange(t, "b n (h d) -> b h n d", h=h) for t in qkv)
 
         q = q * self.scale
 

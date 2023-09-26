@@ -59,7 +59,7 @@ class LanguageManager(BaseIDManager):
                 languages.add(dataset["language"])
             else:
                 raise ValueError(f"Dataset {dataset['name']} has no language specified.")
-        return {name: i for i, name in enumerate(sorted(list(languages)))}
+        return {name: i for i, name in enumerate(sorted(languages))}
 
     def set_language_ids_from_config(self, c: Coqpit) -> None:
         """Set language IDs from config samples.

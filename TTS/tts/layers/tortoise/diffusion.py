@@ -972,7 +972,7 @@ class GaussianDiffusion:
             assert False  # not currently supported for this type of diffusion.
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
             model_outputs = model(x_t, x_start, self._scale_timesteps(t), **model_kwargs)
-            terms.update({k: o for k, o in zip(model_output_keys, model_outputs)})
+            terms.update(dict(zip(model_output_keys, model_outputs)))
             model_output = terms[gd_out_key]
             if self.model_var_type in [
                 ModelVarType.LEARNED,

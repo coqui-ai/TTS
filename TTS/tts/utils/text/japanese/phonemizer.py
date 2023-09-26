@@ -350,8 +350,8 @@ def hira2kata(text: str) -> str:
     return text.replace("う゛", "ヴ")
 
 
-_SYMBOL_TOKENS = set(list("・、。？！"))
-_NO_YOMI_TOKENS = set(list("「」『』―（）［］[]　…"))
+_SYMBOL_TOKENS = set("・、。？！")
+_NO_YOMI_TOKENS = set("「」『』―（）［］[]　…")
 _TAGGER = MeCab.Tagger()
 
 

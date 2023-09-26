@@ -13,7 +13,7 @@ from TTS.tts.utils.text.phonemizers import Gruut
 def compute_phonemes(item):
     text = item["text"]
     ph = phonemizer.phonemize(text).replace("|", "")
-    return set(list(ph))
+    return set(ph)
 
 
 def main():

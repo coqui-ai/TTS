@@ -278,7 +278,7 @@ class TacotronCapacitronTrainTest(unittest.TestCase):
             },
         )
 
-        batch = dict({})
+        batch = {}
         batch["text_input"] = torch.randint(0, 24, (8, 128)).long().to(device)
         batch["text_lengths"] = torch.randint(100, 129, (8,)).long().to(device)
         batch["text_lengths"] = torch.sort(batch["text_lengths"], descending=True)[0]

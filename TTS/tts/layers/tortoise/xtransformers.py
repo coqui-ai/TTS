@@ -84,7 +84,7 @@ def init_zero_(layer):
 
 
 def pick_and_pop(keys, d):
-    values = list(map(lambda key: d.pop(key), keys))
+    values = [d.pop(key) for key in keys]
     return dict(zip(keys, values))
 
 
@@ -107,7 +107,7 @@ def group_by_key_prefix(prefix, d):
 
 def groupby_prefix_and_trim(prefix, d):
     kwargs_with_prefix, kwargs = group_dict_by_key(partial(string_begins_with, prefix), d)
-    kwargs_without_prefix = dict(map(lambda x: (x[0][len(prefix) :], x[1]), tuple(kwargs_with_prefix.items())))
+    kwargs_without_prefix = {x[0][len(prefix) :]: x[1] for x in tuple(kwargs_with_prefix.items())}
     return kwargs_without_prefix, kwargs
 
 
@@ -428,7 +428,7 @@ class ShiftTokens(nn.Module):
         feats_per_shift = x.shape[-1] // segments
         splitted = x.split(feats_per_shift, dim=-1)
         segments_to_shift, rest = splitted[:segments], splitted[segments:]
-        segments_to_shift = list(map(lambda args: shift(*args, mask=mask), zip(segments_to_shift, shifts)))
+        segments_to_shift = [shift(*args, mask=mask) for args in zip(segments_to_shift, shifts)]
         x = torch.cat((*segments_to_shift, *rest), dim=-1)
         return self.fn(x, **kwargs)
 
@@ -635,7 +635,7 @@ class Attention(nn.Module):
         v = self.to_v(v_input)
 
         if not collab_heads:
-            q, k, v = map(lambda t: rearrange(t, "b n (h d) -> b h n d", h=h), (q, k, v))
+            q, k, v = (rearrange(t, "b n (h d) -> b h n d", h=h) for t in (q, k, v))
         else:
             q = einsum("b i d, h d -> b h i d", q, self.collab_mixing)
             k = rearrange(k, "b n d -> b () n d")
@@ -650,9 +650,9 @@ class Attention(nn.Module):
 
         if exists(rotary_pos_emb) and not has_context:
             l = rotary_pos_emb.shape[-1]
-            (ql, qr), (kl, kr), (vl, vr) = map(lambda t: (t[..., :l], t[..., l:]), (q, k, v))
-            ql, kl, vl = map(lambda t: apply_rotary_pos_emb(t, rotary_pos_emb), (ql, kl, vl))
-            q, k, v = map(lambda t: torch.cat(t, dim=-1), ((ql, qr), (kl, kr), (vl, vr)))
+            (ql, qr), (kl, kr), (vl, vr) = ((t[..., :l], t[..., l:]) for t in (q, k, v))
+            ql, kl, vl = (apply_rotary_pos_emb(t, rotary_pos_emb) for t in (ql, kl, vl))
+            q, k, v = (torch.cat(t, dim=-1) for t in ((ql, qr), (kl, kr), (vl, vr)))
 
         input_mask = None
         if any(map(exists, (mask, context_mask))):
@@ -664,7 +664,7 @@ class Attention(nn.Module):
             input_mask = q_mask * k_mask
 
         if self.num_mem_kv > 0:
-            mem_k, mem_v = map(lambda t: repeat(t, "h n d -> b h n d", b=b), (self.mem_k, self.mem_v))
+            mem_k, mem_v = (repeat(t, "h n d -> b h n d", b=b) for t in (self.mem_k, self.mem_v))
             k = torch.cat((mem_k, k), dim=-2)
             v = torch.cat((mem_v, v), dim=-2)
             if exists(input_mask):
@@ -964,9 +964,7 @@ class AttentionLayers(nn.Module):
             seq_len = x.shape[1]
             if past_key_values is not None:
                 seq_len += past_key_values[0][0].shape[-2]
-            max_rotary_emb_length = max(
-                list(map(lambda m: (m.shape[1] if exists(m) else 0) + seq_len, mems)) + [expected_seq_len]
-            )
+            max_rotary_emb_length = max([(m.shape[1] if exists(m) else 0) + seq_len for m in mems] + [expected_seq_len])
             rotary_pos_emb = self.rotary_pos_emb(max_rotary_emb_length, x.device)
 
         present_key_values = []
@@ -1200,7 +1198,7 @@ class TransformerWrapper(nn.Module):
 
         res = [out]
         if return_attn:
-            attn_maps = list(map(lambda t: t.post_softmax_attn, intermediates.attn_intermediates))
+            attn_maps = [t.post_softmax_attn for t in intermediates.attn_intermediates]
             res.append(attn_maps)
         if use_cache:
             res.append(intermediates.past_key_values)
@@ -1249,7 +1247,7 @@ class ContinuousTransformerWrapper(nn.Module):
 
         res = [out]
         if return_attn:
-            attn_maps = list(map(lambda t: t.post_softmax_attn, intermediates.attn_intermediates))
+            attn_maps = [t.post_softmax_attn for t in intermediates.attn_intermediates]
             res.append(attn_maps)
         if use_cache:
             res.append(intermediates.past_key_values)

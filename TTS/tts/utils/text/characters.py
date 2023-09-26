@@ -87,9 +87,7 @@ class BaseVocabulary:
         if vocab is not None:
             self._vocab = vocab
             self._char_to_id = {char: idx for idx, char in enumerate(self._vocab)}
-            self._id_to_char = {
-                idx: char for idx, char in enumerate(self._vocab)  # pylint: disable=unnecessary-comprehension
-            }
+            self._id_to_char = dict(enumerate(self._vocab))
 
     @staticmethod
     def init_from_config(config, **kwargs):
@@ -269,9 +267,7 @@ class BaseCharacters:
     def vocab(self, vocab):
         self._vocab = vocab
         self._char_to_id = {char: idx for idx, char in enumerate(self.vocab)}
-        self._id_to_char = {
-            idx: char for idx, char in enumerate(self.vocab)  # pylint: disable=unnecessary-comprehension
-        }
+        self._id_to_char = dict(enumerate(self.vocab))
 
     @property
     def num_chars(self):
