@@ -8,7 +8,15 @@ from torch import nn
 
 from TTS.utils.io import load_fsspec
 from TTS.vc.modules.freevc.speaker_encoder import audio
-from TTS.vc.modules.freevc.speaker_encoder.hparams import *
+from TTS.vc.modules.freevc.speaker_encoder.hparams import (
+    mel_n_channels,
+    mel_window_step,
+    model_embedding_size,
+    model_hidden_size,
+    model_num_layers,
+    partials_n_frames,
+    sampling_rate,
+)
 
 
 class SpeakerEncoder(nn.Module):
