@@ -70,7 +70,7 @@ Example run:
 
     # if the vocabulary was passed, replace the default
     if "characters" in C.keys():
-        symbols, phonemes = make_symbols(**C.characters)
+        symbols, phonemes = make_symbols(**C.characters)  # noqa: F811
 
     # load the model
     num_chars = len(phonemes) if C.use_phonemes else len(symbols)

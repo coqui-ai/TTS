@@ -43,7 +43,7 @@ class StreamGenerationConfig(GenerationConfig):
 
 class NewGenerationMixin(GenerationMixin):
     @torch.no_grad()
-    def generate(
+    def generate(  # noqa: PLR0911
         self,
         inputs: Optional[torch.Tensor] = None,
         generation_config: Optional[StreamGenerationConfig] = None,
