@@ -171,17 +171,6 @@ def multilingual_cleaners(text, lang):
     return text
 
 
-def english_cleaners(text):
-    """Pipeline for English text, including number and abbreviation expansion."""
-    text = convert_to_ascii(text)
-    text = lowercase(text)
-    text = expand_numbers(text)
-    text = expand_abbreviations(text)
-    text = collapse_whitespace(text)
-    text = text.replace('"', "")
-    return text
-
-
 def remove_extraneous_punctuation(word):
     replacement_punctuation = {"{": "(", "}": ")", "[": "(", "]": ")", "`": "'", "—": "-", "—": "-", "`": "'", "ʼ": "'"}
     replace = re.compile(
@@ -193,32 +182,6 @@ def remove_extraneous_punctuation(word):
     extraneous = re.compile(r"^[@#%_=\$\^&\*\+\\]$")
     word = extraneous.sub("", word)
     return word
-
-
-def expand_numbers(text):
-    return normalize_numbers(text)
-
-
-def lowercase(text):
-    return text.lower()
-
-
-_whitespace_re = re.compile(r"\s+")
-
-
-def collapse_whitespace(text):
-    return re.sub(_whitespace_re, " ", text)
-
-
-def convert_to_ascii(text):
-    return unidecode(text)
-
-
-def basic_cleaners(text):
-    """Basic pipeline that lowercases and collapses whitespace without transliteration."""
-    text = lowercase(text)
-    text = collapse_whitespace(text)
-    return text
 
 
 def arabic_cleaners(text):
