@@ -1,6 +1,3 @@
-import os
-
-from coqpit import Coqpit
 from trainer import Trainer, TrainerArgs
 
 from TTS.tts.configs.shared_configs import BaseAudioConfig

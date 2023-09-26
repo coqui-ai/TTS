@@ -1,4 +1,3 @@
-from pathlib import Path
 from time import perf_counter as timer
 from typing import List, Union
 

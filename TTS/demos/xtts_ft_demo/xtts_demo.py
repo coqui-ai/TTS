@@ -1,19 +1,16 @@
 import argparse
+import logging
 import os
 import sys
 import tempfile
+import traceback
 
 import gradio as gr
-import librosa.display
-import numpy as np
-
-import os
 import torch
 import torchaudio
-import traceback
+
 from TTS.demos.xtts_ft_demo.utils.formatter import format_audio_list
 from TTS.demos.xtts_ft_demo.utils.gpt_train import train_gpt
-
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 
@@ -91,7 +88,7 @@ sys.stderr = sys.stdout
 
 
 # logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-import logging
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",

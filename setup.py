@@ -23,12 +23,12 @@
 import os
 import subprocess
 import sys
-from packaging.version import Version
 
 import numpy
 import setuptools.command.build_py
 import setuptools.command.develop
 from Cython.Build import cythonize
+from packaging.version import Version
 from setuptools import Extension, find_packages, setup
 
 python_version = sys.version.split()[0]

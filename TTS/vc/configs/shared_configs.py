@@ -1,7 +1,5 @@
-from dataclasses import asdict, dataclass, field
-from typing import Dict, List
-
-from coqpit import Coqpit, check_argument
+from dataclasses import dataclass, field
+from typing import List
 
 from TTS.config import BaseAudioConfig, BaseDatasetConfig, BaseTrainingConfig
 

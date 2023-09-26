@@ -1,5 +1,3 @@
-import math
-
 import torch
 from torch import nn
 from transformers import GPT2PreTrainedModel

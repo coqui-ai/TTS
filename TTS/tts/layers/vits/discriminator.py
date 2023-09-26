@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn.modules.conv import Conv1d
 
-from TTS.vocoder.models.hifigan_discriminator import DiscriminatorP, MultiPeriodDiscriminator
+from TTS.vocoder.models.hifigan_discriminator import DiscriminatorP
 
 
 class DiscriminatorS(torch.nn.Module):

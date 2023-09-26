@@ -1,4 +1,5 @@
 """Get detailed info about the working environment."""
+import json
 import os
 import platform
 import sys
@@ -6,10 +7,9 @@ import sys
 import numpy
 import torch
 
-sys.path += [os.path.abspath(".."), os.path.abspath(".")]
-import json
-
 import TTS
+
+sys.path += [os.path.abspath(".."), os.path.abspath(".")]
 
 
 def system_info():

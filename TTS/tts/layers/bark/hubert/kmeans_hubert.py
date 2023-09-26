@@ -7,8 +7,6 @@ License: MIT
 
 # Modified code from https://github.com/lucidrains/audiolm-pytorch/blob/main/audiolm_pytorch/hubert_kmeans.py
 
-import logging
-from pathlib import Path
 
 import torch
 from einops import pack, unpack

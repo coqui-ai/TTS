@@ -5,7 +5,6 @@ import torch
 import torch.nn as nn
 import torchaudio
 from coqpit import Coqpit
-from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from trainer.torch import DistributedSampler
 from trainer.trainer_utils import get_optimizer, get_scheduler

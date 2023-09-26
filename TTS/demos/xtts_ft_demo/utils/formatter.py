@@ -1,22 +1,16 @@
-import os
 import gc
-import torchaudio
+import os
+
 import pandas
-from faster_whisper import WhisperModel
-from glob import glob
-
-from tqdm import tqdm
-
 import torch
 import torchaudio
-# torch.set_num_threads(1)
+from faster_whisper import WhisperModel
+from tqdm import tqdm
 
+# torch.set_num_threads(1)
 from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners
 
 torch.set_num_threads(16)
-
-
-import os
 
 audio_types = (".wav", ".mp3", ".flac")
 

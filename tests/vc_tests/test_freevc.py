@@ -4,8 +4,7 @@ import unittest
 import torch
 
 from tests import get_tests_input_path
-from TTS.vc.configs.freevc_config import FreeVCConfig
-from TTS.vc.models.freevc import FreeVC
+from TTS.vc.models.freevc import FreeVC, FreeVCConfig
 
 # pylint: disable=unused-variable
 # pylint: disable=no-self-use

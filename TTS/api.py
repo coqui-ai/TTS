@@ -6,10 +6,10 @@ from typing import Union
 import numpy as np
 from torch import nn
 
+from TTS.config import load_config
 from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
-from TTS.config import load_config
 
 
 class TTS(nn.Module):
