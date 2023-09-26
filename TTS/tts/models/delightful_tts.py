@@ -726,8 +726,8 @@ class DelightfulTTS(BaseTTSE2E):
     def pitch_std(self):
         return self.acoustic_model.pitch_std
 
-    @pitch_mean.setter
-    def pitch_std(self, value):  # pylint: disable=function-redefined
+    @pitch_std.setter
+    def pitch_std(self, value):
         self.acoustic_model.pitch_std = value
 
     @property
