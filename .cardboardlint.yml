@@ -1,5 +1,0 @@
-linters:
-- pylint:
-    # pylintrc: pylintrc
-    filefilter: ['- test_*.py', '+ *.py', '- *.npy']
-    # exclude:
