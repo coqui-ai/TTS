@@ -9,7 +9,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager
 
-MODELS_WITH_SEP_TESTS = ["bark", "xtts"]
+MODELS_WITH_SEP_TESTS = ["bark", "tortoise", "xtts"]
 
 
 def run_models(offset=0, step=1):
@@ -74,6 +74,14 @@ def test_xtts():
         f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
         f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
         f'--speaker_wav "{speaker_wav}" --language_idx "en"'
+    )
+
+
+def test_tortoise():
+    output_path = os.path.join(get_tests_output_path(), "output.wav")
+    run_cli(
+        f" tts --model_name  tts_models/en/multi-dataset/tortoise-v2 "
+        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True'
     )
 
 
