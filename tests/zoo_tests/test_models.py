@@ -9,7 +9,7 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager
 
-MODELS_WITH_SEP_TESTS = ["bark", "tortoise", "xtts"]
+MODELS_WITH_SEP_TESTS = ["tts_models/multilingual/multi-dataset/bark", "tts_models/en/multi-dataset/tortoise-v2", "tts_models/multilingual/multi-dataset/xtts_v1"]
 
 
 def run_models(offset=0, step=1):
@@ -17,7 +17,8 @@ def run_models(offset=0, step=1):
     print(" > Run synthesizer with all the models.")
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     manager = ModelManager(output_prefix=get_tests_output_path(), progress_bar=False)
-    model_names = [name for name in manager.list_models() if name in MODELS_WITH_SEP_TESTS]
+    model_names = [name for name in manager.list_models() if name not in MODELS_WITH_SEP_TESTS]
+    print("Model names:", model_names)
     for model_name in model_names[offset::step]:
         print(f"\n > Run - {model_name}")
         model_path, _, _ = manager.download_model(model_name)
@@ -111,7 +112,6 @@ def test_voice_conversion():
 These are used to split tests into different actions on Github.
 """
 
-
 def test_models_offset_0_step_3():
     run_models(offset=0, step=3)
 
@@ -121,4 +121,5 @@ def test_models_offset_1_step_3():
 
 
 def test_models_offset_2_step_3():
+    print("aquiii")
     run_models(offset=2, step=3)
