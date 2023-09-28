@@ -2,6 +2,7 @@
 import glob
 import os
 import shutil
+import torch
 
 from tests import get_tests_data_path, get_tests_output_path, run_cli
 from TTS.tts.utils.languages import LanguageManager
@@ -70,28 +71,31 @@ def run_models(offset=0, step=1):
 def test_xtts():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
+    use_gpu = torch.cuda.is_available()
     run_cli(
         "yes | "
         f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
-        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
+        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda {use_gpu} '
         f'--speaker_wav "{speaker_wav}" --language_idx "en"'
     )
 
 
 def test_tortoise():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
+    use_gpu = torch.cuda.is_available()
     run_cli(
         f" tts --model_name  tts_models/en/multi-dataset/tortoise-v2 "
-        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True'
+        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda {use_gpu}'
     )
 
 
 def test_bark():
     """Bark is too big to run on github actions. We need to test it locally"""
     output_path = os.path.join(get_tests_output_path(), "output.wav")
+    use_gpu = torch.cuda.is_available()
     run_cli(
         f" tts --model_name  tts_models/multilingual/multi-dataset/bark "
-        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True'
+        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda {use_gpu}'
     )
 
 
