@@ -77,31 +77,51 @@ def test_xtts():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
     use_gpu = torch.cuda.is_available()
-    run_cli(
-        "yes | "
-        f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
-        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda {use_gpu} '
-        f'--speaker_wav "{speaker_wav}" --language_idx "en"'
-    )
+    if use_gpu:
+        run_cli(
+            "yes | "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
+            f'--speaker_wav "{speaker_wav}" --language_idx "en"'
+        )
+    else:
+        run_cli(
+            "yes | "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False '
+            f'--speaker_wav "{speaker_wav}" --language_idx "en"'
+        )
 
 
 def test_tortoise():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     use_gpu = torch.cuda.is_available()
-    run_cli(
-        f" tts --model_name  tts_models/en/multi-dataset/tortoise-v2 "
-        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda {use_gpu}'
-    )
+    if use_gpu:
+        run_cli(
+            f" tts --model_name  tts_models/en/multi-dataset/tortoise-v2 "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True'
+        )
+    else:
+        run_cli(
+            f" tts --model_name  tts_models/en/multi-dataset/tortoise-v2 "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False'
+        )
 
 
 def test_bark():
     """Bark is too big to run on github actions. We need to test it locally"""
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     use_gpu = torch.cuda.is_available()
-    run_cli(
-        f" tts --model_name  tts_models/multilingual/multi-dataset/bark "
-        f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda {use_gpu}'
-    )
+    if use_gpu:
+        run_cli(
+            f" tts --model_name  tts_models/multilingual/multi-dataset/bark "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True'
+        )
+    else:
+        run_cli(
+            f" tts --model_name  tts_models/multilingual/multi-dataset/bark "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False'
+        )
 
 
 def test_voice_conversion():
