@@ -9,6 +9,7 @@ DEFAULT_VOCAB_FILE = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), "../../utils/assets/tortoise/tokenizer.json"
 )
 
+
 class VoiceBpeTokenizer:
     def __init__(self, vocab_file=DEFAULT_VOCAB_FILE, vocab_str=None):
         self.tokenizer = None
