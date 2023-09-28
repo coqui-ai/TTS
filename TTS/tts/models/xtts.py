@@ -419,14 +419,9 @@ class Xtts(BaseTTS):
         self,
         audio_path
     ):
-        wav, sr = torchaudio.load(audio_path)
-        spk_waveform = torchaudio.functional.resample(
-            wav,
-            22050,
-            self.hifigan_decoder.speaker_encoder_audio_config["sample_rate"],
-        ).to(self.device)
+        audio = load_audio(audio_path, self.hifigan_decoder.speaker_encoder_audio_config["sample_rate"])
         speaker_embedding = self.hifigan_decoder.speaker_encoder.forward(
-            spk_waveform, l2_norm=True
+            audio.to(self.device), l2_norm=True
         ).unsqueeze(-1).to(self.device)
         return speaker_embedding
 
