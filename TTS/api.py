@@ -17,7 +17,7 @@ class TTS(nn.Module):
 
     def __init__(
         self,
-        model_name: str = None,
+        model_name: str = "",
         model_path: str = None,
         config_path: str = None,
         vocoder_path: str = None,
