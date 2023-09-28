@@ -1,4 +1,4 @@
-name: zoo-tests-3
+name: zoo-tests-tortoise
 
 on:
   push:
@@ -49,7 +49,4 @@ jobs:
           python3 -m pip install .[all]
           python3 setup.py egg_info
       - name: Unit tests
-        run: |
-          nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests.test_models.test_tortoise
-          nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests.test_models.test_xtts
-          nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests.test_models.test_bark
+        run: nose2 -F -v -B --with-coverage --coverage TTS tests.zoo_tests.test_models.test_tortoise
