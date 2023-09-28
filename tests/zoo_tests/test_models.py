@@ -74,6 +74,7 @@ def run_models(offset=0, step=1):
 
 
 def test_xtts():
+    """XTTS is too big to run on github actions. We need to test it locally"""
     output_path = os.path.join(get_tests_output_path(), "output.wav")
     speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
     use_gpu = torch.cuda.is_available()
@@ -151,5 +152,4 @@ def test_models_offset_1_step_3():
 
 
 def test_models_offset_2_step_3():
-    print("aquiii")
     run_models(offset=2, step=3)
