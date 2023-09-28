@@ -2,6 +2,7 @@
 import glob
 import os
 import shutil
+
 import torch
 
 from tests import get_tests_data_path, get_tests_output_path, run_cli
@@ -10,7 +11,11 @@ from TTS.tts.utils.speakers import SpeakerManager
 from TTS.utils.generic_utils import get_user_data_dir
 from TTS.utils.manage import ModelManager
 
-MODELS_WITH_SEP_TESTS = ["tts_models/multilingual/multi-dataset/bark", "tts_models/en/multi-dataset/tortoise-v2", "tts_models/multilingual/multi-dataset/xtts_v1"]
+MODELS_WITH_SEP_TESTS = [
+    "tts_models/multilingual/multi-dataset/bark",
+    "tts_models/en/multi-dataset/tortoise-v2",
+    "tts_models/multilingual/multi-dataset/xtts_v1",
+]
 
 
 def run_models(offset=0, step=1):
@@ -115,6 +120,7 @@ def test_voice_conversion():
 """
 These are used to split tests into different actions on Github.
 """
+
 
 def test_models_offset_0_step_3():
     run_models(offset=0, step=3)
