@@ -498,13 +498,16 @@ class ModelManager(object):
             print(f" > Error: Bad zip file - {file_url}")
             raise zipfile.BadZipFile  # pylint: disable=raise-missing-from
         # move the files to the outer path
-        for file_path in z.namelist()[1:]:
+        for file_path in z.namelist():
             src_path = os.path.join(output_folder, file_path)
-            dst_path = os.path.join(output_folder, os.path.basename(file_path))
-            if src_path != dst_path:
-                copyfile(src_path, dst_path)
-        # remove the extracted folder
-        rmtree(os.path.join(output_folder, z.namelist()[0]))
+            if os.path.isfile(src_path):
+                dst_path = os.path.join(output_folder, os.path.basename(file_path))
+                if src_path != dst_path:
+                    copyfile(src_path, dst_path)
+        # remove redundant (hidden or not) folders
+        for file_path in z.namelist():
+            if os.path.isdir(os.path.join(output_folder, file_path)):
+                rmtree(os.path.join(output_folder, file_path))
 
     @staticmethod
     def _download_tar_file(file_url, output_folder, progress_bar):
