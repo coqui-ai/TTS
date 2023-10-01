@@ -12,14 +12,8 @@ jobs:
     if: "! contains(github.event.head_commit.message, '[ci skip]')"
     steps:
       - run: echo "${{ github.event.head_commit.message }}"
-
-  test:
+  setup:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [3.9, "3.10", "3.11"]
-        experimental: [false]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -49,5 +43,20 @@ jobs:
         run: |
           python3 -m pip install .[all]
           python3 setup.py egg_info
+  measure-energy:
+    runs-on: ubuntu-latest
+    name: Run power usage check
+    needs: [setup]
+    steps:
+      - run: sar -u 1 240
+  test:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.9, "3.10", "3.11"]
+        experimental: [false]
+    steps:
       - name: Unit tests
         run: make test_tts
