@@ -34,10 +34,6 @@ jobs:
       - name: Replace scarf urls
         run: |
           sed -i 's/https:\/\/coqui.gateway.scarf.sh\//https:\/\/github.com\/coqui-ai\/TTS\/releases\/download\//g' TTS/.models.json
-      - name: Install TTS
-        run: |
-          python3 -m pip install .[all]
-          python3 setup.py egg_info
   measure-energy:
     runs-on: ubuntu-latest
     name: Run power usage check
@@ -53,5 +49,9 @@ jobs:
         python-version: [3.9, "3.10", "3.11"]
         experimental: [false]
     steps:
+      - name: Install TTS
+        run: |
+          python3 -m pip install .[all]
+          python3 setup.py egg_info
       - name: Unit tests
         run: make test_tts
