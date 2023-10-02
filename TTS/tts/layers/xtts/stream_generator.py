@@ -1,3 +1,5 @@
+# Adapted from: https://github.com/LowinLi/transformers-stream-generator
+
 from transformers import (
     GenerationConfig,
     GenerationMixin,
