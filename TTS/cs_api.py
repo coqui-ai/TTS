@@ -8,10 +8,8 @@ from typing import Tuple
 import numpy as np
 import requests
 from scipy.io import wavfile
-import simpleaudio as sa
 
 from TTS.utils.audio.numpy_transforms import save_wav
-
 
 class Speaker(object):
     """Convert dict to object."""
