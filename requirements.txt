@@ -52,4 +52,4 @@ encodec==0.1.*
 # deps for XTTS
 unidecode==1.3.*
 # deps for cli --play command
-simpleaudio
+simpleaudio==1.*
