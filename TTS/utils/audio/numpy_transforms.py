@@ -3,6 +3,7 @@ from typing import Tuple
 import librosa
 import numpy as np
 import scipy
+import simpleaudio as sa
 import soundfile as sf
 from librosa import magphase, pyin
 
@@ -427,16 +428,25 @@ def load_wav(*, filename: str, sample_rate: int = None, resample: bool = False, 
     return x
 
 
-def save_wav(*, wav: np.ndarray, path: str, sample_rate: int = None, **kwargs) -> None:
+def save_wav(*, wav: np.ndarray, path: str, sample_rate: int = None, play: bool = False, **kwargs) -> None:
     """Save float waveform to a file using Scipy.
 
     Args:
         wav (np.ndarray): Waveform with float values in range [-1, 1] to save.
         path (str): Path to a output file.
         sr (int, optional): Sampling rate used for saving to the file. Defaults to None.
+        play (bool, optional): Flag to play TTS audio while writing wav to file.
     """
     wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
-    scipy.io.wavfile.write(path, sample_rate, wav_norm.astype(np.int16))
+
+    wav_norm = wav_norm.astype(np.int16)
+    if play:
+        play_obj = sa.play_buffer(wav_norm, 1, 2, sample_rate)
+
+    scipy.io.wavfile.write(path, sample_rate, wav_norm)
+
+    if play:
+        play_obj.wait_done()
 
 
 def mulaw_encode(*, wav: np.ndarray, mulaw_qc: int, **kwargs) -> np.ndarray:

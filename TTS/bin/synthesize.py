@@ -59,6 +59,18 @@ If you don't specify any models, then it uses LJSpeech based English model.
   $ tts --text "Text for TTS" --out_path output/path/speech.wav
   ```
 
+- Run TTS and Play the generated TTS wav:
+
+  ```
+  $ tts --text "Text for TTS" --play --out_path output/path/speech.wav
+  ```
+
+- Run TTS and define speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0:
+
+  ```
+  $ tts --text "Text for TTS" --speed 1.2 --out_path output/path/speech.wav
+  ```
+
 - Run a TTS model with its default vocoder model:
 
   ```
@@ -228,6 +240,20 @@ def main():
         help="Language to condition the model with. Only available for 🐸Coqui Studio `XTTS-multilingual` model.",
         default=None,
     )
+    parser.add_argument(
+        "--play",
+        help="Play the generated TTS wav.",
+        type=str2bool,
+        nargs="?",
+        const=True,
+        default=False,
+    )
+    parser.add_argument(
+        "--speed",
+        type=float,
+        help="Speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0.",
+        default=None,
+    )
 
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
@@ -378,7 +404,16 @@ def main():
     if "coqui_studio" in args.model_name:
         print(" > Using 🐸Coqui Studio model: ", args.model_name)
         api = TTS(model_name=args.model_name, cs_api_model=args.cs_model)
-        api.tts_to_file(text=args.text, emotion=args.emotion, file_path=args.out_path, language=args.language)
+        api.tts_to_file(
+            text=args.text,
+            emotion=args.emotion,
+            file_path=args.out_path,
+            language=args.language,
+            speed=args.speed,
+            play=args.play,
+        )
+        if args.play:
+            print(" > Played TTS wav")
         print(" > Saving output to ", args.out_path)
         return
 
@@ -493,9 +528,12 @@ def main():
             args.text, speaker_name=args.speaker_idx, language_name=args.language_idx, speaker_wav=args.speaker_wav
         )
 
+    if args.play:
+        print(" > Playing TTS wav")
+
     # save the results
     print(" > Saving output to {}".format(args.out_path))
-    synthesizer.save_wav(wav, args.out_path)
+    synthesizer.save_wav(wav, args.out_path, play=args.play)
 
 
 if __name__ == "__main__":

@@ -235,19 +235,20 @@ class Synthesizer(nn.Module):
         """
         return self.seg.segment(text)
 
-    def save_wav(self, wav: List[int], path: str) -> None:
+    def save_wav(self, wav: List[int], path: str, play: bool = None) -> None:
         """Save the waveform as a file.
 
         Args:
             wav (List[int]): waveform as a list of values.
             path (str): output path to save the waveform.
+            play (bool, optional): Flag to play TTS audio while writing wav to file.
         """
         # if tensor convert to numpy
         if torch.is_tensor(wav):
             wav = wav.cpu().numpy()
         if isinstance(wav, list):
             wav = np.array(wav)
-        save_wav(wav=wav, path=path, sample_rate=self.output_sample_rate)
+        save_wav(wav=wav, path=path, sample_rate=self.output_sample_rate, play=play)
 
     def voice_conversion(self, source_wav: str, target_wav: str) -> List[int]:
         output_wav = self.vc_model.voice_conversion(source_wav, target_wav)
