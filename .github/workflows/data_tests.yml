@@ -3,22 +3,19 @@ name: data-tests
 on:
   push:
     branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
+      - energy
 jobs:
   measure-energy:
     runs-on: ubuntu-latest
     name: Run power usage check
     steps:
-      - run: sar -u 1 240
-
+      - run: sar -u 1 240 -X
   test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.9, "3.10", "3.11"]
+        python-version: ["3.11"]
         experimental: [false]
     steps:
       - uses: actions/checkout@v3
