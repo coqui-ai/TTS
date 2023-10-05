@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Hello world action step
         id: hello
-        uses: koenhagen/measure-energy-action@v1.0
+        uses: koenhagen/measure-energy-action@v1.0.0
         with:
           what-to-test: sleep 60
       # Use the output from the `hello` step
