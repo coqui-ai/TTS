@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Run power usage check
     steps:
-      - run: sar -u 1 240 -X
+      - run: sar -u 1 240 -X -o test.txt
+      - run: cat test.txt
   test:
     runs-on: ubuntu-latest
     strategy:
