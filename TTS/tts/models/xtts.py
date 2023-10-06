@@ -593,7 +593,6 @@ class Xtts(BaseTTS):
         cond_free_k=2,
         diffusion_temperature=1.0,
         decoder_sampler="ddim",
-        use_hifigan=True,
         **hf_generate_kwargs,
     ):
         text = f"[{language}]{text.strip().lower()}"
@@ -765,7 +764,7 @@ class Xtts(BaseTTS):
         checkpoint_dir=None,
         checkpoint_path=None, 
         vocab_path=None,
-        eval=False,
+        eval=True,
         strict=True,
         use_deepspeed=False,
     ):
@@ -777,7 +776,7 @@ class Xtts(BaseTTS):
             checkpoint_dir (str, optional): The directory where the checkpoint is stored. Defaults to None.
             checkpoint_path (str, optional): The path to the checkpoint file. Defaults to None.
             vocab_path (str, optional): The path to the vocabulary file. Defaults to None.
-            eval (bool, optional): Whether to set the model to evaluation mode. Defaults to False.
+            eval (bool, optional): Whether to set the model to evaluation mode. Defaults to True.
             strict (bool, optional): Whether to strictly enforce that the keys in the checkpoint match the keys in the model. Defaults to True.
 
         Returns:
