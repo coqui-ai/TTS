@@ -203,7 +203,7 @@ class XttsArgs(Coqpit):
         clvp_checkpoint (str, optional): The checkpoint for the ConditionalLatentVariablePerseq model. Defaults to None.
         decoder_checkpoint (str, optional): The checkpoint for the DiffTTS model. Defaults to None.
         num_chars (int, optional): The maximum number of characters to generate. Defaults to 255.
-        use_hifigan (bool, optional): Whether to use hifigan or diffusion + univnet as a decoder. Defaults to True.
+        use_hifigan (bool, optional): Whether to use hifigan or diffusion + univnet as a decoder. Defaults to False.
 
         For GPT model:
         ar_max_audio_tokens (int, optional): The maximum mel tokens for the autoregressive model. Defaults to 604.
@@ -238,7 +238,7 @@ class XttsArgs(Coqpit):
     clvp_checkpoint: str = None
     decoder_checkpoint: str = None
     num_chars: int = 255
-    use_hifigan: bool = True
+    use_hifigan: bool = False
 
     # XTTS GPT Encoder params
     tokenizer_file: str = ""

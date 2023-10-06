@@ -33,7 +33,7 @@ You can also mail us at info@coqui.ai.
 
 ```python
 from TTS.api import TTS
-tts = TTS("tts_models/multilingual/multi-dataset/xtts_v1", gpu=True)
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v1.1", gpu=True)
 
 # generate speech by cloning a voice using default settings
 tts.tts_to_file(text="It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
@@ -45,7 +45,7 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
 #### 🐸TTS Command line
 
 ```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v1 \
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v1.1 \
      --text "Bugün okula gitmek istemiyorum." \
      --speaker_wav /path/to/target/speaker.wav \
      --language_idx tr \
