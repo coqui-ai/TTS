@@ -6,6 +6,7 @@ import scipy.io.wavfile
 import scipy.signal
 import simpleaudio as sa
 import soundfile as sf
+from io import BytesIO
 
 from TTS.tts.utils.helpers import StandardScaler
 from TTS.utils.audio.numpy_transforms import compute_f0
@@ -694,7 +695,7 @@ class AudioProcessor(object):
             x = self.rms_volume_norm(x, self.db_level)
         return x
 
-    def save_wav(self, wav: np.ndarray, path: str, sr: int = None, play: bool = False) -> None:
+    def save_wav(self, wav: np.ndarray, path: str, sr: int = None, play = None) -> None:
         """Save a waveform to a file using Scipy.
 
         Args:
@@ -710,12 +711,11 @@ class AudioProcessor(object):
 
         wav_norm = wav_norm.astype(np.int16)
         if play:
-            play_obj = sa.play_buffer(wav_norm, 1, 2, self.sample_rate)
-
+            wav_buffer = BytesIO()
+            scipy.io.wavfile.write(wav_buffer, sr if sr else self.sample_rate, wav_norm)
+            wav_buffer.seek(0)
+            play.buffer.write(wav_buffer.read())
         scipy.io.wavfile.write(path, sr if sr else self.sample_rate, wav_norm)
-
-        if play:
-            play_obj.wait_done()
 
     def get_duration(self, filename: str) -> float:
         """Get the duration of a wav file using Librosa.
