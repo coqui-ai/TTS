@@ -321,9 +321,6 @@ class ModelManager(object):
             return False
         return True
 
-    def check_if_files_size(self, model_name):
-        pass
-
     def create_dir_and_download_model(self, model_name, model_item, output_path):
         os.makedirs(output_path, exist_ok=True)
         # handle TOS
