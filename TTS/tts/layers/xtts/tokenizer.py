@@ -224,7 +224,10 @@ class VoiceBpeTokenizer:
             txt = " ".join([result["kana"] for result in results])
             txt = basic_cleaners(txt)
         elif lang == "en":
+            if txt[:4] == "[en]":
+                txt = txt[4:]
             txt = english_cleaners(txt)
+            txt = "[en]" + txt
         elif lang == "ar":
             txt = arabic_cleaners(txt)
         elif lang == "zh-cn":
