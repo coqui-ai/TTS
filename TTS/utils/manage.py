@@ -378,6 +378,8 @@ class ModelManager(object):
                 if not config_local == config_remote:
                     print(f" > {model_name} is already downloaded however it has been changed. Redownloading it...")
                     self.create_dir_and_download_model(model_name, model_item, output_path)
+                else:
+                    print(f" > {model_name} is already downloaded.")        
             else:
                 print(f" > {model_name} is already downloaded.")
         else:
