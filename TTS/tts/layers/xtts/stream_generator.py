@@ -125,7 +125,7 @@ class NewGenerationMixin(GenerationMixin):
                     - [`~generation.BeamSearchEncoderDecoderOutput`],
                     - [`~generation.BeamSampleEncoderDecoderOutput`]
         """
-        setup_seed(seed)
+        #setup_seed(seed)
         # 1. Handle `generation_config` and kwargs that might update it, and validate the `.generate()` call
         self._validate_model_class()
 
