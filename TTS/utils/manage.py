@@ -385,7 +385,7 @@ class ModelManager(object):
                 try:
                     self.check_if_configs_are_equal(model_name, model_item, output_path)
                 except:
-                    pass   
+                    pass
             else:
                 print(f" > {model_name} is already downloaded.")
         else:
