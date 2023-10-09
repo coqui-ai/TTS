@@ -8,7 +8,7 @@ Track 1- YourTTS Base model fine tuned with 30mins each from 14 challenge speake
 
 Scripts
 ---
-Visit LIMMITS-24-Coquiai/recipes/syspin/yourtts for training and inference scripts
+Visit LIMMITS-24-Coquiai/recipes/syspin/yourtts for training and inference scripts.
 All speech data is downsampled to 16Khz to have uniformity across datasets, and begin and end silences are removed. YourTTS model is trained using coqui-ai implementation.
 
 
