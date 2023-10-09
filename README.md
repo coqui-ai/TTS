@@ -350,7 +350,7 @@ If you don't specify any models, then it uses LJSpeech based English model.
 - Run TTS and pipe out the generated TTS wav file data:
 
   ```
-  $ tts --text "Text for TTS" --pipe_out --out_path /dev/null | aplay
+  $ tts --text "Text for TTS" --pipe_out --out_path output/path/speech.wav | aplay
   ```
 
 - Run TTS and define speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0:

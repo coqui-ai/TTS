@@ -22,4 +22,7 @@ def test_synthesize():
     )
 
     # test pipe_out command
-    run_cli('tts --text "test." --pipe_out --out_path /dev/null | aplay')
+    run_cli(
+        'tts --text "test." --pipe_out '
+        f'--out_path "{output_path}" | aplay'
+    )
