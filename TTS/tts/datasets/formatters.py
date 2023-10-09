@@ -441,6 +441,42 @@ def vctk(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic
             print(f" [!] wav files don't exist - {wav_file}")
     return items
 
+def syspin_ml(root_path, meta_files=None, wavs_path="wav48_silence_trimmed", mic="mic1", ignored_speakers=None):
+    """VCTK dataset v0.92.
+
+    URL:
+        https://datashare.ed.ac.uk/bitstream/handle/10283/3443/VCTK-Corpus-0.92.zip
+
+    This dataset has 2 recordings per speaker that are annotated with ```mic1``` and ```mic2```.
+    It is believed that (😄 ) ```mic1``` files are the same as the previous version of the dataset.
+
+    mic1:
+        Audio recorded using an omni-directional microphone (DPA 4035).
+        Contains very low frequency noises.
+        This is the same audio released in previous versions of VCTK:
+        https://doi.org/10.7488/ds/1994
+
+    mic2:
+        Audio recorded using a small diaphragm condenser microphone with
+        very wide bandwidth (Sennheiser MKH 800).
+        Two speakers, p280 and p315 had technical issues of the audio
+        recordings using MKH 800.
+    """
+    items = []
+    with open(meta_files, "r", encoding="utf-8") as file_text:
+        data = file_text.readlines()
+    for line in data:
+        wav_file = line.split("\t")[0]
+        text = line.split("\t")[-1]
+        speaker_id = line.split("\t")[1]
+        if os.path.exists(wav_file):
+            
+            items.append(
+                {"text": text, "audio_file": wav_file, "speaker_name": speaker_id, "root_path": root_path}
+            )
+        else:
+            print(f" [!] wav files don't exist - {wav_file}")
+    return items
 
 def vctk_old(root_path, meta_files=None, wavs_path="wav48", ignored_speakers=None):
     """homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz"""
