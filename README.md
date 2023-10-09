@@ -10,9 +10,16 @@ Track3 - To be shares soon
 
 Scripts
 ---
-Visit LIMMITS-24-Coquiai/recipes/syspin/yourtts for training and inference scripts.
-All speech data is downsampled to 16Khz to have uniformity across datasets, and begin and end silences are removed. YourTTS model is trained using coqui-ai implementation.
+Visit ```LIMMITS-24-Coquiai/recipes/syspin/yourtts``` for training and inference scripts.
 
+Steps
+1. Register for the challenge
+2. Download challenge dataset - https://ee.iisc.ac.in/limmitsdataset/
+3. Resample all audio to 16Khz
+4. Run ```LIMMITS-24-Coquiai/recipes/syspin/yourtts/data_prep.py```
+5. Provide manifest and charecter paths in ```LIMMITS-24-Coquiai/recipes/syspin/yourtts/train_yourtts.py```
+6. Start training
+7. Infer on target speaker with ```LIMMITS-24-Coquiai/recipes/syspin/yourtts/infer_yourtts.sh```
 
 
 Regarding any queries, contact sathvikudupa66@gmail.com or challenge.syspin@iisc.ac.in
