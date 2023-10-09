@@ -347,16 +347,16 @@ If you don't specify any models, then it uses LJSpeech based English model.
   $ tts --text "Text for TTS" --out_path output/path/speech.wav
   ```
 
-- Run TTS and Play the generated TTS wav:
+- Run TTS and pipe out the generated TTS wav file data:
 
   ```
-  $ tts --text "Text for TTS" --play --out_path output/path/speech.wav
+  $ tts --text "Text for TTS" --pipe_out --out_path /dev/null | aplay
   ```
 
 - Run TTS and define speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0:
 
   ```
-  $ tts --text "Text for TTS" --speed 1.2 --out_path output/path/speech.wav
+  $ tts --text "Text for TTS" --model_name "coqui_studio/<language>/<dataset>/<model_name>" --speed 1.2 --out_path output/path/speech.wav
   ```
 
 - Run a TTS model with its default vocoder model:

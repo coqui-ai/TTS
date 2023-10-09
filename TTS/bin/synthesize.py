@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import sys
 import contextlib
+import sys
 from argparse import RawTextHelpFormatter
 
 # pylint: disable=redefined-outer-name, unused-argument
@@ -60,16 +60,16 @@ If you don't specify any models, then it uses LJSpeech based English model.
   $ tts --text "Text for TTS" --out_path output/path/speech.wav
   ```
 
-- Run TTS and Play the generated TTS wav:
+- Run TTS and pipe out the generated TTS wav file data:
 
   ```
-  $ tts --text "Text for TTS" --play --out_path output/path/speech.wav
+  $ tts --text "Text for TTS" --pipe_out --out_path /dev/null | aplay
   ```
 
 - Run TTS and define speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0:
 
   ```
-  $ tts --text "Text for TTS" --speed 1.2 --out_path output/path/speech.wav
+  $ tts --text "Text for TTS" --model_name "coqui_studio/<language>/<dataset>/<model_name>" --speed 1.2 --out_path output/path/speech.wav
   ```
 
 - Run a TTS model with its default vocoder model:
@@ -243,7 +243,7 @@ def main():
     )
     parser.add_argument(
         "--pipe_out",
-        help="Play the generated TTS wav.",
+        help="stdout the generated TTS wav file for shell pipe.",
         type=str2bool,
         nargs="?",
         const=True,
@@ -363,7 +363,7 @@ def main():
         parser.parse_args(["-h"])
 
     pipe_out = sys.stdout if args.pipe_out else None
-    
+
     with contextlib.redirect_stdout(None if args.pipe_out else sys.stdout):
         # Late-import to make things load faster
         from TTS.api import TTS
@@ -414,7 +414,7 @@ def main():
                 file_path=args.out_path,
                 language=args.language,
                 speed=args.speed,
-                play=pipe_out,
+                pipe_out=pipe_out,
             )
             print(" > Saving output to ", args.out_path)
             return
@@ -532,7 +532,7 @@ def main():
 
         # save the results
         print(" > Saving output to {}".format(args.out_path))
-        synthesizer.save_wav(wav, args.out_path, play=pipe_out)
+        synthesizer.save_wav(wav, args.out_path, pipe_out=pipe_out)
 
 
 if __name__ == "__main__":

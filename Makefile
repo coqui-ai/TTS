@@ -54,7 +54,7 @@ lint:	## run pylint linter.
 	isort ${target_dirs} --check-only
 
 system-deps:	## install linux system deps
-	sudo apt-get install -y libsndfile1-dev libasound2-dev
+	sudo apt-get install -y libsndfile1-dev
 
 dev-deps:  ## install development deps
 	pip install -r requirements.dev.txt

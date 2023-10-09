@@ -14,15 +14,12 @@ def test_synthesize():
         f'--out_path "{output_path}"'
     )
 
-    # 🐸 Coqui studio model
+    # 🐸 Coqui studio model with speed arg.
     run_cli(
         'tts --model_name "coqui_studio/en/Torcull Diarmuid/coqui_studio" '
         '--text "This is it but slow" --speed 0.1'
         f'--out_path "{output_path}"'
     )
 
-    # test play command
-    run_cli(
-        'tts --text "test." --play '
-        f'--out_path "{output_path}"'
-    )
+    # test pipe_out command
+    run_cli('tts --text "test." --pipe_out --out_path /dev/null | aplay')
