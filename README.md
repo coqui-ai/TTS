@@ -4,7 +4,9 @@ Pretrained models
 ---
 YourTTS Base model with 14 speaker data from challenge dataset (1 hour from each speaker) - https://huggingface.co/SYSPIN/LIMMITS24_ML_basemodel_1hr_14speakers
 
-Track 1- YourTTS Base model fine tuned with 30mins each from 14 challenge speakers + 9 target speakers - https://huggingface.co/SYSPIN/LIMMITS24_ML_track1
+Track 1 - We share the base model for track 1 (no few shot fine-tuning performed) - https://huggingface.co/SYSPIN/LIMMITS24_ML_track1
+Track 2 - To be shared soon
+Track3 - To be shares soon
 
 Scripts
 ---
