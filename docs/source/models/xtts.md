@@ -28,7 +28,8 @@ This model is licensed under [Coqui Public Model License](https://coqui.ai/cpml)
 Come and join in our 🐸Community. We're active on [Discord](https://discord.gg/fBC58unbKE) and [Twitter](https://twitter.com/coqui_ai).
 You can also mail us at info@coqui.ai.
 
-Using 🐸TTS API:
+### Inference
+#### 🐸TTS API
 
 ```python
 from TTS.api import TTS
@@ -39,16 +40,9 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
                 file_path="output.wav",
                 speaker_wav="/path/to/target/speaker.wav",
                 language="en")
-
-# generate speech by cloning a voice using custom settings
-tts.tts_to_file(text="It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-                file_path="output.wav",
-                speaker_wav="/path/to/target/speaker.wav",
-                language="en",
-                decoder_iterations=30)
 ```
 
-Using 🐸TTS Command line:
+#### 🐸TTS Command line
 
 ```console
  tts --model_name tts_models/multilingual/multi-dataset/xtts_v1 \
@@ -58,25 +52,85 @@ Using 🐸TTS Command line:
      --use_cuda true
 ```
 
-Using model directly:
+#### model directly
+
+If you want to be able to run with `use_deepspeed=True` and enjoy the speedup, you need to install deepspeed first.
+
+```console
+pip install deepspeed==0.8.3
+```
 
 ```python
+import os
+import torch
+import torchaudio
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 
+print("Loading model...")
 config = XttsConfig()
 config.load_json("/path/to/xtts/config.json")
 model = Xtts.init_from_config(config)
-model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", eval=True)
+model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=True)
+model.cuda()
+    
+print("Computing speaker latents...")
+gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path="reference.wav")
+
+print("Inference...")
+out = model.inference(
+    "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+    "en",
+    gpt_cond_latent,
+    speaker_embedding,
+    diffusion_conditioning,
+    temperature=0.7, # Add custom parameters here
+)
+torchaudio.save("xtts.wav", torch.tensor(out["wav"]).unsqueeze(0), 24000)
+```
+
+
+#### streaming inference
+
+Here the goal is to stream the audio as it is being generated. This is useful for real-time applications.
+Streaming inference is typically slower than regular inference, but it allows to get a first chunk of audio faster.
+
+
+```python
+import os
+import time
+import torch
+import torchaudio
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.models.xtts import Xtts
+
+print("Loading model...")
+config = XttsConfig()
+config.load_json("/path/to/xtts/config.json")
+model = Xtts.init_from_config(config)
+model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=True)
 model.cuda()
 
-outputs = model.synthesize(
+print("Computing speaker latents...")
+gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path="reference.wav")
+
+print("Inference...")
+t0 = time.time()
+chunks = model.inference_stream(
     "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
-    config,
-    speaker_wav="/data/TTS-public/_refclips/3.wav",
-    gpt_cond_len=3,
-    language="en",
+    "en",
+    gpt_cond_latent,
+    speaker_embedding
 )
+    
+wav_chuncks = []
+for i, chunk in enumerate(chunks):
+    if i == 0:
+        print(f"Time to first chunck: {time.time() - t0}")
+    print(f"Received chunk {i} of audio length {chunk.shape[-1]}")
+    wav_chuncks.append(chunk)
+wav = torch.cat(wav_chuncks, dim=0)
+torchaudio.save("xtts_streaming.wav", wav.squeeze().unsqueeze(0).cpu(), 24000)
 ```
 
 

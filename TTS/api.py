@@ -17,7 +17,7 @@ class TTS(nn.Module):
 
     def __init__(
         self,
-        model_name: str = None,
+        model_name: str = "",
         model_path: str = None,
         config_path: str = None,
         vocoder_path: str = None,
@@ -105,12 +105,13 @@ class TTS(nn.Module):
 
     @property
     def is_multi_lingual(self):
-        # TODO: fix this
-        if "xtts" in self.model_name:
+        # Not sure what sets this to None, but applied a fix to prevent crashing.
+        if isinstance(self.model_name, str) and "xtts" in self.model_name:
             return True
         if hasattr(self.synthesizer.tts_model, "language_manager") and self.synthesizer.tts_model.language_manager:
             return self.synthesizer.tts_model.language_manager.num_languages > 1
         return False
+
 
     @property
     def speakers(self):

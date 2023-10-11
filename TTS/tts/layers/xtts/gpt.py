@@ -172,7 +172,7 @@ class GPT(nn.Module):
             "heads": list(self.text_head.parameters()) + list(self.mel_head.parameters()),
         }
 
-    def init_gpt_for_inference(self, kv_cache=True):
+    def init_gpt_for_inference(self, kv_cache=True, use_deepspeed=False):
         seq_length = self.max_prompt_tokens + self.max_mel_tokens + self.max_text_tokens + 1
         gpt_config = GPT2Config(
             vocab_size=self.max_mel_tokens,
@@ -194,6 +194,17 @@ class GPT(nn.Module):
             kv_cache=kv_cache,
         )
         self.gpt.wte = self.mel_embedding
+
+        if use_deepspeed:
+            import deepspeed
+            self.ds_engine = deepspeed.init_inference(
+                model=self.gpt_inference.half(),  # Transformers models
+                mp_size=1,  # Number of GPU
+                dtype=torch.float32,  # desired data type of output
+                replace_method="auto",  # Lets DS autmatically identify the layer to replace
+                replace_with_kernel_inject=True,  # replace the model with the kernel injector
+            )
+            self.gpt_inference = self.ds_engine.module.eval()
 
     def set_inputs_and_targets(self, input, start_token, stop_token):
         inp = F.pad(input, (1, 0), value=start_token)
@@ -543,3 +554,14 @@ class GPT(nn.Module):
         if "return_dict_in_generate" in hf_generate_kwargs:
             return gen.sequences[:, gpt_inputs.shape[1] :], gen
         return gen[:, gpt_inputs.shape[1] :]
+
+    def get_generator(self, fake_inputs, **hf_generate_kwargs):
+        return self.gpt_inference.generate_stream(
+            fake_inputs,
+            bos_token_id=self.start_audio_token,
+            pad_token_id=self.stop_audio_token,
+            eos_token_id=self.stop_audio_token,
+            max_length=self.max_mel_tokens * 2 + self.max_prompt_tokens + self.max_text_tokens,
+            do_stream=True,
+            **hf_generate_kwargs,
+        )

@@ -1,5 +1,11 @@
 [build-system]
-requires = ["setuptools", "wheel", "cython==0.29.30", "numpy==1.22.0", "packaging"]
+requires = [
+    "setuptools",
+    "wheel",
+    "cython~=0.29.30",
+    "numpy>=1.22.0",
+    "packaging",
+]
 
 [flake8]
 max-line-length=120
@@ -7,25 +13,6 @@ max-line-length=120
 [tool.black]
 line-length = 120
 target-version = ['py39']
-exclude = '''
-
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
-'''
 
 [tool.isort]
 line_length = 120
