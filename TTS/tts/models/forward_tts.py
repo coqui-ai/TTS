@@ -395,6 +395,7 @@ class ForwardTTS(BaseTTS):
             - x_mask: :math:`(B, 1, T_{en})`
             - g: :math:`(B, C)`
         """
+        g = g.type(torch.LongTensor)
         if hasattr(self, "emb_g"):
             g = self.emb_g(g)  # [B, C, 1]
         if g is not None:
@@ -683,9 +684,11 @@ class ForwardTTS(BaseTTS):
         # encoder pass
         o_en, x_mask, g, _ = self._forward_encoder(x, x_mask, g)
         # duration predictor pass
+        o_en = o_en.squeeze()
         o_dr_log = self.duration_predictor(o_en, x_mask)
         o_dr = self.format_durations(o_dr_log, x_mask).squeeze(1)
         y_lengths = o_dr.sum(1)
+
         # pitch predictor pass
         o_pitch = None
         if self.args.use_pitch:
