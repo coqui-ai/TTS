@@ -7,6 +7,9 @@ on:
 jobs:
   measure-energy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     name: A job to measure energy
     steps:
       - uses: actions/checkout@v4
