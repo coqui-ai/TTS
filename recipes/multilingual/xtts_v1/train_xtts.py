@@ -355,7 +355,7 @@ if __name__ == "__main__":
     DASHBOARD_LOGGER = "tensorboard"
     LOGGER_URI = None    
     RESTORE_PATH = None
-    BATCH_SIZE = 2
+    BATCH_SIZE = 10
     GRAD_ACUMM_STEPS = 1
     NUM_LOADERS = 1
 

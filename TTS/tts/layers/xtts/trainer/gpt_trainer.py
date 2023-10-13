@@ -327,7 +327,7 @@ class GPTTrainer(BaseTTS):
         else:
             # Todo: remove the randomness of dataset when it is eval
             # init dataloader
-            dataset = XTTSDataset(self.config, samples, self.tokenizer, config.audio.sample_rate)
+            dataset = XTTSDataset(self.config, samples, self.tokenizer, config.audio.sample_rate, is_eval)
 
             # wait all the DDP process to be ready
             if num_gpus > 1:
