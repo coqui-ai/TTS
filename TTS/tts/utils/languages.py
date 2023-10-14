@@ -92,7 +92,7 @@ class LanguageManager(BaseIDManager):
             config (Coqpit): Coqpit config.
         """
         language_manager = None
-        if check_config_and_model_args(config, "use_language_embedding", True):
+        if check_config_and_model_args(config, "use_language_embedding", True) or check_config_and_model_args(config, "use_adaptive_weight_text_encoder", True):
             if config.get("language_ids_file", None):
                 language_manager = LanguageManager(language_ids_file_path=config.language_ids_file)
             language_manager = LanguageManager(config=config)

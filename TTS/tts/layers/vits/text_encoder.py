@@ -6,8 +6,7 @@ from torch.nn import functional as F
 
 from TTS.tts.utils.helpers import sequence_mask
 from TTS.tts.layers.generic.normalization import LayerNorm, LayerNorm2
-# import sys
-# sys.setrecursionlimit(9999999)
+
 class AdaptiveWeightConv(nn.Module):
     def __init__(self, conv_module, in_channels, out_channels, kernel_size, r=0, alpha=1, dropout=0., num_classes=None, **kwargs):
         super(AdaptiveWeightConv, self).__init__()
@@ -558,7 +557,7 @@ class TextEncoder(nn.Module):
         super().__init__()
         self.out_channels = out_channels
         self.hidden_channels = hidden_channels
-
+        self.num_adaptive_weight_classes = num_adaptive_weight_classes
         self.emb = nn.Embedding(n_vocab, hidden_channels)
 
         nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
@@ -582,12 +581,7 @@ class TextEncoder(nn.Module):
 
         self.proj = Conv1d(hidden_channels, out_channels * 2, 1, r=1 if num_adaptive_weight_classes else 0, num_classes=num_adaptive_weight_classes)
 
-    def forward(self, x, x_lengths, lang_emb=None, class_id=None):
-        """
-        Shapes:
-            - x: :math:`[B, T]`
-            - x_length: :math:`[B]`
-        """
+    def forward_mini_batch(self, x, x_lengths, lang_emb=None, class_id=None):
         assert x.shape[0] == x_lengths.shape[0]
         x = self.emb(x) * math.sqrt(self.hidden_channels)  # [b, t, h]
 
@@ -603,6 +597,41 @@ class TextEncoder(nn.Module):
 
         m, logs = torch.split(stats, self.out_channels, dim=1)
         return x, m, logs, x_mask
+
+    def forward(self, x, x_lengths, lang_emb=None, class_id=None):
+        """
+        Shapes:
+            - x: :math:`[B, T]`
+            - x_length: :math:`[B]`
+        """
+        batch_size = x.size(0)
+        if self.num_adaptive_weight_classes and batch_size > 1:
+            num_utter_per_class = int(batch_size/self.num_adaptive_weight_classes)
+            # mini batch inference for each class
+            outs_x = []
+            outs_m = [] 
+            outs_logs = []
+            outs_x_mask = []
+
+            start = 0
+            for i in range(self.num_adaptive_weight_classes):
+                start = num_utter_per_class * i
+                end = start + num_utter_per_class
+                class_id_item = class_id[start:end][0]
+                x_out, m_out, logs_out, x_mask_out = self.forward_mini_batch(x[start:end], x_lengths[start:end], lang_emb=lang_emb[start:end] if lang_emb else None, class_id=class_id_item)
+                outs_x.append(x_out)
+                outs_m.append(m_out)
+                outs_logs.append(logs_out)
+                outs_x_mask.append(x_mask_out)
+
+            x = torch.stack(outs_x, dim=0).view(batch_size, *x_out.shape[1:])
+            m = torch.stack(outs_m, dim=0).view(batch_size, *m_out.shape[1:])
+            logs = torch.stack(outs_logs, dim=0).view(batch_size, *logs_out.shape[1:])
+            x_mask = torch.stack(outs_x_mask, dim=0).view(batch_size, *x_mask_out.shape[1:])
+            return x, m, logs, x_mask
+        else:
+            return self.forward_mini_batch(x, x_lengths, lang_emb=lang_emb, class_id=class_id)
+
 
 if __name__ == '__main__':
     txt_enc = TextEncoder(
@@ -642,7 +671,7 @@ if __name__ == '__main__':
         kernel_size=3,
         dropout_p=0.0,
         language_emb_dim=None,
-        num_adaptive_weight_classes=5,
+        num_adaptive_weight_classes=None,
     )
 
     out = txt_enc(

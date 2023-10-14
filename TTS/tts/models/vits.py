@@ -35,7 +35,7 @@ from TTS.tts.utils.text.characters import BaseCharacters, BaseVocabulary, _chara
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.tts.utils.visual import plot_alignment
 from TTS.utils.io import load_fsspec
-from TTS.utils.samplers import BucketBatchSampler
+from TTS.utils.samplers import BucketBatchSampler, PerfectBatchSampler
 from TTS.vocoder.models.hifigan_generator import HifiganGenerator
 from TTS.vocoder.utils.generic_utils import plot_results
 
@@ -259,6 +259,7 @@ class VitsDataset(TTSDataset):
         super().__init__(*args, **kwargs)
         self.pad_id = self.tokenizer.characters.pad_id
         self.model_args = model_args
+        self.num_classes = None
 
     def __getitem__(self, idx):
         item = self.samples[idx]
@@ -317,6 +318,13 @@ class VitsDataset(TTSDataset):
         """
         # convert list of dicts to dict of lists
         B = len(batch)
+        # agroup samples of each class in the batch. perfect sampler produces [3,2,1,3,2,1] we need [3,3,2,2,1,1]
+        if self.model_args.use_perfect_class_batch_sampler:
+            new_batch = []
+            for i in range(self.num_classes):
+                new_batch.extend(batch[i:B:self.num_classes])
+            batch = new_batch
+
         batch = {k: [dic[k] for dic in batch] for k in batch[0]}
 
         _, ids_sorted_decreasing = torch.sort(
@@ -546,6 +554,9 @@ class VitsArgs(Coqpit):
     out_channels: int = 513
     spec_segment_size: int = 32
     hidden_channels: int = 192
+    use_adaptive_weight_text_encoder: bool = False
+    use_perfect_class_batch_sampler: bool = False
+    perfect_class_batch_sampler_key: str = ""
     hidden_channels_ffn_text_encoder: int = 768
     num_heads_text_encoder: int = 2
     num_layers_text_encoder: int = 6
@@ -660,7 +671,8 @@ class Vits(BaseTTS):
             self.args.num_layers_text_encoder,
             self.args.kernel_size_text_encoder,
             self.args.dropout_p_text_encoder,
-            language_emb_dim=self.embedded_language_dim,
+            language_emb_dim=self.embedded_language_dim if not self.args.use_adaptive_weight_text_encoder else 0,
+            num_adaptive_weight_classes=self.num_languages if self.args.use_adaptive_weight_text_encoder else None,
         )
 
         self.posterior_encoder = PosteriorEncoder(
@@ -690,7 +702,7 @@ class Vits(BaseTTS):
                 self.args.dropout_p_duration_predictor,
                 4,
                 cond_channels=self.embedded_speaker_dim if self.args.condition_dp_on_speaker else 0,
-                language_emb_dim=self.embedded_language_dim,
+                language_emb_dim=self.embedded_language_dim if not self.args.use_adaptive_weight_text_encoder else 0,
             )
         else:
             self.duration_predictor = DurationPredictor(
@@ -699,7 +711,7 @@ class Vits(BaseTTS):
                 3,
                 self.args.dropout_p_duration_predictor,
                 cond_channels=self.embedded_speaker_dim,
-                language_emb_dim=self.embedded_language_dim,
+                language_emb_dim=self.embedded_language_dim if not self.args.use_adaptive_weight_text_encoder else 0,
             )
 
         self.waveform_decoder = HifiganGenerator(
@@ -794,12 +806,14 @@ class Vits(BaseTTS):
         if self.args.language_ids_file is not None:
             self.language_manager = LanguageManager(language_ids_file_path=config.language_ids_file)
 
-        if self.args.use_language_embedding and self.language_manager:
-            print(" > initialization of language-embedding layers.")
+        if self.language_manager:
             self.num_languages = self.language_manager.num_languages
-            self.embedded_language_dim = self.args.embedded_language_dim
-            self.emb_l = nn.Embedding(self.num_languages, self.embedded_language_dim)
-            torch.nn.init.xavier_uniform_(self.emb_l.weight)
+            self.embedded_language_dim = 0
+            if self.args.use_language_embedding:
+                print(" > initialization of language-embedding layers.")
+                self.embedded_language_dim = self.args.embedded_language_dim
+                self.emb_l = nn.Embedding(self.num_languages, self.embedded_language_dim)
+                torch.nn.init.xavier_uniform_(self.emb_l.weight)
         else:
             self.embedded_language_dim = 0
 
@@ -1016,7 +1030,7 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, class_id=lid)
 
         # posterior encoder
         z, m_q, logs_q, y_mask = self.posterior_encoder(y, y_lengths, g=g)
@@ -1122,7 +1136,7 @@ class Vits(BaseTTS):
         if self.args.use_language_embedding and lid is not None:
             lang_emb = self.emb_l(lid).unsqueeze(-1)
 
-        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb)
+        x, m_p, logs_p, x_mask = self.text_encoder(x, x_lengths, lang_emb=lang_emb, class_id=lid)
 
         if durations is None:
             if self.args.use_sdp:
@@ -1413,7 +1427,7 @@ class Vits(BaseTTS):
                     speaker_id = self.speaker_manager.name_to_id[speaker_name]
 
         # get language id
-        if hasattr(self, "language_manager") and config.use_language_embedding and language_name is not None:
+        if hasattr(self, "language_manager") and (config.use_language_embedding or config.use_adaptive_weight_text_encoder) and language_name is not None:
             language_id = self.language_manager.name_to_id[language_name]
 
         return {
@@ -1482,7 +1496,7 @@ class Vits(BaseTTS):
             d_vectors = torch.FloatTensor(d_vectors)
 
         # get language ids from language names
-        if self.language_manager is not None and self.language_manager.name_to_id and self.args.use_language_embedding:
+        if self.language_manager is not None and self.language_manager.name_to_id and (self.args.use_language_embedding or self.args.use_adaptive_weight_text_encoder):
             language_ids = [self.language_manager.name_to_id[ln] for ln in batch["language_names"]]
 
         if language_ids is not None:
@@ -1547,6 +1561,21 @@ class Vits(BaseTTS):
         return batch
 
     def get_sampler(self, config: Coqpit, dataset: TTSDataset, num_gpus=1, is_eval=False):
+        if self.args.use_perfect_class_batch_sampler:
+            batch_size = config.eval_batch_size if is_eval else config.batch_size
+            data_items = dataset.samples
+            classes = [item[self.args.perfect_class_batch_sampler_key] for item in data_items]
+            classes = set(classes)
+            dataset.num_classes = len(classes)
+            batch_sampler = PerfectBatchSampler(
+                dataset_items=data_items,
+                classes=classes,
+                batch_size=batch_size,
+                num_classes_in_batch=len(classes),
+                label_key=self.args.perfect_class_batch_sampler_key,
+            )
+            return batch_sampler
+
         weights = None
         data_items = dataset.samples
         if getattr(config, "use_weighted_sampler", False):
@@ -1631,7 +1660,7 @@ class Vits(BaseTTS):
                     pin_memory=False,
                 )
             else:
-                if num_gpus > 1:
+                if num_gpus > 1 and not self.args.use_perfect_class_batch_sampler:
                     loader = DataLoader(
                         dataset,
                         sampler=sampler,
