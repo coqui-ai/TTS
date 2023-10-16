@@ -36,7 +36,6 @@ class GPTConfig(TortoiseConfig):
     lr: float = 5e-06
     training_seed: int = 1
     optimizer_wd_only_on_weights: bool = False
-    use_weighted_loss: bool = False  # TODO: move it to the base config
     weighted_loss_attrs: dict = field(default_factory=lambda: {})
     weighted_loss_multipliers: dict = field(default_factory=lambda: {})
 
@@ -200,7 +199,7 @@ class GPTTrainer(BaseTTS):
     def device(self):
         return next(self.parameters()).device
 
-    def forward(self, text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_lens):
+    def forward(self, text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs):
         """
         Forward pass that uses both text and voice in either text conditioning mode or voice conditioning mode
         (actuated by `text_first`).
@@ -209,10 +208,10 @@ class GPTTrainer(BaseTTS):
         text_lengths: long tensor, (b,)
         mel_inputs:  long tensor, (b,m)
         wav_lengths: long tensor, (b,)
-        cond_mels: MEL float tensor, (b, num_samples, 80,t_m)
+        cond_idxs: cond start and end indexs, (b, 2)
         cond_lengths: long tensor, (b,)
         """
-        losses = self.gpt(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_lens=cond_lens)
+        losses = self.gpt(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_idxs=cond_idxs)
         return losses
 
     @torch.no_grad()
@@ -228,7 +227,6 @@ class GPTTrainer(BaseTTS):
         batch["text_lengths"] = batch["text_lengths"]
         batch["wav_lengths"] = batch["wav_lengths"]
         batch["text_inputs"] = batch["padded_text"]
-        batch["cond_lens"] = batch["cond_lens"]
         batch["cond_idxs"] = batch["cond_idxs"]
         # compute conditioning mel specs
         # transform waves from torch.Size([B, num_cond_samples, 1, T] to torch.Size([B * num_cond_samples, 1, T] because if is faster than iterate the tensor
@@ -261,7 +259,7 @@ class GPTTrainer(BaseTTS):
         del batch["padded_text"]
         del batch["wav"]
         del batch["conditioning"]
-
+        del batch["cond_lens"]
         return batch
 
     def train_step(self, batch, criterion):
@@ -272,11 +270,10 @@ class GPTTrainer(BaseTTS):
         audio_codes = batch["audio_codes"]
         wav_lengths = batch["wav_lengths"]
 
-        cond_lens=batch["cond_lens"]
         # Todo: implement masking on the cond slice
         cond_idxs = batch["cond_idxs"]
         
-        loss_text, loss_mel, _ = self.forward(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_lens)
+        loss_text, loss_mel, _ = self.forward(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs)
         loss_dict["loss_text_ce"] = loss_text * self.args.gpt_loss_text_ce_weight
         loss_dict["loss_mel_ce"] = loss_mel * self.args.gpt_loss_mel_ce_weight
         loss_dict["loss"] = loss_dict["loss_text_ce"] + loss_dict["loss_mel_ce"]
@@ -325,7 +322,6 @@ class GPTTrainer(BaseTTS):
         if is_eval and not config.run_eval:
             loader = None
         else:
-            # Todo: remove the randomness of dataset when it is eval
             # init dataloader
             dataset = XTTSDataset(self.config, samples, self.tokenizer, config.audio.sample_rate, is_eval)
 

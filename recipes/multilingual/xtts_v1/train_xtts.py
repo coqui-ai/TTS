@@ -253,7 +253,7 @@ config_coqui_common_voice_metafile_ja_validated_ja = BaseDatasetConfig(
 # DATASETS_CONFIG_LIST = [config_coqui_mls_french_metadata_with_previous_audio_key_fr, config_coqui_MLS_metadata_test_with_previous_audio_key_de, config_coqui_mls_spanish_metadata_with_previous_audio_key_es, config_coqui_mls_italian_metadata_with_previous_audio_key_it]
 
 DATASETS_CONFIG_LIST = [config_coqui_MLS_metadata_test_with_previous_audio_key_de, config_coqui_mls_italian_metadata_with_previous_audio_key_it]
-                         
+      
 def freeze_layers(trainer):
     pass
 
@@ -262,7 +262,7 @@ def main():
     model_args = GPTArgs(
         max_conditioning_length=132300, # 6 secs
         min_conditioning_length=66150, # 3 secs
-        debug_loading_failures=True,
+        debug_loading_failures=False,
         max_wav_length=255995, # ~11.6 seconds
         max_text_length=200,
         tokenizer_file="/raid/datasets/xtts_models/vocab.json",
