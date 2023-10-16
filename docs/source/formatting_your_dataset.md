@@ -26,7 +26,7 @@ We recommend the following format delimited by `|`. In the following example, `a
 
 audio1|This is my sentence.|This is my sentence.
 audio2|1469 and 1470|fourteen sixty-nine and fourteen seventy
-audio3|It'll be $16 sir.|It will be sixteen dollars sir.
+audio3|It'll be $16 sir.|It'll be sixteen dollars sir.
 ...
 ```
 *If you don't have normalized transcriptions, you can use the same transcription for both columns. If it's your case, we recommend to use normalization later in the pipeline, either in the text cleaner or in the phonemizer.*
