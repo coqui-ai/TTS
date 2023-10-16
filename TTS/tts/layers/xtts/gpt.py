@@ -254,7 +254,6 @@ class GPT(nn.Module):
                 else:
                     attn_mask_cond = torch.ones(prompt.shape[0], offset, dtype=torch.bool, device=emb.device)
                     attn_mask = torch.cat([attn_mask_cond, attn_mask], dim=1)
-                
 
         gpt_out = self.gpt(
             inputs_embeds=emb,

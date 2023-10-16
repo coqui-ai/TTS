@@ -208,8 +208,8 @@ class GPTTrainer(BaseTTS):
         text_lengths: long tensor, (b,)
         mel_inputs:  long tensor, (b,m)
         wav_lengths: long tensor, (b,)
+        cond_mels: MEL float tensor, (b, num_samples, 80,t_m)
         cond_idxs: cond start and end indexs, (b, 2)
-        cond_lengths: long tensor, (b,)
         """
         losses = self.gpt(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_idxs=cond_idxs)
         return losses
@@ -269,10 +269,8 @@ class GPTTrainer(BaseTTS):
         text_lengths = batch["text_lengths"]
         audio_codes = batch["audio_codes"]
         wav_lengths = batch["wav_lengths"]
-
-        # Todo: implement masking on the cond slice
         cond_idxs = batch["cond_idxs"]
-        
+
         loss_text, loss_mel, _ = self.forward(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs)
         loss_dict["loss_text_ce"] = loss_text * self.args.gpt_loss_text_ce_weight
         loss_dict["loss_mel_ce"] = loss_mel * self.args.gpt_loss_mel_ce_weight
@@ -280,6 +278,8 @@ class GPTTrainer(BaseTTS):
         return {"model_outputs": None}, loss_dict
 
     def eval_step(self, batch, criterion):
+        # ignore masking for more consistent evaluation
+        batch["cond_idxs"] = None
         return self.train_step(batch, criterion)
 
     def on_epoch_start(self, trainer):  # pylint: disable=W0613
