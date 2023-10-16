@@ -299,11 +299,7 @@ class Synthesizer(nn.Module):
         speaker_embedding = None
         speaker_id = None
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "name_to_id"):
-            # handle Neon models with single speaker.
-            if len(self.tts_model.speaker_manager.name_to_id) == 1:
-                speaker_id = list(self.tts_model.speaker_manager.name_to_id.values())[0]
-
-            elif speaker_name and isinstance(speaker_name, str):
+            if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
                     # get the average speaker embedding from the saved d_vectors.
                     speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
@@ -313,7 +309,9 @@ class Synthesizer(nn.Module):
                 else:
                     # get speaker idx from the speaker name
                     speaker_id = self.tts_model.speaker_manager.name_to_id[speaker_name]
-
+            # handle Neon models with single speaker.
+            elif len(self.tts_model.speaker_manager.name_to_id) == 1:
+                speaker_id = list(self.tts_model.speaker_manager.name_to_id.values())[0]
             elif not speaker_name and not speaker_wav:
                 raise ValueError(
                     " [!] Looks like you are using a multi-speaker model. "
