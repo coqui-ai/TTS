@@ -3,7 +3,7 @@ from trainer import Trainer, TrainerArgs
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 
-from TTS.tts.layers.xtts.trainer.gpt_trainer import GPTTrainer, GPTArgs, XttsAudioConfig, GPTConfig
+from TTS.tts.layers.xtts.trainer.gpt_trainer import GPTTrainer, GPTArgs, XttsAudioConfig, GPTTrainerConfig
 
 
 config_coqui_MLS_metadata_train_with_previous_audio_key_de = BaseDatasetConfig(
@@ -265,21 +265,21 @@ def main():
         debug_loading_failures=False,
         max_wav_length=255995, # ~11.6 seconds
         max_text_length=200,
-        tokenizer_file="/raid/datasets/xtts_models/vocab.json",
         mel_norm_file="/raid/datasets/xtts_models/mel_stats.pth",
         dvae_checkpoint="/raid/datasets/xtts_models/dvae.pth",
-        gpt_checkpoint="/raid/datasets/xtts_models/gpt.pth",
+        tokenizer_file="/raid/datasets/xtts_models/vocab.json", # vocab path of the model that you want to fine-tune
+        xtts_checkpoint="https://huggingface.co/coqui/XTTS-v1/resolve/hifigan/model.pth", # checkpoint path of the model that you want to fine-tune
         gpt_num_audio_tokens=8194,
         gpt_start_audio_token=8192,
         gpt_stop_audio_token=8193,
     )
     audio_config = XttsAudioConfig(
-        sample_rate=22050, # autoregressive SR
+        sample_rate=22050, # GPT SR
         dvae_sample_rate=22050,
         diffusion_sample_rate=24000,
         output_sample_rate=24000
     )
-    config = GPTConfig(
+    config = GPTTrainerConfig(
         output_path=OUT_PATH,
         model_args=model_args,
         run_name=RUN_NAME,
@@ -313,6 +313,10 @@ def main():
         lr_scheduler="MultiStepLR",
         # it was adjusted accordly for the new step scheme
         lr_scheduler_params={"milestones": [50000 * 18, 150000 * 18, 300000 * 18], "gamma": 0.5, "last_epoch": -1},
+        test_sentences=[
+            {"text": "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "speaker_wav": "/raid/edresson/dev/ref.wav", "language": "en"},
+            {"text": "This cake is great. It's so delicious and moist.", "speaker_wav": "/raid/edresson/dev/ref.wav", "language": "en"},
+        ]
     )
 
     # init the model from config
@@ -341,7 +345,7 @@ def main():
 
 if __name__ == "__main__":
     RUN_NAME = "GPT_XTTS"
-    PROJECT_NAME = "XTTS"
+    PROJECT_NAME = "XTTS_trainer"
     OUT_PATH = "/raid/edresson/dev/Checkpoints/XTTS_style_emb/"
     DASHBOARD_LOGGER = "clearml"
     LOGGER_URI = "s3://coqui-ai-models/TTS/Checkpoints/XTTS_style_emb/"
@@ -352,12 +356,11 @@ if __name__ == "__main__":
     GRAD_ACUMM_STEPS = 28
 
     # debug
-    DASHBOARD_LOGGER = "tensorboard"
-    LOGGER_URI = None    
-    RESTORE_PATH = None
-    BATCH_SIZE = 10
+    # DASHBOARD_LOGGER = "tensorboard"
+    # LOGGER_URI = None    
+    # RESTORE_PATH = None
+    BATCH_SIZE = 2
     GRAD_ACUMM_STEPS = 1
-    NUM_LOADERS = 1
 
 
     

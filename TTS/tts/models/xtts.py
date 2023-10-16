@@ -387,7 +387,7 @@ class Xtts(BaseTTS):
         audio = load_audio(audio_path)
         audio = audio[:, : 22050 * length]
         mel = wav_to_mel_cloning(audio, mel_norms=self.mel_stats.cpu())
-        cond_latent = self.gpt.get_style_emb(mel.to(self.device), sample=False)
+        cond_latent = self.gpt.get_style_emb(mel.to(self.device))
         return cond_latent.transpose(1, 2)
 
     @torch.inference_mode()
