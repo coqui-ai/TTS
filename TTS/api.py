@@ -112,7 +112,6 @@ class TTS(nn.Module):
             return self.synthesizer.tts_model.language_manager.num_languages > 1
         return False
 
-
     @property
     def speakers(self):
         if not self.is_multi_speaker:
@@ -265,6 +264,7 @@ class TTS(nn.Module):
         language: str = None,
         emotion: str = None,
         speed: float = 1.0,
+        pipe_out = None,
         file_path: str = None,
     ) -> Union[np.ndarray, str]:
         """Convert text to speech using Coqui Studio models. Use `CS_API` class if you are only interested in the API.
@@ -281,6 +281,8 @@ class TTS(nn.Module):
                 with "V1" model. Defaults to None.
             speed (float, optional):
                 Speed of the speech. Defaults to 1.0.
+            pipe_out (BytesIO, optional):
+                Flag to stdout the generated TTS wav file for shell pipe.
             file_path (str, optional):
                 Path to save the output file. When None it returns the `np.ndarray` of waveform. Defaults to None.
 
@@ -294,6 +296,7 @@ class TTS(nn.Module):
                 speaker_name=speaker_name,
                 language=language,
                 speed=speed,
+                pipe_out=pipe_out,
                 emotion=emotion,
                 file_path=file_path,
             )[0]
@@ -356,6 +359,7 @@ class TTS(nn.Module):
         speaker_wav: str = None,
         emotion: str = None,
         speed: float = 1.0,
+        pipe_out = None,
         file_path: str = "output.wav",
         **kwargs,
     ):
@@ -377,6 +381,8 @@ class TTS(nn.Module):
                 Emotion to use for 🐸Coqui Studio models. Defaults to "Neutral".
             speed (float, optional):
                 Speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0. Defaults to None.
+            pipe_out (BytesIO, optional):
+                Flag to stdout the generated TTS wav file for shell pipe.
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
             kwargs (dict, optional):
@@ -386,10 +392,16 @@ class TTS(nn.Module):
 
         if self.csapi is not None:
             return self.tts_coqui_studio(
-                text=text, speaker_name=speaker, language=language, emotion=emotion, speed=speed, file_path=file_path
+                text=text,
+                speaker_name=speaker,
+                language=language,
+                emotion=emotion,
+                speed=speed,
+                file_path=file_path,
+                pipe_out=pipe_out,
             )
         wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
-        self.synthesizer.save_wav(wav=wav, path=file_path)
+        self.synthesizer.save_wav(wav=wav, path=file_path, pipe_out=pipe_out)
         return file_path
 
     def voice_conversion(
