@@ -559,7 +559,7 @@ class GPT(nn.Module):
             bos_token_id=self.start_audio_token,
             pad_token_id=self.stop_audio_token,
             eos_token_id=self.stop_audio_token,
-            max_length=self.max_mel_tokens * 2 + self.max_prompt_tokens + self.max_text_tokens,
+            max_length=self.max_mel_tokens,
             **hf_generate_kwargs,
         )
         if "return_dict_in_generate" in hf_generate_kwargs:
@@ -572,7 +572,7 @@ class GPT(nn.Module):
             bos_token_id=self.start_audio_token,
             pad_token_id=self.stop_audio_token,
             eos_token_id=self.stop_audio_token,
-            max_length=self.max_mel_tokens * 2 + self.max_prompt_tokens + self.max_text_tokens,
+            max_length=self.max_mel_tokens,
             do_stream=True,
             **hf_generate_kwargs,
         )
