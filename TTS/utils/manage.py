@@ -109,7 +109,6 @@ class ModelManager(object):
     def _list_for_model_type(self, model_type):
         models_name_list = []
         model_count = 1
-        model_type = "tts_models"
         models_name_list.extend(self._list_models(model_type, model_count))
         return models_name_list
 
