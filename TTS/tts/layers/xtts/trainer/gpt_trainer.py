@@ -268,6 +268,7 @@ class GPTTrainer(BaseTTS):
             dvae_wav = batch["wav"]
         dvae_mel_spec = self.torch_mel_spectrogram_dvae(dvae_wav)
         codes = self.dvae.get_codebook_indices(dvae_mel_spec)
+
         batch["audio_codes"] = codes
         # delete useless batch tensors
         del batch["padded_text"]
@@ -454,7 +455,9 @@ class GPTTrainer(BaseTTS):
         target_options={"anon": True},
     ):  # pylint: disable=unused-argument, disable=W0201, disable=W0102, redefined-builtin
         """Load the model checkpoint and setup for training or inference"""
-        state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))["model"]
+
+        state, _ = self.xtts.get_compatible_checkpoint_state(checkpoint_path)
+
         # load the model weights
         self.xtts.load_state_dict(state, strict=strict)
 

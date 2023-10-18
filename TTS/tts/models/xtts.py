@@ -643,6 +643,7 @@ class Xtts(BaseTTS):
             expected_output_len = torch.tensor(
                 [gpt_codes.shape[-1] * self.gpt.code_stride_len], device=text_tokens.device
             )
+
             text_len = torch.tensor([text_tokens.shape[-1]], device=self.device)
             gpt_latents = self.gpt(
                 text_tokens,
@@ -788,6 +789,25 @@ class Xtts(BaseTTS):
         self.gpt.init_gpt_for_inference()
         super().eval()
 
+    def get_compatible_checkpoint_state_dict(self, model_path):
+        checkpoint = load_fsspec(model_path, map_location=torch.device("cpu"))["model"]
+        ignore_keys = ["diffusion_decoder", "vocoder"] if self.args.use_hifigan or self.args.use_ne_hifigan else []
+        ignore_keys += [] if self.args.use_hifigan else ["hifigan_decoder"]
+        ignore_keys += [] if self.args.use_ne_hifigan else ["ne_hifigan_decoder"]
+        for key in list(checkpoint.keys()):
+            # check if it is from the coqui Trainer if so convert it
+            if key.startswith("xtts."):
+                new_key = key.replace("xtts.", "")
+                checkpoint[new_key] = checkpoint[key]
+                del checkpoint[key]
+                key = new_key
+
+            # remove unused keys
+            if key.split(".")[0] in ignore_keys:
+                del checkpoint[key]
+
+        return checkpoint
+
     def load_checkpoint(
         self,
         config,
@@ -821,22 +841,7 @@ class Xtts(BaseTTS):
 
         self.init_models()
 
-        checkpoint = load_fsspec(model_path, map_location=torch.device("cpu"))["model"]
-        ignore_keys = ["diffusion_decoder", "vocoder"] if self.args.use_hifigan or self.args.use_ne_hifigan else []
-        ignore_keys += [] if self.args.use_hifigan else ["hifigan_decoder"]
-        ignore_keys += [] if self.args.use_ne_hifigan else ["ne_hifigan_decoder"]
-        for key in list(checkpoint.keys()):
-            # check if it is from the coqui Trainer if so convert it
-            if key.startswith("xtts."):
-                coqui_trainer_checkpoint = True
-                new_key = key.replace("xtts.", "")
-                checkpoint[new_key] = checkpoint[key]
-                del checkpoint[key]
-                key = new_key
-
-            # remove unused keys
-            if key.split(".")[0] in ignore_keys:
-                del checkpoint[key]
+        checkpoint = self.get_compatible_checkpoint_state_dict(model_path)
 
         # deal with v1 and v1.1. V1 has the init_gpt_for_inference keys, v1.1 do not
         try:
