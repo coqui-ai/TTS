@@ -1,11 +1,29 @@
+import os
+
 from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
 from TTS.tts.layers.xtts.trainer.gpt_trainer import GPTArgs, GPTTrainer, GPTTrainerConfig, XttsAudioConfig
 
-# Define here the dataset used
-config_ljspeech = BaseDatasetConfig(
+# Logging parameters
+RUN_NAME = "GPT_XTTS_LJSpeech_FT"
+PROJECT_NAME = "XTTS_trainer"
+DASHBOARD_LOGGER = "tensorboard"
+LOGGER_URI = None
+
+# Set here the path that the checkpoints will be saved. Default: ./run/training/
+OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run", "training")
+
+# Training Parameters
+OPTIMIZER_WD_ONLY_ON_WEIGHTS = True  # for multi-gpu training please make it False
+START_WITH_EVAL = True  # if True it will star with evaluation
+BATCH_SIZE = 3  # set here the batch size
+GRAD_ACUMM_STEPS = 84  # set here the grad accumulation steps
+# Note: we recommend that BATCH_SIZE * GRAD_ACUMM_STEPS need to be at least 252 for more efficient training. You can increase/decrease BATCH_SIZE but then set GRAD_ACUMM_STEPS accordingly.
+
+# Define here the dataset that you want to use for the fine tuning
+config_dataset = BaseDatasetConfig(
     formatter="ljspeech",
     dataset_name="ljspeech",
     path="/raid/datasets/LJSpeech-1.1_24khz/",
@@ -13,11 +31,26 @@ config_ljspeech = BaseDatasetConfig(
     language="en",
 )
 
-DATASETS_CONFIG_LIST = [config_ljspeech]
+DATASETS_CONFIG_LIST = [config_dataset]
+
+# ToDo: update with the latest released checkpoints
+
+# DVAE parameters: For the training we need the dvae to extract the dvae tokens, given that you must provide the paths for this model
+DVAE_CHECKPOINT = "/raid/datasets/xtts_models/dvae.pth"  # DVAE checkpoint
+MEL_NORM_FILE = (
+    "/raid/datasets/xtts_models/mel_stats.pth"  # Mel spectrogram norms, required for dvae mel spectrogram extraction
+)
+
+# XTTS transfer learning parameters: You we need to provide the paths of XTTS model checkpoint that you want to do the fine tuning.
+TOKENIZER_FILE = "/raid/edresson/dev/Checkpoints/XTTS_evaluation/xtts_style_emb_repetition_fix_gt/tokenizer_merged_5.json"  # vocab.json file
+XTTS_CHECKPOINT = "/raid/edresson/dev/Checkpoints/XTTS_evaluation/xtts_style_emb_repetition_fix_gt/132500_gpt_ema_coqui_tts_with_enhanced_hifigan.pth"  # model.pth file
 
 
-def freeze_layers(trainer):
-    pass
+# Training sentences generations
+SPEAKER_REFERENCE = (
+    "./tests/data/ljspeech/wavs/LJ001-0002.wav"  # speaker reference to be used in training test sentences
+)
+LANGUAGE = config_dataset.language
 
 
 def main():
@@ -28,18 +61,18 @@ def main():
         debug_loading_failures=False,
         max_wav_length=255995,  # ~11.6 seconds
         max_text_length=200,
-        mel_norm_file="/raid/datasets/xtts_models/mel_stats.pth",
-        dvae_checkpoint="/raid/datasets/xtts_models/dvae.pth",
+        mel_norm_file=MEL_NORM_FILE,
+        dvae_checkpoint=DVAE_CHECKPOINT,
         # tokenizer_file="/raid/datasets/xtts_models/vocab.json", # vocab path of the model that you want to fine-tune
         # xtts_checkpoint="https://huggingface.co/coqui/XTTS-v1/resolve/hifigan/model.pth",
-        xtts_checkpoint="/raid/edresson/dev/Checkpoints/XTTS_evaluation/xtts_style_emb_repetition_fix_gt/132500_gpt_ema_coqui_tts_with_enhanced_hifigan.pth",  # checkpoint path of the model that you want to fine-tune
-        tokenizer_file="/raid/edresson/dev/Checkpoints/XTTS_evaluation/xtts_style_emb_repetition_fix_gt/tokenizer_merged_5.json",
+        xtts_checkpoint=XTTS_CHECKPOINT,  # checkpoint path of the model that you want to fine-tune
+        tokenizer_file=TOKENIZER_FILE,
         gpt_num_audio_tokens=8194,
         gpt_start_audio_token=8192,
         gpt_stop_audio_token=8193,
     )
     audio_config = XttsAudioConfig(
-        sample_rate=22050, dvae_sample_rate=22050, diffusion_sample_rate=24000, output_sample_rate=24000  # GPT SR
+        sample_rate=22050, dvae_sample_rate=22050, diffusion_sample_rate=24000, output_sample_rate=24000
     )
     config = GPTTrainerConfig(
         output_path=OUT_PATH,
@@ -67,7 +100,7 @@ def main():
         print_eval=False,
         # Optimizer values like tortoise, pytorch implementation with modifications to not apply WD to non-weight parameters.
         optimizer="AdamW",
-        optimizer_wd_only_on_weights=True,  # for multi-gpu training turn it off
+        optimizer_wd_only_on_weights=OPTIMIZER_WD_ONLY_ON_WEIGHTS,
         optimizer_params={"betas": [0.9, 0.96], "eps": 1e-8, "weight_decay": 1e-2},
         lr=5e-06,  # learning rate
         lr_scheduler="MultiStepLR",
@@ -76,18 +109,13 @@ def main():
         test_sentences=[
             {
                 "text": "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
-                "speaker_wav": "/raid/edresson/dev/ref-ljspeech.wav",
-                "language": "en",
+                "speaker_wav": SPEAKER_REFERENCE,
+                "language": LANGUAGE,
             },
             {
                 "text": "This cake is great. It's so delicious and moist.",
-                "speaker_wav": "/raid/edresson/dev/ref-ljspeech.wav",
-                "language": "en",
-            },
-            {
-                "text": "Levei muito tempo para desenvolver uma voz e agora que a tenho não vou ficar calado .",
-                "speaker_wav": "/raid/edresson/dev/ref-ljspeech.wav",
-                "language": "pt",
+                "speaker_wav": SPEAKER_REFERENCE,
+                "language": LANGUAGE,
             },
         ],
     )
@@ -106,8 +134,8 @@ def main():
     # init the trainer and 🚀
     trainer = Trainer(
         TrainerArgs(
-            restore_path=RESTORE_PATH,
-            skip_train_epoch=SKIP_TRAIN_EPOCH,
+            restore_path=None,  # xtts checkpoint is restored via xtts_checkpoint key so no need of restore it using Trainer restore_path parameter
+            skip_train_epoch=False,
             start_with_eval=START_WITH_EVAL,
             grad_accum_steps=GRAD_ACUMM_STEPS,
         ),
@@ -116,30 +144,9 @@ def main():
         model=model,
         train_samples=train_samples,
         eval_samples=eval_samples,
-        callbacks={"on_epoch_start": freeze_layers},
     )
     trainer.fit()
 
 
 if __name__ == "__main__":
-    RUN_NAME = "GPT_XTTS_LJSpeech_fixed"
-    PROJECT_NAME = "XTTS_trainer"
-    OUT_PATH = "/raid/edresson/dev/Checkpoints/XTTS_v1_FT/"
-    # DASHBOARD_LOGGER = "clearml"
-    # LOGGER_URI = "s3://coqui-ai-models/TTS/Checkpoints/XTTS_v1/"
-    DASHBOARD_LOGGER = "tensorboard"
-    LOGGER_URI = None
-    RESTORE_PATH = None
-    SKIP_TRAIN_EPOCH = False
-    START_WITH_EVAL = True
-    BATCH_SIZE = 3
-    GRAD_ACUMM_STEPS = 28 * 3
-
-    # debug
-    # DASHBOARD_LOGGER = "tensorboard"
-    # LOGGER_URI = None
-    # RESTORE_PATH = None
-    # BATCH_SIZE = 2
-    # GRAD_ACUMM_STEPS = 1
-
     main()
