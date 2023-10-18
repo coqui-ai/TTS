@@ -146,7 +146,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 You can also help us implement more models.
 
 ## Installation
-🐸TTS is tested on Ubuntu 18.04 with **python >= 3.7, < 3.11.**.
+🐸TTS is tested on Ubuntu 18.04 with **python >= 3.9, < 3.12.**.
 
 If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
 
@@ -198,17 +198,18 @@ from TTS.api import TTS
 # Get device
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# List available 🐸TTS models and choose the first one
-model_name = TTS().list_models()[0]
+# List available 🐸TTS models
+print(TTS().list_models())
+
 # Init TTS
-tts = TTS(model_name).to(device)
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v1").to(device)
 
 # Run TTS
-# ❗ Since this model is multi-speaker and multi-lingual, we must set the target speaker and the language
-# Text to speech with a numpy output
-wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
+# ❗ Since this model is multi-lingual voice cloning model, we must set the target speaker_wav and language
+# Text to speech list of amplitude values as output
+wav = tts.tts(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en")
 # Text to speech to a file
-tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path="output.wav")
+tts.tts_to_file(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 ```
 
 #### Running a single speaker model
@@ -345,6 +346,18 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
   ```
   $ tts --text "Text for TTS" --out_path output/path/speech.wav
+  ```
+
+- Run TTS and pipe out the generated TTS wav file data:
+
+  ```
+  $ tts --text "Text for TTS" --pipe_out --out_path output/path/speech.wav | aplay
+  ```
+
+- Run TTS and define speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0:
+
+  ```
+  $ tts --text "Text for TTS" --model_name "coqui_studio/<language>/<dataset>/<model_name>" --speed 1.2 --out_path output/path/speech.wav
   ```
 
 - Run a TTS model with its default vocoder model:

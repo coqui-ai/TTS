@@ -249,19 +249,20 @@ class Synthesizer(nn.Module):
         else: # Original code
             return self.seg.segment(text)
 
-    def save_wav(self, wav: List[int], path: str) -> None:
+    def save_wav(self, wav: List[int], path: str, pipe_out = None) -> None:
         """Save the waveform as a file.
 
         Args:
             wav (List[int]): waveform as a list of values.
             path (str): output path to save the waveform.
+            pipe_out (BytesIO, optional): Flag to stdout the generated TTS wav file for shell pipe.
         """
         # if tensor convert to numpy
         if torch.is_tensor(wav):
             wav = wav.cpu().numpy()
         if isinstance(wav, list):
             wav = np.array(wav)
-        save_wav(wav=wav, path=path, sample_rate=self.output_sample_rate)
+        save_wav(wav=wav, path=path, sample_rate=self.output_sample_rate, pipe_out=pipe_out)
 
     def voice_conversion(self, source_wav: str, target_wav: str) -> List[int]:
         output_wav = self.vc_model.voice_conversion(source_wav, target_wav)
@@ -313,11 +314,7 @@ class Synthesizer(nn.Module):
         speaker_embedding = None
         speaker_id = None
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "name_to_id"):
-            # handle Neon models with single speaker.
-            if len(self.tts_model.speaker_manager.name_to_id) == 1:
-                speaker_id = list(self.tts_model.speaker_manager.name_to_id.values())[0]
-
-            elif speaker_name and isinstance(speaker_name, str):
+            if speaker_name and isinstance(speaker_name, str):
                 if self.tts_config.use_d_vector_file:
                     # get the average speaker embedding from the saved d_vectors.
                     speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
@@ -327,7 +324,9 @@ class Synthesizer(nn.Module):
                 else:
                     # get speaker idx from the speaker name
                     speaker_id = self.tts_model.speaker_manager.name_to_id[speaker_name]
-
+            # handle Neon models with single speaker.
+            elif len(self.tts_model.speaker_manager.name_to_id) == 1:
+                speaker_id = list(self.tts_model.speaker_manager.name_to_id.values())[0]
             elif not speaker_name and not speaker_wav:
                 raise ValueError(
                     " [!] Looks like you are using a multi-speaker model. "

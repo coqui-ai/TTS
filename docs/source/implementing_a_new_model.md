@@ -41,7 +41,7 @@
 6. Optionally, define `MyModelArgs`.
 
     `MyModelArgs` is a 👨‍✈️Coqpit class that sets all the class arguments of the `MyModel`. `MyModelArgs` must have
-    all the fields neccessary to instantiate the `MyModel`. However, for training, you need to pass `MyModelConfig` to
+    all the fields necessary to instantiate the `MyModel`. However, for training, you need to pass `MyModelConfig` to
     the model.
 
 7. Test `MyModel`.
