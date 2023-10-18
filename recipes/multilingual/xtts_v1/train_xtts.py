@@ -2,9 +2,7 @@ from trainer import Trainer, TrainerArgs
 
 from TTS.config.shared_configs import BaseDatasetConfig
 from TTS.tts.datasets import load_tts_samples
-
-from TTS.tts.layers.xtts.trainer.gpt_trainer import GPTTrainer, GPTArgs, XttsAudioConfig, GPTTrainerConfig
-
+from TTS.tts.layers.xtts.trainer.gpt_trainer import GPTArgs, GPTTrainer, GPTTrainerConfig, XttsAudioConfig
 
 config_coqui_MLS_metadata_train_with_previous_audio_key_de = BaseDatasetConfig(
     formatter="coqui",
@@ -252,32 +250,34 @@ config_coqui_common_voice_metafile_ja_validated_ja = BaseDatasetConfig(
 
 # DATASETS_CONFIG_LIST = [config_coqui_mls_french_metadata_with_previous_audio_key_fr, config_coqui_MLS_metadata_test_with_previous_audio_key_de, config_coqui_mls_spanish_metadata_with_previous_audio_key_es, config_coqui_mls_italian_metadata_with_previous_audio_key_it]
 
-DATASETS_CONFIG_LIST = [config_coqui_MLS_metadata_test_with_previous_audio_key_de, config_coqui_mls_italian_metadata_with_previous_audio_key_it]
-      
+DATASETS_CONFIG_LIST = [
+    config_coqui_MLS_metadata_test_with_previous_audio_key_de,
+    config_coqui_mls_italian_metadata_with_previous_audio_key_it,
+]
+
+
 def freeze_layers(trainer):
     pass
+
 
 def main():
     # init args and config
     model_args = GPTArgs(
-        max_conditioning_length=132300, # 6 secs
-        min_conditioning_length=66150, # 3 secs
+        max_conditioning_length=132300,  # 6 secs
+        min_conditioning_length=66150,  # 3 secs
         debug_loading_failures=False,
-        max_wav_length=255995, # ~11.6 seconds
+        max_wav_length=255995,  # ~11.6 seconds
         max_text_length=200,
         mel_norm_file="/raid/datasets/xtts_models/mel_stats.pth",
         dvae_checkpoint="/raid/datasets/xtts_models/dvae.pth",
-        tokenizer_file="/raid/datasets/xtts_models/vocab.json", # vocab path of the model that you want to fine-tune
-        xtts_checkpoint="https://huggingface.co/coqui/XTTS-v1/resolve/hifigan/model.pth", # checkpoint path of the model that you want to fine-tune
+        tokenizer_file="/raid/datasets/xtts_models/vocab.json",  # vocab path of the model that you want to fine-tune
+        xtts_checkpoint="https://huggingface.co/coqui/XTTS-v1/resolve/hifigan/model.pth",  # checkpoint path of the model that you want to fine-tune
         gpt_num_audio_tokens=8194,
         gpt_start_audio_token=8192,
         gpt_stop_audio_token=8193,
     )
     audio_config = XttsAudioConfig(
-        sample_rate=22050, # GPT SR
-        dvae_sample_rate=22050,
-        diffusion_sample_rate=24000,
-        output_sample_rate=24000
+        sample_rate=22050, dvae_sample_rate=22050, diffusion_sample_rate=24000, output_sample_rate=24000  # GPT SR
     )
     config = GPTTrainerConfig(
         output_path=OUT_PATH,
@@ -303,20 +303,26 @@ def main():
         save_checkpoints=True,
         # target_loss="loss",
         print_eval=False,
-        # Optimizer values like tortoise. However, they used pytorch implementation with modifications to not apply WD to non-weight parameters. We are using default Pytorch
+        # Optimizer values like tortoise, pytorch implementation with modifications to not apply WD to non-weight parameters.
         optimizer="AdamW",
-        optimizer_wd_only_on_weights=True,
-        optimizer_params={"betas": [.9, .96], "eps": 1e-8, "weight_decay": 1e-2},
-        lr=5e-06, # learning rate
-        # lr=1e-4, # learning rate
-        # ToDo: implement 500 step warmup like tortoise and EMA weights replaces LR decay with rate: .999
+        optimizer_wd_only_on_weights=True,  # for multi-gpu training turn it off
+        optimizer_params={"betas": [0.9, 0.96], "eps": 1e-8, "weight_decay": 1e-2},
+        lr=5e-06,  # learning rate
         lr_scheduler="MultiStepLR",
         # it was adjusted accordly for the new step scheme
         lr_scheduler_params={"milestones": [50000 * 18, 150000 * 18, 300000 * 18], "gamma": 0.5, "last_epoch": -1},
         test_sentences=[
-            {"text": "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.", "speaker_wav": "/raid/edresson/dev/ref.wav", "language": "en"},
-            {"text": "This cake is great. It's so delicious and moist.", "speaker_wav": "/raid/edresson/dev/ref.wav", "language": "en"},
-        ]
+            {
+                "text": "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                "speaker_wav": "/raid/edresson/dev/ref.wav",
+                "language": "en",
+            },
+            {
+                "text": "This cake is great. It's so delicious and moist.",
+                "speaker_wav": "/raid/edresson/dev/ref.wav",
+                "language": "en",
+            },
+        ],
     )
 
     # init the model from config
@@ -332,13 +338,18 @@ def main():
 
     # init the trainer and 🚀
     trainer = Trainer(
-        TrainerArgs(restore_path=RESTORE_PATH, skip_train_epoch=SKIP_TRAIN_EPOCH, start_with_eval=START_WITH_EVAL, grad_accum_steps=GRAD_ACUMM_STEPS),
+        TrainerArgs(
+            restore_path=RESTORE_PATH,
+            skip_train_epoch=SKIP_TRAIN_EPOCH,
+            start_with_eval=START_WITH_EVAL,
+            grad_accum_steps=GRAD_ACUMM_STEPS,
+        ),
         config,
         output_path=OUT_PATH,
         model=model,
         train_samples=train_samples,
         eval_samples=eval_samples,
-        callbacks={"on_epoch_start": freeze_layers}
+        callbacks={"on_epoch_start": freeze_layers},
     )
     trainer.fit()
 
@@ -351,17 +362,15 @@ if __name__ == "__main__":
     LOGGER_URI = "s3://coqui-ai-models/TTS/Checkpoints/XTTS_style_emb/"
     RESTORE_PATH = None
     SKIP_TRAIN_EPOCH = False
-    START_WITH_EVAL =  True
+    START_WITH_EVAL = True
     BATCH_SIZE = 9
     GRAD_ACUMM_STEPS = 28
 
     # debug
     # DASHBOARD_LOGGER = "tensorboard"
-    # LOGGER_URI = None    
+    # LOGGER_URI = None
     # RESTORE_PATH = None
     BATCH_SIZE = 2
     GRAD_ACUMM_STEPS = 1
 
-
-    
     main()

@@ -1,15 +1,17 @@
 import os
 import random
 import sys
-import numpy as np
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.utils.data
 import torchaudio
-from torchaudio.backend.sox_io_backend import load as torchaudio_sox_load
 from torchaudio.backend.soundfile_backend import load as torchaudio_soundfile_load
+from torchaudio.backend.sox_io_backend import load as torchaudio_sox_load
+
 torch.set_num_threads(1)
+
 
 def key_samples_by_col(samples, col):
     """Returns a dictionary of samples keyed by language."""
@@ -23,11 +25,11 @@ def key_samples_by_col(samples, col):
     return samples_by_col
 
 
-def get_prompt_slice(gt_path, max_sample_length, min_sample_length, sample_rate, is_eval=False):   
+def get_prompt_slice(gt_path, max_sample_length, min_sample_length, sample_rate, is_eval=False):
     rel_clip = load_audio(gt_path, sample_rate)
     # if eval uses a middle size sample when it is possible to be more reproducible
     if is_eval:
-        sample_length = int((min_sample_length + max_sample_length)/2)
+        sample_length = int((min_sample_length + max_sample_length) / 2)
     else:
         sample_length = random.randint(min_sample_length, max_sample_length)
     gap = rel_clip.shape[-1] - sample_length
@@ -41,7 +43,7 @@ def get_prompt_slice(gt_path, max_sample_length, min_sample_length, sample_rate,
     else:
         rand_start = random.randint(0, gap)
 
-    rand_end = rand_start+sample_length
+    rand_end = rand_start + sample_length
     rel_clip = rel_clip[:, rand_start:rand_end]
     rel_clip = F.pad(rel_clip, pad=(0, max_sample_length - rel_clip.shape[-1]))
     cond_idxs = [rand_start, rand_end]
@@ -50,7 +52,7 @@ def get_prompt_slice(gt_path, max_sample_length, min_sample_length, sample_rate,
 
 def load_audio(audiopath, sampling_rate):
     # better load setting following: https://github.com/faroit/python_audio_loading_benchmark
-    if audiopath[-4:] == '.mp3':
+    if audiopath[-4:] == ".mp3":
         # it uses torchaudio with sox backend to load mp3
         audio, lsr = torchaudio_sox_load(audiopath)
     else:
@@ -71,6 +73,7 @@ def load_audio(audiopath, sampling_rate):
     # clip audio invalid values
     audio.clip_(-1, 1)
     return audio
+
 
 class XTTSDataset(torch.utils.data.Dataset):
     def __init__(self, config, samples, tokenizer, sample_rate, is_eval=False):
@@ -103,16 +106,18 @@ class XTTSDataset(torch.utils.data.Dataset):
         print(" > Filtering invalid eval samples!!")
         new_samples = []
         for sample in self.samples:
-                try:
-                    tseq, _, wav, _, _, _ = self.load_item(sample)
-                except:
-                    pass
-                # Basically, this audio file is nonexistent or too long to be supported by the dataset.
-                if wav is None or \
-                    (self.max_wav_len is not None and wav.shape[-1] > self.max_wav_len) or \
-                    (self.max_text_len is not None and tseq.shape[0] > self.max_text_len):
-                    continue
-                new_samples.append(sample)
+            try:
+                tseq, _, wav, _, _, _ = self.load_item(sample)
+            except:
+                pass
+            # Basically, this audio file is nonexistent or too long to be supported by the dataset.
+            if (
+                wav is None
+                or (self.max_wav_len is not None and wav.shape[-1] > self.max_wav_len)
+                or (self.max_text_len is not None and tseq.shape[0] > self.max_text_len)
+            ):
+                continue
+            new_samples.append(sample)
         self.samples = new_samples
         print(" > Total eval samples after filtering:", len(self.samples))
 
@@ -125,9 +130,9 @@ class XTTSDataset(torch.utils.data.Dataset):
         return tokens
 
     def load_item(self, sample):
-        text = str(sample['text'])
+        text = str(sample["text"])
         tseq = self.get_text(text, sample["language"])
-        audiopath = sample['audio_file']
+        audiopath = sample["audio_file"]
         wav = load_audio(audiopath, self.sample_rate)
         if text is None or len(text.strip()) == 0:
             raise ValueError
@@ -136,7 +141,9 @@ class XTTSDataset(torch.utils.data.Dataset):
             raise ValueError
 
         # get a slice from GT to condition the model
-        cond, cond_len, cond_idxs = get_prompt_slice(audiopath, self.max_conditioning_length, self.min_conditioning_length, self.sample_rate, self.is_eval)
+        cond, cond_len, cond_idxs = get_prompt_slice(
+            audiopath, self.max_conditioning_length, self.min_conditioning_length, self.sample_rate, self.is_eval
+        )
 
         return tseq, audiopath, wav, cond, cond_len, cond_idxs
 
@@ -151,7 +158,7 @@ class XTTSDataset(torch.utils.data.Dataset):
             index = random.randint(0, len(self.samples[lang]) - 1)
             sample = self.samples[lang][index]
             # a unique id for each sampel to deal with fails
-            sample_id = lang+"_"+str(index)
+            sample_id = lang + "_" + str(index)
 
         # ignore samples that we already know that is not valid ones
         if sample_id in self.failed_samples:
@@ -170,26 +177,30 @@ class XTTSDataset(torch.utils.data.Dataset):
             return self[1]
 
         # check if the audio and text size limits and if it out of the limits, added it failed_samples
-        if wav is None or \
-            (self.max_wav_len is not None and wav.shape[-1] > self.max_wav_len) or \
-            (self.max_text_len is not None and tseq.shape[0] > self.max_text_len):
+        if (
+            wav is None
+            or (self.max_wav_len is not None and wav.shape[-1] > self.max_wav_len)
+            or (self.max_text_len is not None and tseq.shape[0] > self.max_text_len)
+        ):
             # Basically, this audio file is nonexistent or too long to be supported by the dataset.
             # It's hard to handle this situation properly. Best bet is to return the a random valid token and skew the dataset somewhat as a result.
             if self.debug_failures and wav is not None and tseq is not None:
-                print(f"error loading {sample['audio_file']}: ranges are out of bounds; {wav.shape[-1]}, {tseq.shape[0]}")
+                print(
+                    f"error loading {sample['audio_file']}: ranges are out of bounds; {wav.shape[-1]}, {tseq.shape[0]}"
+                )
             self.failed_samples.add(sample_id)
             return self[1]
 
         res = {
             # 'real_text': text,
-            'text': tseq,
-            'text_lengths': torch.tensor(tseq.shape[0], dtype=torch.long),
-            'wav': wav,
-            'wav_lengths': torch.tensor(wav.shape[-1], dtype=torch.long),
-            'filenames': audiopath,
-            'conditioning': cond.unsqueeze(1),
-            'cond_lens': torch.tensor(cond_len, dtype=torch.long),
-            'cond_idxs': torch.tensor(cond_idxs),
+            "text": tseq,
+            "text_lengths": torch.tensor(tseq.shape[0], dtype=torch.long),
+            "wav": wav,
+            "wav_lengths": torch.tensor(wav.shape[-1], dtype=torch.long),
+            "filenames": audiopath,
+            "conditioning": cond.unsqueeze(1),
+            "cond_lens": torch.tensor(cond_len, dtype=torch.long),
+            "cond_idxs": torch.tensor(cond_idxs),
         }
         return res
 
@@ -223,8 +234,8 @@ class XTTSDataset(torch.utils.data.Dataset):
         for i in range(B):
             text = batch["text"][i]
             text_padded[i, : batch["text_lengths"][i]] = torch.IntTensor(text)
-            wav = batch['wav'][i]
-            wav_padded[i, :, :batch["wav_lengths"][i]] = torch.FloatTensor(wav)
+            wav = batch["wav"][i]
+            wav_padded[i, :, : batch["wav_lengths"][i]] = torch.FloatTensor(wav)
 
         batch["wav"] = wav_padded
         batch["padded_text"] = text_padded

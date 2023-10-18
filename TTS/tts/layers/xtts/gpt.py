@@ -197,6 +197,7 @@ class GPT(nn.Module):
 
         if use_deepspeed:
             import deepspeed
+
             self.ds_engine = deepspeed.init_inference(
                 model=self.gpt_inference.half(),  # Transformers models
                 mp_size=1,  # Number of GPU
@@ -451,7 +452,7 @@ class GPT(nn.Module):
             if cond_idxs is not None:
                 for idx, r in enumerate(cond_idxs.squeeze()):
                     l = r[1] - r[0]
-                    attn_mask_cond[idx, l : ] = 0.0
+                    attn_mask_cond[idx, l:] = 0.0
 
             for idx, l in enumerate(text_lengths):
                 attn_mask_text[idx, l + 1 :] = 0.0
@@ -498,7 +499,7 @@ class GPT(nn.Module):
 
         for idx, l in enumerate(code_lengths):
             mel_targets[idx, l + 1 :] = -1
-                
+
         # check if stoptoken is in every row of mel_targets
         assert (mel_targets == self.stop_audio_token).sum() >= mel_targets.shape[
             0

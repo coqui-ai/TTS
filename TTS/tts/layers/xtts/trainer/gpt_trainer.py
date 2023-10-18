@@ -1,37 +1,30 @@
 import os
+import sys
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-import torchaudio
 import torch.nn as nn
+import torchaudio
+from coqpit import Coqpit
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-import sys 
-
-
-from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer
-from TTS.tts.layers.xtts.gpt import GPT
-from TTS.tts.models.xtts import XttsArgs, XttsAudioConfig, Xtts
-from TTS.tts.configs.xtts_config import XttsConfig
-
-from TTS.tts.models.base_tts import BaseTTS
-from coqpit import Coqpit
-
-from TTS.tts.configs.tortoise_config import TortoiseConfig
-from TTS.tts.layers.tortoise.arch_utils import TorchMelSpectrogram
-
-from TTS.tts.datasets.dataset import TTSDataset
-
 from trainer.torch import DistributedSampler
 from trainer.trainer_utils import get_optimizer, get_scheduler
 
+from TTS.tts.configs.tortoise_config import TortoiseConfig
+from TTS.tts.configs.xtts_config import XttsConfig
+from TTS.tts.datasets.dataset import TTSDataset
+from TTS.tts.layers.tortoise.arch_utils import TorchMelSpectrogram
+from TTS.tts.layers.xtts.dvae import DiscreteVAE
+from TTS.tts.layers.xtts.gpt import GPT
+from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
+from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer
 from TTS.tts.layers.xtts.trainer.dataset import XTTSDataset
+from TTS.tts.models.base_tts import BaseTTS
+from TTS.tts.models.xtts import Xtts, XttsArgs, XttsAudioConfig
 from TTS.utils.io import load_fsspec
 
-from TTS.tts.layers.xtts.dvae import DiscreteVAE
-
-from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 
 @dataclass
 class GPTTrainerConfig(XttsConfig):
@@ -41,6 +34,7 @@ class GPTTrainerConfig(XttsConfig):
     weighted_loss_attrs: dict = field(default_factory=lambda: {})
     weighted_loss_multipliers: dict = field(default_factory=lambda: {})
     test_sentences: List[dict] = field(default_factory=lambda: [])
+
 
 @dataclass
 class XttsAudioConfig(XttsAudioConfig):
@@ -55,26 +49,27 @@ class GPTArgs(XttsArgs):
     gpt_loss_mel_ce_weight: float = 1.0
     gpt_num_audio_tokens: int = 8194
     debug_loading_failures: bool = False
-    max_wav_length: int = 255995 # ~11.6 seconds
+    max_wav_length: int = 255995  # ~11.6 seconds
     max_text_length: int = 200
     tokenizer_file: str = ""
     mel_norm_file: str = "https://coqui.gateway.scarf.sh/v0.14.0_models/mel_norms.pth"
     dvae_checkpoint: str = ""
     xtts_checkpoint: str = ""
-    gpt_checkpoint: str = "" # if defined it will replace the gpt weights on xtts model
-    vocoder: str = "" # overide vocoder key on the config to avoid json write issues
+    gpt_checkpoint: str = ""  # if defined it will replace the gpt weights on xtts model
+    vocoder: str = ""  # overide vocoder key on the config to avoid json write issues
 
 
 def callback_clearml_load_save(operation_type, model_info):
     # return None means skip the file upload/log, returning model_info will continue with the log/upload
     # you can also change the upload destination file name model_info.upload_filename or check the local file size with Path(model_info.local_model_path).stat().st_size
-    assert operation_type in ('load', 'save')
+    assert operation_type in ("load", "save")
     # print(operation_type, model_info.__dict__)
 
-    if "similarities.pth" in model_info.__dict__['local_model_path']:
+    if "similarities.pth" in model_info.__dict__["local_model_path"]:
         return None
 
     return model_info
+
 
 class GPTTrainer(BaseTTS):
     def __init__(self, config: Coqpit):
@@ -89,18 +84,17 @@ class GPTTrainer(BaseTTS):
         self.xtts.tokenizer = VoiceBpeTokenizer(self.args.tokenizer_file)
         # init gpt encoder and hifigan decoder
         self.xtts.init_models()
-        # set mel stats
-        if self.args.mel_norm_file:
-            self.xtts.mel_stats = load_fsspec(self.args.mel_norm_file)
 
         if self.args.xtts_checkpoint:
             self.load_checkpoint(self.config, self.args.xtts_checkpoint, eval=False, strict=False)
 
+        # set mel stats
+        if self.args.mel_norm_file:
+            self.xtts.mel_stats = load_fsspec(self.args.mel_norm_file)
+
         # load GPT if available
         if self.args.gpt_checkpoint:
-            gpt_checkpoint = torch.load(
-                self.args.gpt_checkpoint, map_location=torch.device("cpu")
-            )
+            gpt_checkpoint = torch.load(self.args.gpt_checkpoint, map_location=torch.device("cpu"))
             # deal with coqui Trainer exported model
             if "model" in gpt_checkpoint.keys() and "config" in gpt_checkpoint.keys():
                 print("Coqui Trainer checkpoint detected! Converting it!")
@@ -113,10 +107,15 @@ class GPTTrainer(BaseTTS):
                         del gpt_checkpoint[key]
                     else:
                         del gpt_checkpoint[key]
-    
+
             # edit checkpoint if the number of tokens is changed to ensures the better transfer learning possible
-            if "text_embedding.weight" in gpt_checkpoint and gpt_checkpoint["text_embedding.weight"].shape != self.xtts.gpt.text_embedding.weight.shape:
-                num_new_tokens = self.xtts.gpt.text_embedding.weight.shape[0] - gpt_checkpoint["text_embedding.weight"].shape[0]
+            if (
+                "text_embedding.weight" in gpt_checkpoint
+                and gpt_checkpoint["text_embedding.weight"].shape != self.xtts.gpt.text_embedding.weight.shape
+            ):
+                num_new_tokens = (
+                    self.xtts.gpt.text_embedding.weight.shape[0] - gpt_checkpoint["text_embedding.weight"].shape[0]
+                )
                 print(f" > Loading checkpoint with {num_new_tokens} additional tokens.")
 
                 # add new tokens to a linear layer (text_head)
@@ -156,7 +155,7 @@ class GPTTrainer(BaseTTS):
             mel_fmin=0,
             mel_fmax=8000,
             n_mel_channels=80,
-            mel_norm_file=self.args.mel_norm_file
+            mel_norm_file=self.args.mel_norm_file,
         )
 
         # Load DVAE
@@ -175,17 +174,18 @@ class GPTTrainer(BaseTTS):
 
         self.dvae.eval()
         if self.args.dvae_checkpoint:
-            dvae_checkpoint = torch.load(
-                self.args.dvae_checkpoint, map_location=torch.device("cpu")
-            )
+            dvae_checkpoint = torch.load(self.args.dvae_checkpoint, map_location=torch.device("cpu"))
             self.dvae.load_state_dict(dvae_checkpoint, strict=False)
             print(">> DVAE weights restored from:", self.args.dvae_checkpoint)
         else:
-            raise RuntimeError("You need to specify config.model_args.dvae_checkpoint path to be able to train the GPT decoder!!")
+            raise RuntimeError(
+                "You need to specify config.model_args.dvae_checkpoint path to be able to train the GPT decoder!!"
+            )
 
         # Mel spectrogram extractor for DVAE
-        self.torch_mel_spectrogram_dvae = TorchMelSpectrogram(mel_norm_file=self.args.mel_norm_file, sampling_rate=config.audio.dvae_sample_rate)
-
+        self.torch_mel_spectrogram_dvae = TorchMelSpectrogram(
+            mel_norm_file=self.args.mel_norm_file, sampling_rate=config.audio.dvae_sample_rate
+        )
 
     @property
     def device(self):
@@ -203,7 +203,9 @@ class GPTTrainer(BaseTTS):
         cond_mels: MEL float tensor, (b, num_samples, 80,t_m)
         cond_idxs: cond start and end indexs, (b, 2)
         """
-        losses = self.xtts.gpt(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_idxs=cond_idxs)
+        losses = self.xtts.gpt(
+            text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_idxs=cond_idxs
+        )
         return losses
 
     @torch.no_grad()
@@ -215,7 +217,9 @@ class GPTTrainer(BaseTTS):
             test_audios = {}
             print(" | > Synthesizing test sentences.")
             for idx, s_info in enumerate(self.config.test_sentences):
-                wav = self.xtts.synthesize(s_info["text"], self.config, s_info["speaker_wav"], s_info["language"])["wav"]
+                wav = self.xtts.synthesize(
+                    s_info["text"], self.config, s_info["speaker_wav"], s_info["language"], gpt_cond_len=3
+                )["wav"]
                 test_audios["{}-audio".format(idx)] = wav
 
             # delete inference layers
@@ -231,7 +235,7 @@ class GPTTrainer(BaseTTS):
     def format_batch(self, batch: Dict) -> Dict:
         return batch
 
-    @torch.no_grad() # torch no grad to avoid gradients from the pre-processing and DVAE codes extraction
+    @torch.no_grad()  # torch no grad to avoid gradients from the pre-processing and DVAE codes extraction
     def format_batch_on_device(self, batch):
         """Compute spectrograms on the device."""
         batch["text_lengths"] = batch["text_lengths"]
@@ -241,10 +245,10 @@ class GPTTrainer(BaseTTS):
         # compute conditioning mel specs
         # transform waves from torch.Size([B, num_cond_samples, 1, T] to torch.Size([B * num_cond_samples, 1, T] because if is faster than iterate the tensor
         B, num_cond_samples, C, T = batch["conditioning"].size()
-        conditioning_reshaped = batch["conditioning"].view(B*num_cond_samples, C, T)
+        conditioning_reshaped = batch["conditioning"].view(B * num_cond_samples, C, T)
         paired_conditioning_mel = self.torch_mel_spectrogram_style_encoder(conditioning_reshaped)
         # transform torch.Size([B * num_cond_samples, n_mel, T_mel]) in torch.Size([B, num_cond_samples, n_mel, T_mel])
-        n_mel = self.torch_mel_spectrogram_style_encoder.n_mel_channels # paired_conditioning_mel.size(1)
+        n_mel = self.torch_mel_spectrogram_style_encoder.n_mel_channels  # paired_conditioning_mel.size(1)
         T_mel = paired_conditioning_mel.size(2)
         paired_conditioning_mel = paired_conditioning_mel.view(B, num_cond_samples, n_mel, T_mel)
         # get the conditioning embeddings
@@ -300,6 +304,7 @@ class GPTTrainer(BaseTTS):
         # ignore similarities.pth on clearml save/upload
         if self.config.dashboard_logger.lower() == "clearml":
             from clearml.binding.frameworks import WeightsFileHandler
+
             WeightsFileHandler.add_pre_callback(callback_clearml_load_save)
 
     @torch.no_grad()
@@ -367,16 +372,23 @@ class GPTTrainer(BaseTTS):
         return loader
 
     def get_optimizer(self) -> List:
-        """Initiate and return the optimizer based on the config parameters.
-        """
+        """Initiate and return the optimizer based on the config parameters."""
         # ToDo: deal with multi GPU training
         if self.config.optimizer_wd_only_on_weights:
-            # parameters to only GPT model  
+            # parameters to only GPT model
             net = self.xtts.gpt
 
             # normalizations
-            norm_modules = (nn.BatchNorm2d, nn.InstanceNorm2d, nn.BatchNorm1d, nn.InstanceNorm1d,
-                            nn.BatchNorm3d, nn.InstanceNorm3d, nn.GroupNorm, nn.LayerNorm)
+            norm_modules = (
+                nn.BatchNorm2d,
+                nn.InstanceNorm2d,
+                nn.BatchNorm1d,
+                nn.InstanceNorm1d,
+                nn.BatchNorm3d,
+                nn.InstanceNorm3d,
+                nn.GroupNorm,
+                nn.LayerNorm,
+            )
             # nn.Embedding
             emb_modules = (nn.Embedding, nn.EmbeddingBag)
 
@@ -390,7 +402,7 @@ class GPTTrainer(BaseTTS):
                     v.is_norm = isinstance(m, norm_modules)
                     v.is_emb = isinstance(m, emb_modules)
 
-                    fpn = '%s.%s' % (mn, k) if mn else k  # full param name
+                    fpn = "%s.%s" % (mn, k) if mn else k  # full param name
                     all_param_names.add(fpn)
                     param_map[fpn] = v
                     if v.is_bias or v.is_norm or v.is_emb:
@@ -402,26 +414,26 @@ class GPTTrainer(BaseTTS):
             params_weights = [param_map[k] for k in params_names_weights]
 
             groups = [
-                { 'params': params_weights, 'weight_decay': self.config.optimizer_params["weight_decay"]},
-                { 'params': params_notweights, 'weight_decay': 0}
+                {"params": params_weights, "weight_decay": self.config.optimizer_params["weight_decay"]},
+                {"params": params_notweights, "weight_decay": 0},
             ]
             # torch.optim.AdamW
             opt = get_optimizer(
-                    self.config.optimizer,
-                    self.config.optimizer_params,
-                    self.config.lr,
-                    parameters=groups,
-                )
+                self.config.optimizer,
+                self.config.optimizer_params,
+                self.config.lr,
+                parameters=groups,
+            )
             opt._group_names = [params_names_weights, params_names_notweights]
             return opt
 
         return get_optimizer(
-                self.config.optimizer,
-                self.config.optimizer_params,
-                self.config.lr,
-                # optimize only for the GPT model
-                parameters=self.xtts.gpt.parameters(),
-            )
+            self.config.optimizer,
+            self.config.optimizer_params,
+            self.config.lr,
+            # optimize only for the GPT model
+            parameters=self.xtts.gpt.parameters(),
+        )
 
     def get_scheduler(self, optimizer) -> List:
         """Set the scheduler for the optimizer.
@@ -461,4 +473,3 @@ class GPTTrainer(BaseTTS):
                 Defaults to None.
         """
         return GPTTrainer(config)
-    
