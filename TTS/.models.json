@@ -15,6 +15,19 @@
                     "contact": "info@coqui.ai",
                     "tos_required": true
                 },
+                "xtts_v1.1": {
+                    "description": "XTTS-v1.1 by Coqui with 14 languages, cross-language voice cloning and reference leak fixed.",
+                    "hf_url": [
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/vocab.json"
+                    ],
+                    "default_vocoder": null,
+                    "commit": "f3a77399",
+                    "license": "CPML",
+                    "contact": "info@coqui.ai",
+                    "tos_required": true
+                },
                 "your_tts": {
                     "description": "Your TTS model accompanying the paper https://arxiv.org/abs/2112.02418",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.1_models/tts_models--multilingual--multi-dataset--your_tts.zip",
