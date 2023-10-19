@@ -5,9 +5,9 @@
                 "xtts_v1": {
                     "description": "XTTS-v1 by Coqui with 13 languages and cross-language voice cloning.",
                     "hf_url": [
-                        "https://huggingface.co/coqui/XTTS-v1/resolve/hifigan/model.pth",
-                        "https://huggingface.co/coqui/XTTS-v1/resolve/hifigan/config.json",
-                        "https://huggingface.co/coqui/XTTS-v1/resolve/hifigan/vocab.json"
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/vocab.json",
                     ],
                     "default_vocoder": null,
                     "commit": "e5140314",
