@@ -23,7 +23,7 @@
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/vocab.json"
                     ],
                     "default_vocoder": null,
-                    "commit": "f3a77399",
+                    "commit": "82910a63",
                     "license": "CPML",
                     "contact": "info@coqui.ai",
                     "tos_required": true
