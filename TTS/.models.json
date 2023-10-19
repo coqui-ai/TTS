@@ -7,7 +7,7 @@
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/model.pth",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/config.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/vocab.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/vocab.json"
                     ],
                     "default_vocoder": null,
                     "commit": "e5140314",
