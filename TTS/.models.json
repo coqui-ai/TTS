@@ -20,8 +20,10 @@
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/model.pth",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/config.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/vocab.json"
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/vocab.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/hash.md5"
                     ],
+                    "model_hash": "10163afc541dc86801b33d1f3217b456",
                     "default_vocoder": null,
                     "commit": "82910a63",
                     "license": "CPML",
