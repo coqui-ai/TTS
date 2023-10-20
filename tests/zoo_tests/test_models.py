@@ -15,6 +15,7 @@ MODELS_WITH_SEP_TESTS = [
     "tts_models/multilingual/multi-dataset/bark",
     "tts_models/en/multi-dataset/tortoise-v2",
     "tts_models/multilingual/multi-dataset/xtts_v1",
+    "tts_models/multilingual/multi-dataset/xtts_v1.1",
 ]
 
 
@@ -93,6 +94,7 @@ def test_xtts():
             f'--speaker_wav "{speaker_wav}" --language_idx "en"'
         )
 
+
 def test_xtts_streaming():
     """Testing the new inference_stream method"""
     from TTS.tts.configs.xtts_config import XttsConfig
@@ -121,6 +123,7 @@ def test_xtts_streaming():
             assert chunk.shape[-1] > 5000
         wav_chuncks.append(chunk)
     assert len(wav_chuncks) > 1
+
 
 def test_tortoise():
     output_path = os.path.join(get_tests_output_path(), "output.wav")
