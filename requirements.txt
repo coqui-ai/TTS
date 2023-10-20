@@ -17,6 +17,7 @@ pyyaml>=6.0
 fsspec>=2023.6.0 # <= 2023.9.1 makes aux tests fail
 aiohttp>=3.8.1
 packaging>=23.1
+mutagen==1.47.0
 # deps for examples
 flask>=2.0.1
 # deps for inference
