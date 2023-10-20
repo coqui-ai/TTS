@@ -821,8 +821,6 @@ class Xtts(BaseTTS):
             self.tokenizer = VoiceBpeTokenizer(vocab_file=vocab_path)
 
         self.init_models()
-        if eval:
-            self.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache)
 
         checkpoint = load_fsspec(model_path, map_location=torch.device("cpu"))["model"]
         ignore_keys = ["diffusion_decoder", "vocoder"] if self.args.use_hifigan or self.args.use_ne_hifigan else []
@@ -831,7 +829,14 @@ class Xtts(BaseTTS):
         for key in list(checkpoint.keys()):
             if key.split(".")[0] in ignore_keys:
                 del checkpoint[key]
-        self.load_state_dict(checkpoint, strict=strict)
+
+        # deal with v1 and v1.1. V1 has the init_gpt_for_inference keys, v1.1 do not
+        try:
+            self.load_state_dict(checkpoint, strict=strict)
+        except:
+            if eval:
+                self.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache)
+            self.load_state_dict(checkpoint, strict=strict)
 
         if eval:
             if hasattr(self, "hifigan_decoder"): self.hifigan_decoder.eval()
