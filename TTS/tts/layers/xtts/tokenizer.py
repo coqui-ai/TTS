@@ -509,3 +509,6 @@ class VoiceBpeTokenizer:
 
     def __len__(self):
         return self.tokenizer.get_vocab_size()
+
+    def get_number_tokens(self):
+        return max(self.tokenizer.get_vocab().values()) + 1

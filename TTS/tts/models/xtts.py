@@ -312,7 +312,7 @@ class Xtts(BaseTTS):
     def init_models(self):
         """Initialize the models. We do it here since we need to load the tokenizer first."""
         if self.tokenizer.tokenizer is not None:
-            self.args.gpt_number_text_tokens = max(self.tokenizer.tokenizer.get_vocab().values()) + 1
+            self.args.gpt_number_text_tokens = self.tokenizer.get_number_tokens()
             self.args.gpt_start_text_token = self.tokenizer.tokenizer.token_to_id("[START]")
             self.args.gpt_stop_text_token = self.tokenizer.tokenizer.token_to_id("[STOP]")
 
