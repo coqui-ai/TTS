@@ -78,13 +78,13 @@ class XttsConfig(BaseTTSConfig):
     )
 
     # inference params
-    temperature: float = 0.2
+    temperature: float = 0.85
     length_penalty: float = 1.0
     repetition_penalty: float = 2.0
     top_k: int = 50
-    top_p: float = 0.8
+    top_p: float = 0.85
     cond_free_k: float = 2.0
     diffusion_temperature: float = 1.0
-    num_gpt_outputs: int = 16
+    num_gpt_outputs: int = 1
     decoder_iterations: int = 30
     decoder_sampler: str = "ddim"
