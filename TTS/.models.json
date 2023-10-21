@@ -18,12 +18,12 @@
                 "xtts_v1.1": {
                     "description": "XTTS-v1.1 by Coqui with 14 languages, cross-language voice cloning and reference leak fixed.",
                     "hf_url": [
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/model.pth",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/config.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/vocab.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1/hash.md5"
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/vocab.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/hash.md5"
                     ],
-                    "model_hash": "10163afc541dc86801b33d1f3217b456",
+                    "model_hash": "ae9e4b39e095fd5728fe7f7931ec66ad",
                     "default_vocoder": null,
                     "commit": "82910a63",
                     "license": "CPML",
