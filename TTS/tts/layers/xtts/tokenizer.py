@@ -483,10 +483,13 @@ class VoiceBpeTokenizer:
             if lang == "zh-cn":
                 txt = chinese_transliterate(txt)
         elif lang == "ja":
+            assert txt[:4] == "[ja]", "Japanese speech should start with the [ja] token."
+            txt = txt[4:]
             if self.katsu is None:
                 import cutlet
                 self.katsu = cutlet.Cutlet()
             txt = japanese_cleaners(txt, self.katsu)
+            txt = "[ja]" + txt
         else:
             raise NotImplementedError()
         return txt
