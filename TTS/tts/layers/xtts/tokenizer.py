@@ -6,7 +6,6 @@ import torch
 from tokenizers import Tokenizer
 
 import pypinyin
-import cutlet
 from num2words import num2words
 from TTS.tts.layers.xtts.zh_num2words import TextNorm as zh_num2words
 
