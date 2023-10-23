@@ -775,10 +775,10 @@ class Xtts(BaseTTS):
                 yield wav_chunk
 
     def forward(self):
-        raise NotImplementedError("XTTS Training is not implemented")
+        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
 
     def eval_step(self):
-        raise NotImplementedError("XTTS Training is not implemented")
+        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
 
     @staticmethod
     def init_from_config(config: "XttsConfig", **kwargs):  # pylint: disable=unused-argument
@@ -860,5 +860,4 @@ class Xtts(BaseTTS):
             self.gpt.eval()
 
     def train_step(self):
-        # ToDo: Add here the link of documentation for XTTS FT
-        raise NotImplementedError("XTTS Training is not implemented")
+        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
