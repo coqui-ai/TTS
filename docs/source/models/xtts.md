@@ -136,8 +136,7 @@ torchaudio.save("xtts_streaming.wav", wav.squeeze().unsqueeze(0).cpu(), 24000)
 
 ### Training
 
-A recipe for `XTTS_v1.1` GPT encoder training using `LJSpeech` dataset looks like below. Let's be creative and call this `train_gpt_xtts.py`.
-
+A recipe for `XTTS_v1.1` GPT encoder training using `LJSpeech` dataset is available at https://github.com/coqui-ai/TTS/tree/dev/recipes/ljspeech/xtts_v1/train_gpt_xtts.py and it looks like below. 
     ```{literalinclude} ../../recipes/ljspeech/xtts_v1/train_gpt_xtts.py
     ```
 
