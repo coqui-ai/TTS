@@ -794,6 +794,8 @@ class Xtts(BaseTTS):
         ignore_keys = ["diffusion_decoder", "vocoder"] if self.args.use_hifigan or self.args.use_ne_hifigan else []
         ignore_keys += [] if self.args.use_hifigan else ["hifigan_decoder"]
         ignore_keys += [] if self.args.use_ne_hifigan else ["ne_hifigan_decoder"]
+        # remove xtts gpt trainer extra keys
+        ignore_keys += ["torch_mel_spectrogram_style_encoder", "torch_mel_spectrogram_dvae", "dvae"]
         for key in list(checkpoint.keys()):
             # check if it is from the coqui Trainer if so convert it
             if key.startswith("xtts."):
