@@ -885,10 +885,10 @@ def init_stream_support():
 
 
 if __name__ == "__main__":
-    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
+    from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    PreTrainedModel.generate = NewGenerationMixin.generate
-    PreTrainedModel.sample_stream = NewGenerationMixin.sample_stream
+    init_stream_support()
+
     model = AutoModelForCausalLM.from_pretrained("bigscience/bloom-560m", torch_dtype=torch.float16)
 
     tokenizer = AutoTokenizer.from_pretrained("bigscience/bloom-560m")
