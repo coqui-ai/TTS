@@ -489,8 +489,6 @@ class NumberSystem(object):
     中文数字系统
     """
 
-    pass
-
 
 class MathSymbol(object):
     """

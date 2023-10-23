@@ -10,7 +10,6 @@ try:
     from TTS.tts.utils.text.phonemizers.ja_jp_phonemizer import JA_JP_Phonemizer
 except ImportError:
     JA_JP_Phonemizer = None
-    pass
 
 PHONEMIZERS = {b.name(): b for b in (ESpeak, Gruut, KO_KR_Phonemizer, BN_Phonemizer)}
 
