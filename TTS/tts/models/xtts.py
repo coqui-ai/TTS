@@ -610,7 +610,7 @@ class Xtts(BaseTTS):
         decoder="hifigan",
         **hf_generate_kwargs,
     ):
-        text = f"[{language}]{text.strip().lower()}"
+        text = text.strip().lower()
         text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
 
         assert (
@@ -722,7 +722,7 @@ class Xtts(BaseTTS):
         assert hasattr(
             self, "hifigan_decoder"
         ), "`inference_stream` requires use_hifigan to be set to true in the config.model_args, diffusion is too slow to stream."
-        text = f"[{language}]{text.strip().lower()}"
+        text = text.strip().lower()
         text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
 
         fake_inputs = self.gpt.compute_embeddings(
