@@ -430,7 +430,7 @@ class Xtts(BaseTTS):
     ):
         speaker_embedding = None
         diffusion_cond_latents = None
-        if self.args.use_hifigan:
+        if self.args.use_hifigan or self.args.use_ne_hifigan:
             speaker_embedding = self.get_speaker_embedding(audio_path)
         else:
             diffusion_cond_latents = self.get_diffusion_cond_latents(audio_path)
