@@ -93,6 +93,7 @@ def main():
         gpt_num_audio_tokens=8194,
         gpt_start_audio_token=8192,
         gpt_stop_audio_token=8193,
+        use_ne_hifigan=True, # if it is true it will keep the non-enhanced keys on the output checkpoint
     )
     # define audio config
     audio_config = XttsAudioConfig(
