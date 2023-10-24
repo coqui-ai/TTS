@@ -9,6 +9,8 @@ import numpy as np
 import requests
 from scipy.io import wavfile
 
+from TTS.utils.audio.numpy_transforms import save_wav
+
 
 class Speaker(object):
     """Convert dict to object."""
@@ -288,6 +290,7 @@ class CS_API:
         speaker_id=None,
         emotion=None,
         speed=1.0,
+        pipe_out=None,
         language=None,
         file_path: str = None,
     ) -> str:
@@ -300,6 +303,7 @@ class CS_API:
             speaker_id (str): Speaker ID. If None, the speaker name is used.
             emotion (str): Emotion of the speaker. One of "Neutral", "Happy", "Sad", "Angry", "Dull".
             speed (float): Speed of the speech. 1.0 is normal speed.
+            pipe_out (BytesIO, optional): Flag to stdout the generated TTS wav file for shell pipe.
             language (str): Language of the text. If None, the default language of the speaker is used. Language is only
                 supported by `XTTS-multilang` model. Currently supports en, de, es, fr, it, pt, pl. Defaults to "en".
             file_path (str): Path to save the file. If None, a temporary file is created.
@@ -307,7 +311,7 @@ class CS_API:
         if file_path is None:
             file_path = tempfile.mktemp(".wav")
         wav, sr = self.tts(text, speaker_name, speaker_id, emotion, speed, language)
-        wavfile.write(file_path, sr, wav)
+        save_wav(wav=wav, path=file_path, sample_rate=sr, pipe_out=pipe_out)
         return file_path
 
 

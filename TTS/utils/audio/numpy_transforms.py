@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import Tuple
 
 import librosa
@@ -427,16 +428,24 @@ def load_wav(*, filename: str, sample_rate: int = None, resample: bool = False, 
     return x
 
 
-def save_wav(*, wav: np.ndarray, path: str, sample_rate: int = None, **kwargs) -> None:
+def save_wav(*, wav: np.ndarray, path: str, sample_rate: int = None, pipe_out = None, **kwargs) -> None:
     """Save float waveform to a file using Scipy.
 
     Args:
         wav (np.ndarray): Waveform with float values in range [-1, 1] to save.
         path (str): Path to a output file.
         sr (int, optional): Sampling rate used for saving to the file. Defaults to None.
+        pipe_out (BytesIO, optional): Flag to stdout the generated TTS wav file for shell pipe.
     """
     wav_norm = wav * (32767 / max(0.01, np.max(np.abs(wav))))
-    scipy.io.wavfile.write(path, sample_rate, wav_norm.astype(np.int16))
+
+    wav_norm = wav_norm.astype(np.int16)
+    if pipe_out:
+        wav_buffer = BytesIO()
+        scipy.io.wavfile.write(wav_buffer, sample_rate, wav_norm)
+        wav_buffer.seek(0)
+        pipe_out.buffer.write(wav_buffer.read())
+    scipy.io.wavfile.write(path, sample_rate, wav_norm)
 
 
 def mulaw_encode(*, wav: np.ndarray, mulaw_qc: int, **kwargs) -> np.ndarray:

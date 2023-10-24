@@ -5,12 +5,27 @@
                 "xtts_v1": {
                     "description": "XTTS-v1 by Coqui with 13 languages and cross-language voice cloning.",
                     "hf_url": [
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/model.pth",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/config.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/vocab.json"
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/vocab.json"
                     ],
                     "default_vocoder": null,
-                    "commit": "e9a1953e",
+                    "commit": "e5140314",
+                    "license": "CPML",
+                    "contact": "info@coqui.ai",
+                    "tos_required": true
+                },
+                "xtts_v1.1": {
+                    "description": "XTTS-v1.1 by Coqui with 14 languages, cross-language voice cloning and reference leak fixed.",
+                    "hf_url": [
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/vocab.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/hash.md5"
+                    ],
+                    "model_hash": "ae9e4b39e095fd5728fe7f7931ec66ad",
+                    "default_vocoder": null,
+                    "commit": "82910a63",
                     "license": "CPML",
                     "contact": "info@coqui.ai",
                     "tos_required": true
@@ -728,6 +743,18 @@
                     "license": "Apache 2.0"
                 }
             }
+        },
+        "be": {
+            "common-voice": {
+                "glow-tts":{
+                    "description": "Belarusian GlowTTS model created by @alex73 (Github).",
+                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.16.6/tts_models--be--common-voice--glow-tts.zip",
+                    "default_vocoder": "vocoder_models/be/common-voice/hifigan",
+                    "commit": "c0aabb85",
+                    "license": "CC-BY-SA 4.0",
+                    "contact": "alex73mail@gmail.com"
+                }
+            }
         }
     },
     "vocoder_models": {
@@ -877,6 +904,17 @@
                     "author": "Fatih Akademi",
                     "license": "MIT",
                     "commit": null
+                }
+            }
+        },
+        "be": {
+            "common-voice": {
+                "hifigan": {
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.16.6/vocoder_models--be--common-voice--hifigan.zip",
+                    "description": "Belarusian HiFiGAN model created by @alex73 (Github).",
+                    "author": "@alex73",
+                    "license": "CC-BY-SA 4.0",
+                    "commit": "c0aabb85"
                 }
             }
         }
