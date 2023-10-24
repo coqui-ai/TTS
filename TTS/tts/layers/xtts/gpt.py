@@ -450,7 +450,7 @@ class GPT(nn.Module):
             )
 
             if cond_idxs is not None:
-                for idx, r in enumerate(cond_idxs.squeeze()):
+                for idx, r in enumerate(cond_idxs):
                     l = r[1] - r[0]
                     attn_mask_cond[idx, l:] = 0.0
 
