@@ -99,6 +99,7 @@ def test_xtts_streaming():
     """Testing the new inference_stream method"""
     from TTS.tts.configs.xtts_config import XttsConfig
     from TTS.tts.models.xtts import Xtts
+
     speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
     model_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v1")
     config = XttsConfig()
@@ -115,7 +116,7 @@ def test_xtts_streaming():
         "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
         "en",
         gpt_cond_latent,
-        speaker_embedding
+        speaker_embedding,
     )
     wav_chuncks = []
     for i, chunk in enumerate(chunks):

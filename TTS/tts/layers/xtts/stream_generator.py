@@ -1,26 +1,27 @@
 # Adapted from: https://github.com/LowinLi/transformers-stream-generator
 
+import copy
+import inspect
+import random
+import warnings
+from typing import Callable, List, Optional, Union
+
+import numpy as np
+import torch
+import torch.distributed as dist
+from torch import nn
 from transformers import (
+    BeamSearchScorer,
+    ConstrainedBeamSearchScorer,
+    DisjunctiveConstraint,
     GenerationConfig,
     GenerationMixin,
     LogitsProcessorList,
-    StoppingCriteriaList,
-    DisjunctiveConstraint,
-    BeamSearchScorer,
     PhrasalConstraint,
-    ConstrainedBeamSearchScorer,
     PreTrainedModel,
+    StoppingCriteriaList,
 )
-import numpy as np
-import random
-import warnings
-import inspect
 from transformers.generation.utils import GenerateOutput, SampleOutput, logger
-import torch
-from typing import Callable, List, Optional, Union
-from torch import nn
-import torch.distributed as dist
-import copy
 
 
 def setup_seed(seed):
@@ -48,9 +49,7 @@ class NewGenerationMixin(GenerationMixin):
         generation_config: Optional[StreamGenerationConfig] = None,
         logits_processor: Optional[LogitsProcessorList] = None,
         stopping_criteria: Optional[StoppingCriteriaList] = None,
-        prefix_allowed_tokens_fn: Optional[
-            Callable[[int, torch.Tensor], List[int]]
-        ] = None,
+        prefix_allowed_tokens_fn: Optional[Callable[[int, torch.Tensor], List[int]]] = None,
         synced_gpus: Optional[bool] = False,
         seed=0,
         **kwargs,
@@ -125,7 +124,7 @@ class NewGenerationMixin(GenerationMixin):
                     - [`~generation.BeamSearchEncoderDecoderOutput`],
                     - [`~generation.BeamSampleEncoderDecoderOutput`]
         """
-        #setup_seed(seed)
+        # setup_seed(seed)
         # 1. Handle `generation_config` and kwargs that might update it, and validate the `.generate()` call
         self._validate_model_class()
 
@@ -134,9 +133,7 @@ class NewGenerationMixin(GenerationMixin):
             # legacy: users may modify the model configuration to control generation -- update the generation config
             # model attribute accordingly, if it was created from the model config
             if self.generation_config._from_model_config:
-                new_generation_config = StreamGenerationConfig.from_model_config(
-                    self.config
-                )
+                new_generation_config = StreamGenerationConfig.from_model_config(self.config)
                 if new_generation_config != self.generation_config:
                     warnings.warn(
                         "You have modified the pretrained model configuration to control generation. This is a"
@@ -148,25 +145,14 @@ class NewGenerationMixin(GenerationMixin):
             generation_config = self.generation_config
 
         generation_config = copy.deepcopy(generation_config)
-        model_kwargs = generation_config.update(
-            **kwargs
-        )  # All unused kwargs must be model kwargs
+        model_kwargs = generation_config.update(**kwargs)  # All unused kwargs must be model kwargs
         # self._validate_model_kwargs(model_kwargs.copy())
 
         # 2. Set generation parameters if not already defined
-        logits_processor = (
-            logits_processor if logits_processor is not None else LogitsProcessorList()
-        )
-        stopping_criteria = (
-            stopping_criteria
-            if stopping_criteria is not None
-            else StoppingCriteriaList()
-        )
+        logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
+        stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
 
-        if (
-            generation_config.pad_token_id is None
-            and generation_config.eos_token_id is not None
-        ):
+        if generation_config.pad_token_id is None and generation_config.eos_token_id is not None:
             if model_kwargs.get("attention_mask", None) is None:
                 logger.warning(
                     "The attention mask and the pad token id were not set. As a consequence, you may observe "
@@ -175,9 +161,7 @@ class NewGenerationMixin(GenerationMixin):
             eos_token_id = generation_config.eos_token_id
             if isinstance(eos_token_id, list):
                 eos_token_id = eos_token_id[0]
-            logger.warning(
-                f"Setting `pad_token_id` to `eos_token_id`:{eos_token_id} for open-end generation."
-            )
+            logger.warning(f"Setting `pad_token_id` to `eos_token_id`:{eos_token_id} for open-end generation.")
             generation_config.pad_token_id = eos_token_id
 
         # 3. Define model inputs
@@ -195,19 +179,11 @@ class NewGenerationMixin(GenerationMixin):
         model_kwargs["output_hidden_states"] = generation_config.output_hidden_states
         model_kwargs["use_cache"] = generation_config.use_cache
 
-        accepts_attention_mask = "attention_mask" in set(
-            inspect.signature(self.forward).parameters.keys()
-        )
+        accepts_attention_mask = "attention_mask" in set(inspect.signature(self.forward).parameters.keys())
         requires_attention_mask = "encoder_outputs" not in model_kwargs
 
-        if (
-            model_kwargs.get("attention_mask", None) is None
-            and requires_attention_mask
-            and accepts_attention_mask
-        ):
-            model_kwargs[
-                "attention_mask"
-            ] = self._prepare_attention_mask_for_generation(
+        if model_kwargs.get("attention_mask", None) is None and requires_attention_mask and accepts_attention_mask:
+            model_kwargs["attention_mask"] = self._prepare_attention_mask_for_generation(
                 inputs_tensor,
                 generation_config.pad_token_id,
                 generation_config.eos_token_id,
@@ -217,8 +193,7 @@ class NewGenerationMixin(GenerationMixin):
         if not self.config.is_encoder_decoder:
             if (
                 generation_config.pad_token_id is not None
-                and torch.sum(inputs_tensor[:, -1] == generation_config.pad_token_id)
-                > 0
+                and torch.sum(inputs_tensor[:, -1] == generation_config.pad_token_id) > 0
             ):
                 logger.warning(
                     "A decoder-only architecture is being used, but right-padding was detected! For correct "
@@ -247,10 +222,7 @@ class NewGenerationMixin(GenerationMixin):
 
         # 6. Prepare `max_length` depending on other stopping criteria.
         input_ids_seq_length = input_ids.shape[-1]
-        has_default_max_length = (
-            kwargs.get("max_length") is None
-            and generation_config.max_length is not None
-        )
+        has_default_max_length = kwargs.get("max_length") is None and generation_config.max_length is not None
         if has_default_max_length and generation_config.max_new_tokens is None:
             warnings.warn(
                 "Neither `max_length` nor `max_new_tokens` has been set, `max_length` will default to"
@@ -260,12 +232,8 @@ class NewGenerationMixin(GenerationMixin):
                 UserWarning,
             )
         elif has_default_max_length and generation_config.max_new_tokens is not None:
-            generation_config.max_length = (
-                generation_config.max_new_tokens + input_ids_seq_length
-            )
-        elif (
-            not has_default_max_length and generation_config.max_new_tokens is not None
-        ):
+            generation_config.max_length = generation_config.max_new_tokens + input_ids_seq_length
+        elif not has_default_max_length and generation_config.max_new_tokens is not None:
             raise ValueError(
                 "Both `max_new_tokens` and `max_length` have been set but they serve the same purpose -- setting a"
                 " limit to the generated output length. Remove one of those arguments. Please refer to the"
@@ -273,18 +241,13 @@ class NewGenerationMixin(GenerationMixin):
                 "(https://huggingface.co/docs/transformers/main/en/main_classes/text_generation)"
             )
 
-        if (
-            generation_config.min_length is not None
-            and generation_config.min_length > generation_config.max_length
-        ):
+        if generation_config.min_length is not None and generation_config.min_length > generation_config.max_length:
             raise ValueError(
                 f"Unfeasible length constraints: the minimum length ({generation_config.min_length}) is larger than"
                 f" the maximum length ({generation_config.max_length})"
             )
         if input_ids_seq_length >= generation_config.max_length:
-            input_ids_string = (
-                "decoder_input_ids" if self.config.is_encoder_decoder else "input_ids"
-            )
+            input_ids_string = "decoder_input_ids" if self.config.is_encoder_decoder else "input_ids"
             logger.warning(
                 f"Input length of {input_ids_string} is {input_ids_seq_length}, but `max_length` is set to"
                 f" {generation_config.max_length}. This can lead to unexpected behavior. You should consider"
@@ -293,8 +256,7 @@ class NewGenerationMixin(GenerationMixin):
 
         # 7. determine generation mode
         is_constraint_gen_mode = (
-            generation_config.constraints is not None
-            or generation_config.force_words_ids is not None
+            generation_config.constraints is not None or generation_config.force_words_ids is not None
         )
 
         is_contrastive_search_gen_mode = (
@@ -349,9 +311,7 @@ class NewGenerationMixin(GenerationMixin):
         )
 
         if generation_config.num_beam_groups > generation_config.num_beams:
-            raise ValueError(
-                "`num_beam_groups` has to be smaller or equal to `num_beams`"
-            )
+            raise ValueError("`num_beam_groups` has to be smaller or equal to `num_beams`")
         if is_group_beam_gen_mode and generation_config.do_sample is True:
             raise ValueError(
                 "Diverse beam search cannot be used in sampling mode. Make sure that `do_sample` is set to `False`."
@@ -474,14 +434,10 @@ class NewGenerationMixin(GenerationMixin):
             )
         elif is_beam_gen_mode:
             if generation_config.num_return_sequences > generation_config.num_beams:
-                raise ValueError(
-                    "`num_return_sequences` has to be smaller or equal to `num_beams`."
-                )
+                raise ValueError("`num_return_sequences` has to be smaller or equal to `num_beams`.")
 
             if stopping_criteria.max_length is None:
-                raise ValueError(
-                    "`max_length` needs to be a stopping_criteria for now."
-                )
+                raise ValueError("`max_length` needs to be a stopping_criteria for now.")
 
             # 11. prepare beam search scorer
             beam_scorer = BeamSearchScorer(
@@ -518,9 +474,7 @@ class NewGenerationMixin(GenerationMixin):
             logits_warper = self._get_logits_warper(generation_config)
 
             if stopping_criteria.max_length is None:
-                raise ValueError(
-                    "`max_length` needs to be a stopping_criteria for now."
-                )
+                raise ValueError("`max_length` needs to be a stopping_criteria for now.")
             # 12. prepare beam search scorer
             beam_scorer = BeamSearchScorer(
                 batch_size=batch_size * generation_config.num_return_sequences,
@@ -533,8 +487,7 @@ class NewGenerationMixin(GenerationMixin):
             # 13. interleave input_ids with `num_beams` additional sequences per batch
             input_ids, model_kwargs = self._expand_inputs_for_generation(
                 input_ids=input_ids,
-                expand_size=generation_config.num_beams
-                * generation_config.num_return_sequences,
+                expand_size=generation_config.num_beams * generation_config.num_return_sequences,
                 is_encoder_decoder=self.config.is_encoder_decoder,
                 **model_kwargs,
             )
@@ -556,27 +509,17 @@ class NewGenerationMixin(GenerationMixin):
 
         elif is_group_beam_gen_mode:
             if generation_config.num_return_sequences > generation_config.num_beams:
-                raise ValueError(
-                    "`num_return_sequences` has to be smaller or equal to `num_beams`."
-                )
+                raise ValueError("`num_return_sequences` has to be smaller or equal to `num_beams`.")
 
             if generation_config.num_beams % generation_config.num_beam_groups != 0:
-                raise ValueError(
-                    "`num_beams` should be divisible by `num_beam_groups` for group beam search."
-                )
+                raise ValueError("`num_beams` should be divisible by `num_beam_groups` for group beam search.")
 
             if stopping_criteria.max_length is None:
-                raise ValueError(
-                    "`max_length` needs to be a stopping_criteria for now."
-                )
+                raise ValueError("`max_length` needs to be a stopping_criteria for now.")
 
-            has_default_typical_p = (
-                kwargs.get("typical_p") is None and generation_config.typical_p == 1.0
-            )
+            has_default_typical_p = kwargs.get("typical_p") is None and generation_config.typical_p == 1.0
             if not has_default_typical_p:
-                raise ValueError(
-                    "Decoder argument `typical_p` is not supported with beam groups."
-                )
+                raise ValueError("Decoder argument `typical_p` is not supported with beam groups.")
 
             # 11. prepare beam search scorer
             beam_scorer = BeamSearchScorer(
@@ -612,32 +555,19 @@ class NewGenerationMixin(GenerationMixin):
 
         elif is_constraint_gen_mode:
             if generation_config.num_return_sequences > generation_config.num_beams:
-                raise ValueError(
-                    "`num_return_sequences` has to be smaller or equal to `num_beams`."
-                )
+                raise ValueError("`num_return_sequences` has to be smaller or equal to `num_beams`.")
 
             if stopping_criteria.max_length is None:
-                raise ValueError(
-                    "`max_length` needs to be a stopping_criteria for now."
-                )
+                raise ValueError("`max_length` needs to be a stopping_criteria for now.")
 
             if generation_config.num_beams <= 1:
-                raise ValueError(
-                    "`num_beams` needs to be greater than 1 for constrained generation."
-                )
+                raise ValueError("`num_beams` needs to be greater than 1 for constrained generation.")
 
             if generation_config.do_sample:
-                raise ValueError(
-                    "`do_sample` needs to be false for constrained generation."
-                )
+                raise ValueError("`do_sample` needs to be false for constrained generation.")
 
-            if (
-                generation_config.num_beam_groups is not None
-                and generation_config.num_beam_groups > 1
-            ):
-                raise ValueError(
-                    "`num_beam_groups` not supported yet for constrained generation."
-                )
+            if generation_config.num_beam_groups is not None and generation_config.num_beam_groups > 1:
+                raise ValueError("`num_beam_groups` not supported yet for constrained generation.")
 
             final_constraints = []
             if generation_config.constraints is not None:
@@ -661,15 +591,10 @@ class NewGenerationMixin(GenerationMixin):
                     if isinstance(word_ids[0], list):
                         if not isinstance(word_ids, list) or len(word_ids) == 0:
                             typeerror()
-                        if any(
-                            not isinstance(token_ids, list) for token_ids in word_ids
-                        ):
+                        if any(not isinstance(token_ids, list) for token_ids in word_ids):
                             typeerror()
                         if any(
-                            any(
-                                (not isinstance(token_id, int) or token_id < 0)
-                                for token_id in token_ids
-                            )
+                            any((not isinstance(token_id, int) or token_id < 0) for token_id in token_ids)
                             for token_ids in word_ids
                         ):
                             typeerror()
@@ -678,10 +603,7 @@ class NewGenerationMixin(GenerationMixin):
                     else:
                         if not isinstance(word_ids, list) or len(word_ids) == 0:
                             typeerror()
-                        if any(
-                            (not isinstance(token_id, int) or token_id < 0)
-                            for token_id in word_ids
-                        ):
+                        if any((not isinstance(token_id, int) or token_id < 0) for token_id in word_ids):
                             typeerror()
 
                         constraint = PhrasalConstraint(word_ids)
@@ -843,52 +765,26 @@ class NewGenerationMixin(GenerationMixin):
         ['Today is a beautiful day, and a wonderful day.\n\nI was lucky enough to meet the']
         ```"""
         # init values
-        logits_processor = (
-            logits_processor if logits_processor is not None else LogitsProcessorList()
-        )
-        stopping_criteria = (
-            stopping_criteria
-            if stopping_criteria is not None
-            else StoppingCriteriaList()
-        )
+        logits_processor = logits_processor if logits_processor is not None else LogitsProcessorList()
+        stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
         if max_length is not None:
             warnings.warn(
                 "`max_length` is deprecated in this function, use"
                 " `stopping_criteria=StoppingCriteriaList(MaxLengthCriteria(max_length=max_length))` instead.",
                 UserWarning,
             )
-            stopping_criteria = validate_stopping_criteria(
-                stopping_criteria, max_length
-            )
-        logits_warper = (
-            logits_warper if logits_warper is not None else LogitsProcessorList()
-        )
-        pad_token_id = (
-            pad_token_id
-            if pad_token_id is not None
-            else self.generation_config.pad_token_id
-        )
-        eos_token_id = (
-            eos_token_id
-            if eos_token_id is not None
-            else self.generation_config.eos_token_id
-        )
+            stopping_criteria = validate_stopping_criteria(stopping_criteria, max_length)
+        logits_warper = logits_warper if logits_warper is not None else LogitsProcessorList()
+        pad_token_id = pad_token_id if pad_token_id is not None else self.generation_config.pad_token_id
+        eos_token_id = eos_token_id if eos_token_id is not None else self.generation_config.eos_token_id
         if isinstance(eos_token_id, int):
             eos_token_id = [eos_token_id]
-        output_scores = (
-            output_scores
-            if output_scores is not None
-            else self.generation_config.output_scores
-        )
+        output_scores = output_scores if output_scores is not None else self.generation_config.output_scores
         output_attentions = (
-            output_attentions
-            if output_attentions is not None
-            else self.generation_config.output_attentions
+            output_attentions if output_attentions is not None else self.generation_config.output_attentions
         )
         output_hidden_states = (
-            output_hidden_states
-            if output_hidden_states is not None
-            else self.generation_config.output_hidden_states
+            output_hidden_states if output_hidden_states is not None else self.generation_config.output_hidden_states
         )
         return_dict_in_generate = (
             return_dict_in_generate
@@ -898,15 +794,9 @@ class NewGenerationMixin(GenerationMixin):
 
         # init attention / hidden states / scores tuples
         scores = () if (return_dict_in_generate and output_scores) else None
-        decoder_attentions = (
-            () if (return_dict_in_generate and output_attentions) else None
-        )
-        cross_attentions = (
-            () if (return_dict_in_generate and output_attentions) else None
-        )
-        decoder_hidden_states = (
-            () if (return_dict_in_generate and output_hidden_states) else None
-        )
+        decoder_attentions = () if (return_dict_in_generate and output_attentions) else None
+        cross_attentions = () if (return_dict_in_generate and output_attentions) else None
+        decoder_hidden_states = () if (return_dict_in_generate and output_hidden_states) else None
 
         # keep track of which sequences are already finished
         unfinished_sequences = input_ids.new(input_ids.shape[0]).fill_(1)
@@ -917,9 +807,7 @@ class NewGenerationMixin(GenerationMixin):
             if synced_gpus:
                 # Under synced_gpus the `forward` call must continue until all gpus complete their sequence.
                 # The following logic allows an early break if all peers finished generating their sequence
-                this_peer_finished_flag = torch.tensor(
-                    0.0 if this_peer_finished else 1.0
-                ).to(input_ids.device)
+                this_peer_finished_flag = torch.tensor(0.0 if this_peer_finished else 1.0).to(input_ids.device)
                 # send 0.0 if we finished, 1.0 otherwise
                 dist.all_reduce(this_peer_finished_flag, op=dist.ReduceOp.SUM)
                 # did all peers finish? the reduced sum will be 0.0 then
@@ -952,18 +840,14 @@ class NewGenerationMixin(GenerationMixin):
                     scores += (next_token_scores,)
                 if output_attentions:
                     decoder_attentions += (
-                        (outputs.decoder_attentions,)
-                        if self.config.is_encoder_decoder
-                        else (outputs.attentions,)
+                        (outputs.decoder_attentions,) if self.config.is_encoder_decoder else (outputs.attentions,)
                     )
                     if self.config.is_encoder_decoder:
                         cross_attentions += (outputs.cross_attentions,)
 
                 if output_hidden_states:
                     decoder_hidden_states += (
-                        (outputs.decoder_hidden_states,)
-                        if self.config.is_encoder_decoder
-                        else (outputs.hidden_states,)
+                        (outputs.decoder_hidden_states,) if self.config.is_encoder_decoder else (outputs.hidden_states,)
                     )
 
             # sample
@@ -973,12 +857,8 @@ class NewGenerationMixin(GenerationMixin):
             # finished sentences should have their next token be a padding token
             if eos_token_id is not None:
                 if pad_token_id is None:
-                    raise ValueError(
-                        "If `eos_token_id` is defined, make sure that `pad_token_id` is defined."
-                    )
-                next_tokens = next_tokens * unfinished_sequences + pad_token_id * (
-                    1 - unfinished_sequences
-                )
+                    raise ValueError("If `eos_token_id` is defined, make sure that `pad_token_id` is defined.")
+                next_tokens = next_tokens * unfinished_sequences + pad_token_id * (1 - unfinished_sequences)
             yield next_tokens, self.final_norm(outputs.hidden_states[-1][:, -1])
             # update generated ids, model inputs, and length for next step
             input_ids = torch.cat([input_ids, next_tokens[:, None]], dim=-1)
@@ -988,9 +868,7 @@ class NewGenerationMixin(GenerationMixin):
 
             # if eos_token was found in one sentence, set sentence to finished
             if eos_token_id is not None:
-                unfinished_sequences = unfinished_sequences.mul(
-                    (sum(next_tokens != i for i in eos_token_id)).long()
-                )
+                unfinished_sequences = unfinished_sequences.mul((sum(next_tokens != i for i in eos_token_id)).long())
 
             # stop when each sentence is finished, or if we exceed the maximum length
             if unfinished_sequences.max() == 0 or stopping_criteria(input_ids, scores):
@@ -1007,22 +885,17 @@ def init_stream_support():
 
 
 if __name__ == "__main__":
-    from transformers import PreTrainedModel
-    from transformers import AutoTokenizer, AutoModelForCausalLM
+    from transformers import AutoModelForCausalLM, AutoTokenizer, PreTrainedModel
 
     PreTrainedModel.generate = NewGenerationMixin.generate
     PreTrainedModel.sample_stream = NewGenerationMixin.sample_stream
-    model = AutoModelForCausalLM.from_pretrained(
-        "bigscience/bloom-560m", torch_dtype=torch.float16
-    )
+    model = AutoModelForCausalLM.from_pretrained("bigscience/bloom-560m", torch_dtype=torch.float16)
 
     tokenizer = AutoTokenizer.from_pretrained("bigscience/bloom-560m")
     model = model.to("cuda:0")
     model = model.eval()
     prompt_text = "hello? \n"
-    input_ids = tokenizer(
-        prompt_text, return_tensors="pt", add_special_tokens=False
-    ).input_ids
+    input_ids = tokenizer(prompt_text, return_tensors="pt", add_special_tokens=False).input_ids
     input_ids = input_ids.to("cuda:0")
 
     with torch.no_grad():

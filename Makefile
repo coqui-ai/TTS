@@ -22,6 +22,9 @@ test_tts:	## run tts tests.
 test_tts2:	## run tts tests.
 	nose2 -F -v -B --with-coverage --coverage TTS tests.tts_tests2
 
+test_xtts:
+	nose2 -F -v -B --with-coverage --coverage TTS tests.xtts_tests
+
 test_aux:	## run aux tests.
 	nose2 -F -v -B --with-coverage --coverage TTS tests.aux_tests
 	./run_bash_tests.sh
