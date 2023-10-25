@@ -11,14 +11,15 @@ from TTS.tts.layers.tortoise.audio_utils import denormalize_tacotron_mel, wav_to
 from TTS.tts.layers.tortoise.diffusion_decoder import DiffusionTts
 from TTS.tts.layers.xtts.diffusion import SpacedDiffusion, get_named_beta_schedule, space_timesteps
 from TTS.tts.layers.xtts.gpt import GPT
-from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer
-from TTS.tts.layers.xtts.vocoder import UnivNetGenerator
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
+from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer
+from TTS.tts.layers.xtts.vocoder import UnivNetGenerator
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.utils.io import load_fsspec
 
 init_stream_support()
+
 
 def load_audio(audiopath, sr=22050):
     """
@@ -332,7 +333,6 @@ class Xtts(BaseTTS):
                 stop_audio_token=self.args.gpt_stop_audio_token,
             )
 
-
         if self.args.use_hifigan:
             self.hifigan_decoder = HifiDecoder(
                 input_sample_rate=self.args.input_sample_rate,
@@ -387,7 +387,7 @@ class Xtts(BaseTTS):
         audio = load_audio(audio_path)
         audio = audio[:, : 22050 * length]
         mel = wav_to_mel_cloning(audio, mel_norms=self.mel_stats.cpu())
-        cond_latent = self.gpt.get_style_emb(mel.to(self.device), sample=False)
+        cond_latent = self.gpt.get_style_emb(mel.to(self.device))
         return cond_latent.transpose(1, 2)
 
     @torch.inference_mode()
@@ -414,21 +414,20 @@ class Xtts(BaseTTS):
         return diffusion_latent
 
     @torch.inference_mode()
-    def get_speaker_embedding(
-        self,
-        audio_path
-    ):
+    def get_speaker_embedding(self, audio_path):
         audio = load_audio(audio_path, self.hifigan_decoder.speaker_encoder_audio_config["sample_rate"])
-        speaker_embedding = self.hifigan_decoder.speaker_encoder.forward(
-            audio.to(self.device), l2_norm=True
-        ).unsqueeze(-1).to(self.device)
+        speaker_embedding = (
+            self.hifigan_decoder.speaker_encoder.forward(audio.to(self.device), l2_norm=True)
+            .unsqueeze(-1)
+            .to(self.device)
+        )
         return speaker_embedding
 
     def get_conditioning_latents(
         self,
         audio_path,
         gpt_cond_len=3,
-    ):  
+    ):
         speaker_embedding = None
         diffusion_cond_latents = None
         if self.args.use_hifigan:
@@ -563,11 +562,9 @@ class Xtts(BaseTTS):
             Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
             Sample rate is 24kHz.
         """
-        (
-            gpt_cond_latent,
-            diffusion_conditioning,
-            speaker_embedding
-        ) = self.get_conditioning_latents(audio_path=ref_audio_path, gpt_cond_len=gpt_cond_len)
+        (gpt_cond_latent, diffusion_conditioning, speaker_embedding) = self.get_conditioning_latents(
+            audio_path=ref_audio_path, gpt_cond_len=gpt_cond_len
+        )
         return self.inference(
             text,
             language,
@@ -588,7 +585,7 @@ class Xtts(BaseTTS):
             decoder=decoder,
             **hf_generate_kwargs,
         )
-    
+
     @torch.inference_mode()
     def inference(
         self,
@@ -646,6 +643,7 @@ class Xtts(BaseTTS):
             expected_output_len = torch.tensor(
                 [gpt_codes.shape[-1] * self.gpt.code_stride_len], device=text_tokens.device
             )
+
             text_len = torch.tensor([text_tokens.shape[-1]], device=self.device)
             gpt_latents = self.gpt(
                 text_tokens,
@@ -666,7 +664,7 @@ class Xtts(BaseTTS):
                 if ctokens > 8:
                     gpt_latents = gpt_latents[:, :k]
                     break
-            
+
             if decoder == "hifigan":
                 assert hasattr(self, "hifigan_decoder"), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
                 wav = self.hifigan_decoder(gpt_latents, g=speaker_embedding)
@@ -721,7 +719,9 @@ class Xtts(BaseTTS):
         decoder="hifigan",
         **hf_generate_kwargs,
     ):
-        assert hasattr(self, "hifigan_decoder"), "`inference_stream` requires use_hifigan to be set to true in the config.model_args, diffusion is too slow to stream."
+        assert hasattr(
+            self, "hifigan_decoder"
+        ), "`inference_stream` requires use_hifigan to be set to true in the config.model_args, diffusion is too slow to stream."
         text = f"[{language}]{text.strip().lower()}"
         text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
 
@@ -775,10 +775,10 @@ class Xtts(BaseTTS):
                 yield wav_chunk
 
     def forward(self):
-        raise NotImplementedError("XTTS Training is not implemented")
+        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
 
     def eval_step(self):
-        raise NotImplementedError("XTTS Training is not implemented")
+        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
 
     @staticmethod
     def init_from_config(config: "XttsConfig", **kwargs):  # pylint: disable=unused-argument
@@ -789,11 +789,32 @@ class Xtts(BaseTTS):
         self.gpt.init_gpt_for_inference()
         super().eval()
 
+    def get_compatible_checkpoint_state_dict(self, model_path):
+        checkpoint = load_fsspec(model_path, map_location=torch.device("cpu"))["model"]
+        ignore_keys = ["diffusion_decoder", "vocoder"] if self.args.use_hifigan or self.args.use_ne_hifigan else []
+        ignore_keys += [] if self.args.use_hifigan else ["hifigan_decoder"]
+        ignore_keys += [] if self.args.use_ne_hifigan else ["ne_hifigan_decoder"]
+        # remove xtts gpt trainer extra keys
+        ignore_keys += ["torch_mel_spectrogram_style_encoder", "torch_mel_spectrogram_dvae", "dvae"]
+        for key in list(checkpoint.keys()):
+            # check if it is from the coqui Trainer if so convert it
+            if key.startswith("xtts."):
+                new_key = key.replace("xtts.", "")
+                checkpoint[new_key] = checkpoint[key]
+                del checkpoint[key]
+                key = new_key
+
+            # remove unused keys
+            if key.split(".")[0] in ignore_keys:
+                del checkpoint[key]
+
+        return checkpoint
+
     def load_checkpoint(
         self,
         config,
         checkpoint_dir=None,
-        checkpoint_path=None, 
+        checkpoint_path=None,
         vocab_path=None,
         eval=True,
         strict=True,
@@ -822,13 +843,7 @@ class Xtts(BaseTTS):
 
         self.init_models()
 
-        checkpoint = load_fsspec(model_path, map_location=torch.device("cpu"))["model"]
-        ignore_keys = ["diffusion_decoder", "vocoder"] if self.args.use_hifigan or self.args.use_ne_hifigan else []
-        ignore_keys += [] if self.args.use_hifigan else ["hifigan_decoder"]
-        ignore_keys += [] if self.args.use_ne_hifigan else ["ne_hifigan_decoder"]
-        for key in list(checkpoint.keys()):
-            if key.split(".")[0] in ignore_keys:
-                del checkpoint[key]
+        checkpoint = self.get_compatible_checkpoint_state_dict(model_path)
 
         # deal with v1 and v1.1. V1 has the init_gpt_for_inference keys, v1.1 do not
         try:
@@ -847,4 +862,4 @@ class Xtts(BaseTTS):
             self.gpt.eval()
 
     def train_step(self):
-        raise NotImplementedError("XTTS Training is not implemented")
+        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")

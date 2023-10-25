@@ -1,12 +1,11 @@
 import torch
+import torchaudio
 from torch import nn
 from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn import functional as F
 from torch.nn.utils import remove_weight_norm, weight_norm
-import torchaudio
 
 from TTS.utils.io import load_fsspec
-
 
 LRELU_SLOPE = 0.1
 
@@ -224,9 +223,7 @@ class HifiganGenerator(torch.nn.Module):
         self.cond_in_each_up_layer = cond_in_each_up_layer
 
         # initial upsampling layers
-        self.conv_pre = weight_norm(
-            Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3)
-        )
+        self.conv_pre = weight_norm(Conv1d(in_channels, upsample_initial_channel, 7, 1, padding=3))
         resblock = ResBlock1 if resblock_type == "1" else ResBlock2
         # upsampling layers
         self.ups = nn.ModuleList()
@@ -246,14 +243,10 @@ class HifiganGenerator(torch.nn.Module):
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
             ch = upsample_initial_channel // (2 ** (i + 1))
-            for _, (k, d) in enumerate(
-                zip(resblock_kernel_sizes, resblock_dilation_sizes)
-            ):
+            for _, (k, d) in enumerate(zip(resblock_kernel_sizes, resblock_dilation_sizes)):
                 self.resblocks.append(resblock(ch, k, d))
         # post convolution layer
-        self.conv_post = weight_norm(
-            Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias)
-        )
+        self.conv_post = weight_norm(Conv1d(ch, out_channels, 7, 1, padding=3, bias=conv_post_bias))
         if cond_channels > 0:
             self.cond_layer = nn.Conv1d(cond_channels, upsample_initial_channel, 1)
 
@@ -318,9 +311,7 @@ class HifiganGenerator(torch.nn.Module):
             Tensor: [B, 1, T]
         """
         c = c.to(self.conv_pre.weight.device)
-        c = torch.nn.functional.pad(
-            c, (self.inference_padding, self.inference_padding), "replicate"
-        )
+        c = torch.nn.functional.pad(c, (self.inference_padding, self.inference_padding), "replicate")
         return self.forward(c)
 
     def remove_weight_norm(self):
@@ -341,6 +332,7 @@ class HifiganGenerator(torch.nn.Module):
             self.eval()
             assert not self.training
             self.remove_weight_norm()
+
 
 class SELayer(nn.Module):
     def __init__(self, channel, reduction=8):
@@ -425,10 +417,8 @@ class PreEmphasis(nn.Module):
         return torch.nn.functional.conv1d(x, self.filter).squeeze(1)
 
 
-
 class ResNetSpeakerEncoder(nn.Module):
-    """This is copied from 🐸TTS to remove it from the dependencies.
-    """
+    """This is copied from 🐸TTS to remove it from the dependencies."""
 
     # pylint: disable=W0102
     def __init__(
@@ -620,6 +610,7 @@ class ResNetSpeakerEncoder(nn.Module):
             return criterion, state["step"]
         return criterion
 
+
 class HifiDecoder(torch.nn.Module):
     def __init__(
         self,
@@ -724,9 +715,7 @@ class HifiDecoder(torch.nn.Module):
         """
         return self.forward(c, g=g)
 
-    def load_checkpoint(
-        self, checkpoint_path, eval=False
-    ):  # pylint: disable=unused-argument, redefined-builtin
+    def load_checkpoint(self, checkpoint_path, eval=False):  # pylint: disable=unused-argument, redefined-builtin
         state = load_fsspec(checkpoint_path, map_location=torch.device("cpu"))
         # remove unused keys
         state = state["model"]

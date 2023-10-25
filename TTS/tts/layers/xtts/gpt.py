@@ -197,6 +197,7 @@ class GPT(nn.Module):
 
         if use_deepspeed:
             import deepspeed
+
             self.ds_engine = deepspeed.init_inference(
                 model=self.gpt_inference.half(),  # Transformers models
                 mp_size=1,  # Number of GPU
@@ -233,6 +234,7 @@ class GPT(nn.Module):
         prompt=None,
         get_attns=False,
         return_latent=False,
+        attn_mask_cond=None,
         attn_mask_text=None,
         attn_mask_mel=None,
     ):
@@ -248,8 +250,11 @@ class GPT(nn.Module):
         if attn_mask_text is not None:
             attn_mask = torch.cat([attn_mask_text, attn_mask_mel], dim=1)
             if prompt is not None:
-                attn_mask_prompt = torch.ones(prompt.shape[0], offset, dtype=torch.bool, device=emb.device)
-                attn_mask = torch.cat([attn_mask_prompt, attn_mask], dim=1)
+                if attn_mask_cond is not None:
+                    attn_mask = torch.cat([attn_mask_cond, attn_mask], dim=1)
+                else:
+                    attn_mask_cond = torch.ones(prompt.shape[0], offset, dtype=torch.bool, device=emb.device)
+                    attn_mask = torch.cat([attn_mask_cond, attn_mask], dim=1)
 
         gpt_out = self.gpt(
             inputs_embeds=emb,
@@ -326,7 +331,7 @@ class GPT(nn.Module):
         prompt = F.pad(prompt, (0, 1), value=self.stop_prompt_token)
         return prompt
 
-    def get_style_emb(self, cond_input, cond_lens=None, cond_seg_len=None, return_latent=False, sample=True):
+    def get_style_emb(self, cond_input, return_latent=False):
         """
         cond_input: (b, 80, s) or (b, 1, 80, s)
         conds: (b, 1024, s)
@@ -335,26 +340,7 @@ class GPT(nn.Module):
         if not return_latent:
             if cond_input.ndim == 4:
                 cond_input = cond_input.squeeze(1)
-            if sample:
-                _len_secs = random.randint(2, 6)  # in secs
-                cond_seg_len = int((22050 / 1024) * _len_secs)  # in frames
-                if cond_input.shape[-1] >= cond_seg_len:
-                    new_conds = []
-                    for i in range(cond_input.shape[0]):
-                        cond_len = int(cond_lens[i] / 1024)
-                        if cond_len < cond_seg_len:
-                            start = 0
-                        else:
-                            start = random.randint(0, cond_len - cond_seg_len)
-                        cond_vec = cond_input[i, :, start : start + cond_seg_len]
-                        new_conds.append(cond_vec)
-                    conds = torch.stack(new_conds, dim=0)
-            else:
-                cond_seg_len = 5 if cond_seg_len is None else cond_seg_len  # secs
-                cond_frame_len = int((22050 / 1024) * cond_seg_len)
-                conds = cond_input[:, :, -cond_frame_len:]
-
-            conds = self.conditioning_encoder(conds)
+            conds = self.conditioning_encoder(cond_input)
         else:
             # already computed
             conds = cond_input.unsqueeze(1)
@@ -366,10 +352,9 @@ class GPT(nn.Module):
         text_lengths,
         audio_codes,
         wav_lengths,
-        cond_lens=None,
         cond_mels=None,
+        cond_idxs=None,
         cond_latents=None,
-        loss_weights=None,
         return_attentions=False,
         return_latent=False,
     ):
@@ -377,11 +362,12 @@ class GPT(nn.Module):
         Forward pass that uses both text and voice in either text conditioning mode or voice conditioning mode
         (actuated by `text_first`).
 
-        cond_mels: MEL float tensor, (b, 1, 80,s)
         text_inputs: long tensor, (b,t)
         text_lengths: long tensor, (b,)
         mel_inputs:  long tensor, (b,m)
         wav_lengths: long tensor, (b,)
+        cond_mels: MEL float tensor, (b, 1, 80,s)
+        cond_idxs: cond start and end indexs, (b, 2)
 
         If return_attentions is specified, only logits are returned.
         If return_latent is specified, loss & logits are not computed or returned. Only the predicted latents are returned.
@@ -392,6 +378,11 @@ class GPT(nn.Module):
 
         max_text_len = text_lengths.max()
         code_lengths = torch.ceil(wav_lengths / self.code_stride_len).long() + 3
+
+        if cond_idxs is not None:
+            # recompute cond idxs for mel lengths
+            for idx, l in enumerate(code_lengths):
+                cond_idxs[idx] = cond_idxs[idx] / self.code_stride_len
 
         # If len(codes) + 3 is larger than maxiumum allowed length, we truncate the codes.
         max_mel_len = code_lengths.max()
@@ -435,9 +426,16 @@ class GPT(nn.Module):
         )
 
         # Set attn_mask
+        attn_mask_cond = None
         attn_mask_text = None
         attn_mask_mel = None
         if not return_latent:
+            attn_mask_cond = torch.ones(
+                cond_mels.shape[0],
+                cond_mels.shape[-1],
+                dtype=torch.bool,
+                device=text_inputs.device,
+            )
             attn_mask_text = torch.ones(
                 text_inputs.shape[0],
                 text_inputs.shape[1],
@@ -450,6 +448,11 @@ class GPT(nn.Module):
                 dtype=torch.bool,
                 device=audio_codes.device,
             )
+
+            if cond_idxs is not None:
+                for idx, r in enumerate(cond_idxs):
+                    l = r[1] - r[0]
+                    attn_mask_cond[idx, l:] = 0.0
 
             for idx, l in enumerate(text_lengths):
                 attn_mask_text[idx, l + 1 :] = 0.0
@@ -465,7 +468,7 @@ class GPT(nn.Module):
 
         # Compute speech conditioning input
         if cond_latents is None:
-            cond_latents = self.get_style_emb(cond_mels, cond_lens).transpose(1, 2)
+            cond_latents = self.get_style_emb(cond_mels).transpose(1, 2)
 
         # Get logits
         sub = -5  # don't ask me why 😄
@@ -480,6 +483,7 @@ class GPT(nn.Module):
             prompt=cond_latents,
             get_attns=return_attentions,
             return_latent=return_latent,
+            attn_mask_cond=attn_mask_cond,
             attn_mask_text=attn_mask_text,
             attn_mask_mel=attn_mask_mel,
         )
@@ -500,6 +504,13 @@ class GPT(nn.Module):
         assert (mel_targets == self.stop_audio_token).sum() >= mel_targets.shape[
             0
         ], f" ❗ mel_targets does not contain stop token ({self.stop_audio_token}) in every row."
+
+        # ignore the loss for the segment used for conditioning
+        # coin flip for the segment to be ignored
+        if cond_idxs is not None:
+            cond_start = cond_idxs[idx, 0]
+            cond_end = cond_idxs[idx, 1]
+            mel_targets[idx, cond_start:cond_end] = -1
 
         # Compute losses
         loss_text = F.cross_entropy(
@@ -548,7 +559,7 @@ class GPT(nn.Module):
             bos_token_id=self.start_audio_token,
             pad_token_id=self.stop_audio_token,
             eos_token_id=self.stop_audio_token,
-            max_length=self.max_mel_tokens * 2 + self.max_prompt_tokens + self.max_text_tokens,
+            max_length=self.max_mel_tokens,
             **hf_generate_kwargs,
         )
         if "return_dict_in_generate" in hf_generate_kwargs:
@@ -561,7 +572,7 @@ class GPT(nn.Module):
             bos_token_id=self.start_audio_token,
             pad_token_id=self.stop_audio_token,
             eos_token_id=self.stop_audio_token,
-            max_length=self.max_mel_tokens * 2 + self.max_prompt_tokens + self.max_text_tokens,
+            max_length=self.max_mel_tokens,
             do_stream=True,
             **hf_generate_kwargs,
         )
