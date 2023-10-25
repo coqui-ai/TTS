@@ -52,6 +52,7 @@ class GPTArgs(XttsArgs):
     xtts_checkpoint: str = ""
     gpt_checkpoint: str = ""  # if defined it will replace the gpt weights on xtts model
     vocoder: str = ""  # overide vocoder key on the config to avoid json write issues
+    use_masking_gt_as_prompt: bool = True
 
 
 def callback_clearml_load_save(operation_type, model_info):
