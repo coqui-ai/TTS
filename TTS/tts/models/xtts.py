@@ -22,30 +22,6 @@ from TTS.utils.io import load_fsspec
 init_stream_support()
 
 
-def load_audio(audiopath, sr=22050):
-    """
-    Load an audio file from disk and resample it to the specified sampling rate.
-
-    Args:
-        audiopath (str): Path to the audio file.
-        sr (int): Target sampling rate.
-
-    Returns:
-        Tensor: Audio waveform tensor with shape (1, T), where T is the number of samples.
-    """
-    audio, sampling_rate = torchaudio.load(audiopath)
-
-    if audio.shape[0] > 1:
-            audio = audio.mean(0, keepdim=True)
-
-    if sampling_rate != sr:
-        resampler = torchaudio.transforms.Resample(sampling_rate, sr)
-        audio = resampler(audio)
-
-    audio = audio.clamp_(-1, 1)
-    return audio.unsqueeze(0)
-
-
 def wav_to_mel_cloning(
     wav, mel_norms_file="../experiments/clips_mel_norms.pth", mel_norms=None, device=torch.device("cpu")
 ):
