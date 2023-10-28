@@ -71,7 +71,7 @@ class TTS(nn.Module):
         self.voice_converter = None
         self.csapi = None
         self.cs_api_model = cs_api_model
-        self.model_name = None
+        self.model_name = ""
 
         if gpu:
             warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
