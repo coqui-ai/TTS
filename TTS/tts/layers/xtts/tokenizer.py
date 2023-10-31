@@ -538,8 +538,45 @@ class VoiceBpeTokenizer:
         self.katsu = None
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
+    
+    def check_input_length(self, txt, lang):
+        char_limits = {
+            "en": 250,
+            "de": 198,
+            "fr": 226,
+            "es": 206,
+            "it": 177,
+            "pt": 166,
+            "pl": 148,
+            "zh-cn": 65,
+            "ar": 115,
+            "cs": 145,
+            "ru": 139,
+            "nl": 162,
+            "tr": 182,
+            "ja": 60
+        }
+        limit = char_limits.get(lang, 250)
+
+        if len(txt) > limit:
+            print(f"[!] Warning: The text length exceeds the character limit of {limit} for language '{lang}', this might cause truncated audio.")
+
+    def preprocess_text(self, txt, lang):
+        if lang in ["en", "es", "fr", "de", "pt", "it", "pl", "ar", "cs", "ru", "nl", "tr", "zh-cn"]:
+            txt = multilingual_cleaners(txt, lang)
+            if lang == "zh-cn":
+                txt = chinese_transliterate(txt)
+        elif lang == "ja":
+            if self.katsu is None:
+                import cutlet
+                self.katsu = cutlet.Cutlet()
+            txt = japanese_cleaners(txt, self.katsu)
+        else:
+            raise NotImplementedError()
+        return txt
 
     def encode(self, txt, lang):
+        self.check_input_length(txt, lang)
         txt = self.preprocess_text(txt, lang)
         txt = f"[{lang}]{txt}"
         txt = txt.replace(" ", "[SPACE]")
