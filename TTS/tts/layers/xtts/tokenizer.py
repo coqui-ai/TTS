@@ -1,12 +1,12 @@
+import json
 import os
 import re
-import json
-
-import torch
-from tokenizers import Tokenizer
 
 import pypinyin
+import torch
 from num2words import num2words
+from tokenizers import Tokenizer
+
 from TTS.tts.layers.xtts.zh_num2words import TextNorm as zh_num2words
 
 _whitespace_re = re.compile(r"\s+")
@@ -87,7 +87,7 @@ _abbreviations = {
     "it": [
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
-            #("sig.ra", "signora"),
+            # ("sig.ra", "signora"),
             ("sig", "signore"),
             ("dr", "dottore"),
             ("st", "santo"),
@@ -121,49 +121,51 @@ _abbreviations = {
     "cs": [
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
-            ("dr", "doktor"),     # doctor
-            ("ing", "inženýr"),   # engineer
-            ("p", "pan"), # Could also map to pani for woman but no easy way to do it
+            ("dr", "doktor"),  # doctor
+            ("ing", "inženýr"),  # engineer
+            ("p", "pan"),  # Could also map to pani for woman but no easy way to do it
             # Other abbreviations would be specialized and not as common.
         ]
     ],
     "ru": [
         (re.compile("\\b%s\\b" % x[0], re.IGNORECASE), x[1])
         for x in [
-            ("г-жа", "госпожа"),    # Mrs.
-            ("г-н", "господин"),    # Mr.
-            ("д-р", "доктор"),      # doctor
+            ("г-жа", "госпожа"),  # Mrs.
+            ("г-н", "господин"),  # Mr.
+            ("д-р", "доктор"),  # doctor
             # Other abbreviations are less common or specialized.
         ]
     ],
     "nl": [
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
-            ("dhr", "de heer"),   # Mr.
+            ("dhr", "de heer"),  # Mr.
             ("mevr", "mevrouw"),  # Mrs.
-            ("dr", "dokter"),     # doctor
-            ("jhr", "jonkheer"), # young lord or nobleman
+            ("dr", "dokter"),  # doctor
+            ("jhr", "jonkheer"),  # young lord or nobleman
             # Dutch uses more abbreviations, but these are the most common ones.
         ]
     ],
     "tr": [
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
-            ("b", "bay"),   # Mr.
+            ("b", "bay"),  # Mr.
             ("byk", "büyük"),  # büyük
-            ("dr", "doktor"),     # doctor
+            ("dr", "doktor"),  # doctor
             # Add other Turkish abbreviations here if needed.
         ]
     ],
 }
 
-def expand_abbreviations_multilingual(text, lang='en'):
+
+def expand_abbreviations_multilingual(text, lang="en"):
     for regex, replacement in _abbreviations[lang]:
         text = re.sub(regex, replacement, text)
     return text
 
+
 _symbols_multilingual = {
-    'en': [
+    "en": [
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
             ("&", " and "),
@@ -172,10 +174,10 @@ _symbols_multilingual = {
             ("#", " hash "),
             ("$", " dollar "),
             ("£", " pound "),
-            ("°", " degree ")
+            ("°", " degree "),
         ]
     ],
-    'es': [
+    "es": [
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
             ("&", " y "),
@@ -184,10 +186,10 @@ _symbols_multilingual = {
             ("#", " numeral "),
             ("$", " dolar "),
             ("£", " libra "),
-            ("°", " grados ")
+            ("°", " grados "),
         ]
     ],
-    'fr': [
+    "fr": [
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
             ("&", " et "),
@@ -196,10 +198,10 @@ _symbols_multilingual = {
             ("#", " dièse "),
             ("$", " dollar "),
             ("£", " livre "),
-            ("°", " degrés ")
+            ("°", " degrés "),
         ]
     ],
-    'de': [
+    "de": [
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
             ("&", " und "),
@@ -208,10 +210,10 @@ _symbols_multilingual = {
             ("#", " raute "),
             ("$", " dollar "),
             ("£", " pfund "),
-            ("°", " grad ")
+            ("°", " grad "),
         ]
     ],
-    'pt': [
+    "pt": [
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
             ("&", " e "),
@@ -220,10 +222,10 @@ _symbols_multilingual = {
             ("#", " cardinal "),
             ("$", " dólar "),
             ("£", " libra "),
-            ("°", " graus ")
+            ("°", " graus "),
         ]
     ],
-    'it': [
+    "it": [
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
             ("&", " e "),
@@ -232,10 +234,10 @@ _symbols_multilingual = {
             ("#", " cancelletto "),
             ("$", " dollaro "),
             ("£", " sterlina "),
-            ("°", " gradi ")
+            ("°", " gradi "),
         ]
     ],
-    'pl': [
+    "pl": [
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
             ("&", " i "),
@@ -244,7 +246,7 @@ _symbols_multilingual = {
             ("#", " krzyżyk "),
             ("$", " dolar "),
             ("£", " funt "),
-            ("°", " stopnie ")
+            ("°", " stopnie "),
         ]
     ],
     "ar": [
@@ -257,7 +259,7 @@ _symbols_multilingual = {
             ("#", " رقم "),
             ("$", " دولار "),
             ("£", " جنيه "),
-            ("°", " درجة ")
+            ("°", " درجة "),
         ]
     ],
     "zh-cn": [
@@ -270,7 +272,7 @@ _symbols_multilingual = {
             ("#", " 号 "),
             ("$", " 美元 "),
             ("£", " 英镑 "),
-            ("°", " 度 ")
+            ("°", " 度 "),
         ]
     ],
     "cs": [
@@ -283,7 +285,7 @@ _symbols_multilingual = {
             ("#", " křížek "),
             ("$", " dolar "),
             ("£", " libra "),
-            ("°", " stupně ")
+            ("°", " stupně "),
         ]
     ],
     "ru": [
@@ -296,7 +298,7 @@ _symbols_multilingual = {
             ("#", " номер "),
             ("$", " доллар "),
             ("£", " фунт "),
-            ("°", " градус ")
+            ("°", " градус "),
         ]
     ],
     "nl": [
@@ -309,7 +311,7 @@ _symbols_multilingual = {
             ("#", " hekje "),
             ("$", " dollar "),
             ("£", " pond "),
-            ("°", " graden ")
+            ("°", " graden "),
         ]
     ],
     "tr": [
@@ -321,15 +323,16 @@ _symbols_multilingual = {
             ("#", " diyez "),
             ("$", " dolar "),
             ("£", " sterlin "),
-            ("°", " derece ")
+            ("°", " derece "),
         ]
     ],
 }
 
-def expand_symbols_multilingual(text, lang='en'):
+
+def expand_symbols_multilingual(text, lang="en"):
     for regex, replacement in _symbols_multilingual[lang]:
         text = re.sub(regex, replacement, text)
-        text = text.replace('  ', ' ')  # Ensure there are no double spaces
+        text = text.replace("  ", " ")  # Ensure there are no double spaces
     return text.strip()
 
 
@@ -342,21 +345,22 @@ _ordinal_re = {
     "it": re.compile(r"([0-9]+)(º|°|ª|o|a|i|e)"),
     "pl": re.compile(r"([0-9]+)(º|ª|st|nd|rd|th)"),
     "ar": re.compile(r"([0-9]+)(ون|ين|ث|ر|ى)"),
-    "cs": re.compile(r"([0-9]+)\.(?=\s|$)"), # In Czech, a dot is often used after the number to indicate ordinals.
+    "cs": re.compile(r"([0-9]+)\.(?=\s|$)"),  # In Czech, a dot is often used after the number to indicate ordinals.
     "ru": re.compile(r"([0-9]+)(-й|-я|-е|-ое|-ье|-го)"),
     "nl": re.compile(r"([0-9]+)(de|ste|e)"),
     "tr": re.compile(r"([0-9]+)(\.|inci|nci|uncu|üncü|\.)"),
 }
 _number_re = re.compile(r"[0-9]+")
 _currency_re = {
-    'USD': re.compile(r"((\$[0-9\.\,]*[0-9]+)|([0-9\.\,]*[0-9]+\$))"),
-    'GBP': re.compile(r"((£[0-9\.\,]*[0-9]+)|([0-9\.\,]*[0-9]+£))"),
-    'EUR': re.compile(r"(([0-9\.\,]*[0-9]+€)|((€[0-9\.\,]*[0-9]+)))")
+    "USD": re.compile(r"((\$[0-9\.\,]*[0-9]+)|([0-9\.\,]*[0-9]+\$))"),
+    "GBP": re.compile(r"((£[0-9\.\,]*[0-9]+)|([0-9\.\,]*[0-9]+£))"),
+    "EUR": re.compile(r"(([0-9\.\,]*[0-9]+€)|((€[0-9\.\,]*[0-9]+)))"),
 }
 
 _comma_number_re = re.compile(r"\b\d{1,3}(,\d{3})*(\.\d+)?\b")
 _dot_number_re = re.compile(r"\b\d{1,3}(.\d{3})*(\,\d+)?\b")
 _decimal_number_re = re.compile(r"([0-9]+[.,][0-9]+)")
+
 
 def _remove_commas(m):
     text = m.group(0)
@@ -364,19 +368,22 @@ def _remove_commas(m):
         text = text.replace(",", "")
     return text
 
+
 def _remove_dots(m):
     text = m.group(0)
     if "." in text:
         text = text.replace(".", "")
     return text
 
-def _expand_decimal_point(m, lang='en'):
+
+def _expand_decimal_point(m, lang="en"):
     amount = m.group(1).replace(",", ".")
     return num2words(float(amount), lang=lang if lang != "cs" else "cz")
 
-def _expand_currency(m, lang='en', currency='USD'):
-    amount = float((re.sub(r'[^\d.]', '', m.group(0).replace(",", "."))))
-    full_amount = num2words(amount, to='currency', currency=currency, lang=lang if lang != "cs" else "cz")
+
+def _expand_currency(m, lang="en", currency="USD"):
+    amount = float((re.sub(r"[^\d.]", "", m.group(0).replace(",", "."))))
+    full_amount = num2words(amount, to="currency", currency=currency, lang=lang if lang != "cs" else "cz")
 
     and_equivalents = {
         "en": ", ",
@@ -400,13 +407,16 @@ def _expand_currency(m, lang='en', currency='USD'):
 
     return full_amount
 
-def _expand_ordinal(m, lang='en'):
+
+def _expand_ordinal(m, lang="en"):
     return num2words(int(m.group(1)), ordinal=True, lang=lang if lang != "cs" else "cz")
 
-def _expand_number(m, lang='en'):
+
+def _expand_number(m, lang="en"):
     return num2words(int(m.group(0)), lang=lang if lang != "cs" else "cz")
 
-def expand_numbers_multilingual(text, lang='en'):
+
+def expand_numbers_multilingual(text, lang="en"):
     if lang == "zh-cn":
         text = zh_num2words()(text)
     else:
@@ -415,9 +425,9 @@ def expand_numbers_multilingual(text, lang='en'):
         else:
             text = re.sub(_dot_number_re, _remove_dots, text)
         try:
-            text = re.sub(_currency_re['GBP'], lambda m: _expand_currency(m, lang, 'GBP'), text)
-            text = re.sub(_currency_re['USD'], lambda m: _expand_currency(m, lang, 'USD'), text)
-            text = re.sub(_currency_re['EUR'], lambda m: _expand_currency(m, lang, 'EUR'), text)
+            text = re.sub(_currency_re["GBP"], lambda m: _expand_currency(m, lang, "GBP"), text)
+            text = re.sub(_currency_re["USD"], lambda m: _expand_currency(m, lang, "USD"), text)
+            text = re.sub(_currency_re["EUR"], lambda m: _expand_currency(m, lang, "EUR"), text)
         except:
             pass
         if lang != "tr":
@@ -426,15 +436,18 @@ def expand_numbers_multilingual(text, lang='en'):
         text = re.sub(_number_re, lambda m: _expand_number(m, lang), text)
     return text
 
+
 def lowercase(text):
     return text.lower()
+
 
 def collapse_whitespace(text):
     return re.sub(_whitespace_re, " ", text)
 
+
 def multilingual_cleaners(text, lang):
-    text = text.replace('"', '')
-    if lang=="tr":
+    text = text.replace('"', "")
+    if lang == "tr":
         text = text.replace("İ", "i")
         text = text.replace("Ö", "ö")
         text = text.replace("Ü", "ü")
@@ -445,19 +458,25 @@ def multilingual_cleaners(text, lang):
     text = collapse_whitespace(text)
     return text
 
+
 def basic_cleaners(text):
     """Basic pipeline that lowercases and collapses whitespace without transliteration."""
     text = lowercase(text)
     text = collapse_whitespace(text)
     return text
 
+
 def chinese_transliterate(text):
-    return "".join([p[0] for p in pypinyin.pinyin(text, style=pypinyin.Style.TONE3, heteronym=False, neutral_tone_with_five=True)])
+    return "".join(
+        p[0] for p in pypinyin.pinyin(text, style=pypinyin.Style.TONE3, heteronym=False, neutral_tone_with_five=True)
+    )
+
 
 def japanese_cleaners(text, katsu):
     text = katsu.romaji(text)
     text = lowercase(text)
     return text
+
 
 class VoiceBpeTokenizer:
     def __init__(self, vocab_file=None, preprocess=None):
@@ -485,6 +504,7 @@ class VoiceBpeTokenizer:
         elif lang == "ja":
             if self.katsu is None:
                 import cutlet
+
                 self.katsu = cutlet.Cutlet()
             txt = japanese_cleaners(txt, self.katsu)
         else:

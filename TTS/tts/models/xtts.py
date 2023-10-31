@@ -2,10 +2,10 @@ import os
 from contextlib import contextmanager
 from dataclasses import dataclass
 
+import librosa
 import torch
 import torch.nn.functional as F
 import torchaudio
-import librosa
 from coqpit import Coqpit
 
 from TTS.tts.layers.tortoise.audio_utils import denormalize_tacotron_mel, wav_to_univnet_mel
@@ -386,10 +386,12 @@ class Xtts(BaseTTS):
     @torch.inference_mode()
     def get_speaker_embedding(self, audio, sr):
         audio_16k = torchaudio.functional.resample(audio, sr, 16000)
-        return self.hifigan_decoder.speaker_encoder.forward(
-            audio_16k.to(self.device), l2_norm=True
-        ).unsqueeze(-1).to(self.device)
-    
+        return (
+            self.hifigan_decoder.speaker_encoder.forward(audio_16k.to(self.device), l2_norm=True)
+            .unsqueeze(-1)
+            .to(self.device)
+        )
+
     @torch.inference_mode()
     def get_conditioning_latents(
         self,
@@ -398,7 +400,7 @@ class Xtts(BaseTTS):
         max_ref_length=10,
         librosa_trim_db=None,
         sound_norm_refs=False,
-    ):  
+    ):
         speaker_embedding = None
         diffusion_cond_latents = None
 
@@ -647,13 +649,19 @@ class Xtts(BaseTTS):
                     break
 
             if decoder == "hifigan":
-                assert hasattr(self, "hifigan_decoder"), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
+                assert hasattr(
+                    self, "hifigan_decoder"
+                ), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
                 wav = self.hifigan_decoder(gpt_latents, g=speaker_embedding)
             elif decoder == "ne_hifigan":
-                assert hasattr(self, "ne_hifigan_decoder"), "You must enable ne_hifigan decoder to use it by setting config `use_ne_hifigan: true`"
+                assert hasattr(
+                    self, "ne_hifigan_decoder"
+                ), "You must enable ne_hifigan decoder to use it by setting config `use_ne_hifigan: true`"
                 wav = self.ne_hifigan_decoder(gpt_latents, g=speaker_embedding)
             else:
-                assert hasattr(self, "diffusion_decoder"), "You must disable hifigan decoders to use difffusion by setting config `use_ne_hifigan: false` and `use_hifigan: false`"
+                assert hasattr(
+                    self, "diffusion_decoder"
+                ), "You must disable hifigan decoders to use difffusion by setting config `use_ne_hifigan: false` and `use_hifigan: false`"
                 mel = do_spectrogram_diffusion(
                     self.diffusion_decoder,
                     diffuser,
@@ -742,10 +750,14 @@ class Xtts(BaseTTS):
             if is_end or (stream_chunk_size > 0 and len(last_tokens) >= stream_chunk_size):
                 gpt_latents = torch.cat(all_latents, dim=0)[None, :]
                 if decoder == "hifigan":
-                    assert hasattr(self, "hifigan_decoder"), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
+                    assert hasattr(
+                        self, "hifigan_decoder"
+                    ), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
                     wav_gen = self.hifigan_decoder(gpt_latents, g=speaker_embedding.to(self.device))
                 elif decoder == "ne_hifigan":
-                    assert hasattr(self, "ne_hifigan_decoder"), "You must enable ne_hifigan decoder to use it by setting config `use_ne_hifigan: true`"
+                    assert hasattr(
+                        self, "ne_hifigan_decoder"
+                    ), "You must enable ne_hifigan decoder to use it by setting config `use_ne_hifigan: true`"
                     wav_gen = self.ne_hifigan_decoder(gpt_latents, g=speaker_embedding.to(self.device))
                 else:
                     raise NotImplementedError("Diffusion for streaming inference not implemented.")
@@ -756,10 +768,14 @@ class Xtts(BaseTTS):
                 yield wav_chunk
 
     def forward(self):
-        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
+        raise NotImplementedError(
+            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
+        )
 
     def eval_step(self):
-        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
+        raise NotImplementedError(
+            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
+        )
 
     @staticmethod
     def init_from_config(config: "XttsConfig", **kwargs):  # pylint: disable=unused-argument
@@ -835,12 +851,18 @@ class Xtts(BaseTTS):
             self.load_state_dict(checkpoint, strict=strict)
 
         if eval:
-            if hasattr(self, "hifigan_decoder"): self.hifigan_decoder.eval()
-            if hasattr(self, "ne_hifigan_decoder"): self.hifigan_decoder.eval()
-            if hasattr(self, "diffusion_decoder"): self.diffusion_decoder.eval()
-            if hasattr(self, "vocoder"): self.vocoder.eval()
+            if hasattr(self, "hifigan_decoder"):
+                self.hifigan_decoder.eval()
+            if hasattr(self, "ne_hifigan_decoder"):
+                self.hifigan_decoder.eval()
+            if hasattr(self, "diffusion_decoder"):
+                self.diffusion_decoder.eval()
+            if hasattr(self, "vocoder"):
+                self.vocoder.eval()
             self.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache, use_deepspeed=use_deepspeed)
             self.gpt.eval()
 
     def train_step(self):
-        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
+        raise NotImplementedError(
+            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
+        )
