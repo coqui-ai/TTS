@@ -19,13 +19,13 @@
 # pylint: disable=too-many-locals, too-many-statements, too-many-arguments, too-many-instance-attributes
 """ voxceleb 1 & 2 """
 
+import csv
 import hashlib
 import os
 import subprocess
 import sys
 import zipfile
 
-import pandas
 import soundfile as sf
 from absl import logging
 
@@ -185,8 +185,11 @@ def convert_audio_and_make_label(input_dir, subset, output_dir, output_file):
     # Write to CSV file which contains four columns:
     # "wav_filename", "wav_length_ms", "speaker_id", "speaker_name".
     csv_file_path = os.path.join(output_dir, output_file)
-    df = pandas.DataFrame(data=files, columns=["wav_filename", "wav_length_ms", "speaker_id", "speaker_name"])
-    df.to_csv(csv_file_path, index=False, sep="\t")
+    with open(csv_file_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f, delimiter="\t")
+        writer.writerow(["wav_filename", "wav_length_ms", "speaker_id", "speaker_name"])
+        for wav_file in files:
+            writer.writerow(wav_file)
     logging.info("Successfully generated csv file {}".format(csv_file_path))
 
 

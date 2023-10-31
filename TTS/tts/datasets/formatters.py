@@ -1,3 +1,4 @@
+import csv
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -5,7 +6,6 @@ from glob import glob
 from pathlib import Path
 from typing import List
 
-import pandas as pd
 from tqdm import tqdm
 
 ########################
@@ -25,25 +25,27 @@ def cml_tts(root_path, meta_file, ignored_speakers=None):
         if len(line.split("|")) != num_cols:
             print(f" > Missing column in line {idx + 1} -> {line.strip()}")
     # load metadata
-    metadata = pd.read_csv(os.path.join(root_path, meta_file), sep="|")
-    assert all(x in metadata.columns for x in ["wav_filename", "transcript"])
-    client_id = None if "client_id" in metadata.columns else "default"
-    emotion_name = None if "emotion_name" in metadata.columns else "neutral"
+    with open(Path(root_path) / meta_file, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="|")
+        metadata = list(reader)
+    assert all(x in metadata[0] for x in ["wav_filename", "transcript"])
+    client_id = None if "client_id" in metadata[0] else "default"
+    emotion_name = None if "emotion_name" in metadata[0] else "neutral"
     items = []
     not_found_counter = 0
-    for row in metadata.itertuples():
-        if client_id is None and ignored_speakers is not None and row.client_id in ignored_speakers:
+    for row in metadata:
+        if client_id is None and ignored_speakers is not None and row["client_id"] in ignored_speakers:
             continue
-        audio_path = os.path.join(root_path, row.wav_filename)
+        audio_path = os.path.join(root_path, row["wav_filename"])
         if not os.path.exists(audio_path):
             not_found_counter += 1
             continue
         items.append(
             {
-                "text": row.transcript,
+                "text": row["transcript"],
                 "audio_file": audio_path,
-                "speaker_name": client_id if client_id is not None else row.client_id,
-                "emotion_name": emotion_name if emotion_name is not None else row.emotion_name,
+                "speaker_name": client_id if client_id is not None else row["client_id"],
+                "emotion_name": emotion_name if emotion_name is not None else row["emotion_name"],
                 "root_path": root_path,
             }
         )
@@ -63,25 +65,27 @@ def coqui(root_path, meta_file, ignored_speakers=None):
         if len(line.split("|")) != num_cols:
             print(f" > Missing column in line {idx + 1} -> {line.strip()}")
     # load metadata
-    metadata = pd.read_csv(os.path.join(root_path, meta_file), sep="|")
-    assert all(x in metadata.columns for x in ["audio_file", "text"])
-    speaker_name = None if "speaker_name" in metadata.columns else "coqui"
-    emotion_name = None if "emotion_name" in metadata.columns else "neutral"
+    with open(Path(root_path) / meta_file, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f, delimiter="|")
+        metadata = list(reader)
+    assert all(x in metadata[0] for x in ["audio_file", "text"])
+    speaker_name = None if "speaker_name" in metadata[0] else "coqui"
+    emotion_name = None if "emotion_name" in metadata[0] else "neutral"
     items = []
     not_found_counter = 0
-    for row in metadata.itertuples():
-        if speaker_name is None and ignored_speakers is not None and row.speaker_name in ignored_speakers:
+    for row in metadata:
+        if speaker_name is None and ignored_speakers is not None and row["speaker_name"] in ignored_speakers:
             continue
-        audio_path = os.path.join(root_path, row.audio_file)
+        audio_path = os.path.join(root_path, row["audio_file"])
         if not os.path.exists(audio_path):
             not_found_counter += 1
             continue
         items.append(
             {
-                "text": row.text,
+                "text": row["text"],
                 "audio_file": audio_path,
-                "speaker_name": speaker_name if speaker_name is not None else row.speaker_name,
-                "emotion_name": emotion_name if emotion_name is not None else row.emotion_name,
+                "speaker_name": speaker_name if speaker_name is not None else row["speaker_name"],
+                "emotion_name": emotion_name if emotion_name is not None else row["emotion_name"],
                 "root_path": root_path,
             }
         )
