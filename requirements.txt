@@ -22,7 +22,6 @@ flask==2.*
 pysbd==0.3.4
 # deps for notebooks
 umap-learn==0.5.*
-pandas>=1.4,<2.0
 # deps for training
 matplotlib==3.7.*
 # coqui stack
