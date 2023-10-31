@@ -40,7 +40,7 @@ def plot_results(y_hat: torch.tensor, y: torch.tensor, ap: AudioProcessor, name_
 
     Returns:
         Dict: output figures keyed by the name of the figures.
-    """ """Plot vocoder model results"""
+    """
     if name_prefix is None:
         name_prefix = ""
 
