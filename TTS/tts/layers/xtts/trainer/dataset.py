@@ -88,7 +88,7 @@ class XTTSDataset(torch.utils.data.Dataset):
         self.sample_rate = sample_rate
         self.max_wav_len = model_args.max_wav_length
         self.max_text_len = model_args.max_text_length
-        self.use_masking_gt_as_prompt = model_args.gpt_use_masking_gt_as_prompt
+        self.use_masking_gt_prompt_approach = model_args.gpt_use_masking_gt_prompt_approach
         assert self.max_wav_len is not None and self.max_text_len is not None
 
         self.samples = samples
@@ -141,7 +141,7 @@ class XTTSDataset(torch.utils.data.Dataset):
             # Ultra short clips are also useless (and can cause problems within some models).
             raise ValueError
 
-        if self.use_masking_gt_as_prompt:
+        if self.use_masking_gt_prompt_approach:
             # get a slice from GT to condition the model
             cond, _, cond_idxs = get_prompt_slice(
                 audiopath, self.max_conditioning_length, self.min_conditioning_length, self.sample_rate, self.is_eval
