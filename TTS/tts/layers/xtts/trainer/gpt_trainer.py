@@ -214,7 +214,7 @@ class GPTTrainer(BaseTTS):
             print(" | > Synthesizing test sentences.")
             for idx, s_info in enumerate(self.config.test_sentences):
                 wav = self.xtts.synthesize(
-                    s_info["text"], self.config, s_info["speaker_wav"], s_info["language"], gpt_cond_len=3
+                    s_info["text"], self.config, s_info["speaker_wav"], s_info["language"], gpt_cond_len=3, decoder="ne_hifigan"
                 )["wav"]
                 test_audios["{}-audio".format(idx)] = wav
 

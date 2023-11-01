@@ -596,6 +596,10 @@ class Xtts(BaseTTS):
         text = text.strip().lower()
         text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
 
+        # print(" > Input text: ", text)
+        # print(" > Input text preprocessed: ",self.tokenizer.preprocess_text(text, language))
+        # print(" > Input tokens: ", text_tokens)
+        # print(" > Decoded text: ", self.tokenizer.decode(text_tokens[0].cpu().numpy()))
         assert (
             text_tokens.shape[-1] < self.args.gpt_max_text_tokens
         ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
@@ -671,7 +675,7 @@ class Xtts(BaseTTS):
                 )
                 wav = self.vocoder.inference(mel)
 
-        return {"wav": wav.cpu().numpy().squeeze()}
+        return {"wav": wav.cpu().numpy().squeeze(), "gpt_latents": gpt_latents, "speaker_embedding": speaker_embedding, "diffusion_conditioning": diffusion_conditioning}
 
     def handle_chunks(self, wav_gen, wav_gen_prev, wav_overlap, overlap_len):
         """Handle chunk formatting in streaming mode"""
