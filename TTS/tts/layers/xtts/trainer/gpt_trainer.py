@@ -52,7 +52,6 @@ class GPTArgs(XttsArgs):
     xtts_checkpoint: str = ""
     gpt_checkpoint: str = ""  # if defined it will replace the gpt weights on xtts model
     vocoder: str = ""  # overide vocoder key on the config to avoid json write issues
-    use_masking_gt_as_prompt: bool = True
 
 
 def callback_clearml_load_save(operation_type, model_info):
@@ -200,7 +199,7 @@ class GPTTrainer(BaseTTS):
     def device(self):
         return next(self.parameters()).device
 
-    def forward(self, text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs):
+    def forward(self, text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs, cond_lens):
         """
         Forward pass that uses both text and voice in either text conditioning mode or voice conditioning mode
         (actuated by `text_first`).
@@ -211,9 +210,10 @@ class GPTTrainer(BaseTTS):
         wav_lengths: long tensor, (b,)
         cond_mels: MEL float tensor, (b, num_samples, 80,t_m)
         cond_idxs: cond start and end indexs, (b, 2)
+        cond_lens: long tensor, (b,)
         """
         losses = self.xtts.gpt(
-            text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_idxs=cond_idxs
+            text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_idxs=cond_idxs, cond_lens=cond_lens,
         )
         return losses
 
@@ -283,7 +283,6 @@ class GPTTrainer(BaseTTS):
         del batch["padded_text"]
         del batch["wav"]
         del batch["conditioning"]
-        del batch["cond_lens"]
         return batch
 
     def train_step(self, batch, criterion):
@@ -294,8 +293,9 @@ class GPTTrainer(BaseTTS):
         audio_codes = batch["audio_codes"]
         wav_lengths = batch["wav_lengths"]
         cond_idxs = batch["cond_idxs"]
+        cond_lens = batch["cond_lens"]
 
-        loss_text, loss_mel, _ = self.forward(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs)
+        loss_text, loss_mel, _ = self.forward(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs, cond_lens)
         loss_dict["loss_text_ce"] = loss_text * self.args.gpt_loss_text_ce_weight
         loss_dict["loss_mel_ce"] = loss_mel * self.args.gpt_loss_mel_ce_weight
         loss_dict["loss"] = loss_dict["loss_text_ce"] + loss_dict["loss_mel_ce"]

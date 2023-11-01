@@ -88,7 +88,7 @@ class XTTSDataset(torch.utils.data.Dataset):
         self.sample_rate = sample_rate
         self.max_wav_len = model_args.max_wav_length
         self.max_text_len = model_args.max_text_length
-        self.use_masking_gt_as_prompt = model_args.use_masking_gt_as_prompt
+        self.use_masking_gt_as_prompt = model_args.gpt_use_masking_gt_as_prompt
         assert self.max_wav_len is not None and self.max_text_len is not None
 
         self.samples = samples
@@ -143,16 +143,18 @@ class XTTSDataset(torch.utils.data.Dataset):
 
         if self.use_masking_gt_as_prompt:
             # get a slice from GT to condition the model
-            cond, cond_len, cond_idxs = get_prompt_slice(
+            cond, _, cond_idxs = get_prompt_slice(
                 audiopath, self.max_conditioning_length, self.min_conditioning_length, self.sample_rate, self.is_eval
             )
+            # if use masking do not use cond_len
+            cond_len = torch.nan
         else:
             ref_sample = sample["reference_path"] if "reference_path" in sample and sample["reference_path"] is not None else audiopath
-            cond, cond_len, cond_idxs = get_prompt_slice(
+            cond, cond_len, _ = get_prompt_slice(
                 ref_sample, self.max_conditioning_length, self.min_conditioning_length, self.sample_rate, self.is_eval
             )
+            # if do not use masking use cond_len
             cond_idxs = torch.nan
-            cond_len = torch.nan
 
         return tseq, audiopath, wav, cond, cond_len, cond_idxs
 
@@ -230,9 +232,12 @@ class XTTSDataset(torch.utils.data.Dataset):
         batch["conditioning"] = torch.stack(batch["conditioning"])
         batch["cond_lens"] = torch.stack(batch["cond_lens"])
         batch["cond_idxs"] = torch.stack(batch["cond_idxs"])
+
         if torch.any(batch["cond_idxs"].isnan()):
             batch["cond_lens"] = None
-            batch["cond_idxs"] = None
+
+        if torch.any(batch["cond_lens"].isnan()):
+            batch["cond_lens"] = None
 
         max_text_len = batch["text_lengths"].max()
         max_wav_len = batch["wav_lengths"].max()

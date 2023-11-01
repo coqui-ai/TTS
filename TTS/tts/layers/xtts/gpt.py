@@ -494,10 +494,9 @@ class GPT(nn.Module):
 
         # Compute speech conditioning input
         if cond_latents is None:
-            if cond_lens is not None:
+            if cond_lens is not None and cond_idxs is None:
                 min_cond_len = torch.min(cond_lens)
                 cond_mels = cond_mels[:, :, :, :min_cond_len]
-            
             cond_latents = self.get_style_emb(cond_mels).transpose(1, 2)
 
         # Get logits

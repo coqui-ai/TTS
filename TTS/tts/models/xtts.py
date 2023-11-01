@@ -241,6 +241,7 @@ class XttsArgs(Coqpit):
     gpt_num_audio_tokens: int = 8194
     gpt_start_audio_token: int = 8192
     gpt_stop_audio_token: int = 8193
+    gpt_use_masking_gt_as_prompt: bool = True
     gpt_use_perceiver_resampler: bool = False
 
     # Diffusion Decoder params
