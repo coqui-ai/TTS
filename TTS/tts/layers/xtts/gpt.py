@@ -11,7 +11,7 @@ from transformers import GPT2Config
 
 from TTS.tts.layers.xtts.gpt_inference import GPT2InferenceModel
 from TTS.tts.layers.xtts.latent_encoder import ConditioningEncoder
-
+from TTS.tts.layers.xtts.perceiver_encoder import PerceiverResampler
 
 def null_position_embeddings(range, dim):
     return torch.zeros((range.shape[0], range.shape[1], dim), device=range.device)
@@ -105,6 +105,8 @@ class GPT(nn.Module):
         checkpointing=False,
         average_conditioning_embeddings=False,
         label_smoothing=0.0,
+        use_perceiver_resampler=False,
+        perceiver_cond_length_compression=256,
     ):
         """
         Args:
@@ -132,6 +134,8 @@ class GPT(nn.Module):
         self.conditioning_encoder = ConditioningEncoder(80, model_dim, num_attn_heads=heads)
         self.conditioning_dropout = nn.Dropout1d(0.1)
         self.average_conditioning_embeddings = average_conditioning_embeddings
+        self.use_perceiver_resampler = use_perceiver_resampler
+        self.perceiver_cond_length_compression = perceiver_cond_length_compression
 
         self.text_embedding = nn.Embedding(self.number_text_tokens, model_dim)
         self.mel_embedding = nn.Embedding(self.num_audio_tokens, model_dim)
@@ -165,9 +169,22 @@ class GPT(nn.Module):
         self.text_head = nn.Linear(model_dim, self.number_text_tokens)
         self.mel_head = nn.Linear(model_dim, self.num_audio_tokens)
 
+        if self.use_perceiver_resampler:
+            self.conditioning_perceiver = PerceiverResampler(
+                dim=model_dim,
+                depth=2,
+                dim_context=model_dim,
+                num_latents=32,
+                dim_head=64,
+                heads=8,
+                ff_mult=4,
+                use_flash_attn=False,
+            )
+
     def get_grad_norm_parameter_groups(self):
         return {
             "conditioning_encoder": list(self.conditioning_encoder.parameters()),
+            "conditioning_perceiver": list(self.conditioning_perceiver.parameters()) if self.use_perceiver_resampler else None,
             "gpt": list(self.gpt.parameters()),
             "heads": list(self.text_head.parameters()) + list(self.mel_head.parameters()),
         }
@@ -250,11 +267,8 @@ class GPT(nn.Module):
         if attn_mask_text is not None:
             attn_mask = torch.cat([attn_mask_text, attn_mask_mel], dim=1)
             if prompt is not None:
-                if attn_mask_cond is not None:
-                    attn_mask = torch.cat([attn_mask_cond, attn_mask], dim=1)
-                else:
-                    attn_mask_cond = torch.ones(prompt.shape[0], offset, dtype=torch.bool, device=emb.device)
-                    attn_mask = torch.cat([attn_mask_cond, attn_mask], dim=1)
+                attn_mask_cond = torch.ones(prompt.shape[0], offset, dtype=torch.bool, device=emb.device)
+                attn_mask = torch.cat([attn_mask_cond, attn_mask], dim=1)
 
         gpt_out = self.gpt(
             inputs_embeds=emb,
@@ -318,7 +332,6 @@ class GPT(nn.Module):
             prompt_len = 3
             prompt_len = prompt_len * 24  # in frames
             if prompt_codes.shape[-1] >= prompt_len:
-                new_prompt = []
                 for i in range(prompt_codes.shape[0]):
                     if lengths[i] < prompt_len:
                         start = 0
@@ -340,7 +353,9 @@ class GPT(nn.Module):
         if not return_latent:
             if cond_input.ndim == 4:
                 cond_input = cond_input.squeeze(1)
-            conds = self.conditioning_encoder(cond_input)
+            conds = self.conditioning_encoder(cond_input) # (b, d, s)
+            if self.use_perceiver_resampler:
+                conds = self.conditioning_perceiver(conds.permute(0, 2, 1)).transpose(1, 2) # (b, d, 32)
         else:
             # already computed
             conds = cond_input.unsqueeze(1)
@@ -354,6 +369,7 @@ class GPT(nn.Module):
         wav_lengths,
         cond_mels=None,
         cond_idxs=None,
+        cond_lens=None,
         cond_latents=None,
         return_attentions=False,
         return_latent=False,
@@ -378,6 +394,12 @@ class GPT(nn.Module):
 
         max_text_len = text_lengths.max()
         code_lengths = torch.ceil(wav_lengths / self.code_stride_len).long() + 3
+
+        if cond_lens is not None:
+            if self.use_perceiver_resampler:
+                cond_lens = cond_lens // self.perceiver_cond_length_compression
+            else:
+                cond_lens = cond_lens // self.code_stride_len
 
         if cond_idxs is not None:
             # recompute cond idxs for mel lengths
@@ -450,8 +472,12 @@ class GPT(nn.Module):
             )
 
             if cond_idxs is not None:
+                # use masking approach
                 for idx, r in enumerate(cond_idxs):
                     l = r[1] - r[0]
+                    attn_mask_cond[idx, l:] = 0.0
+            elif cond_lens is not None:
+                for idx, l in enumerate(cond_lens):
                     attn_mask_cond[idx, l:] = 0.0
 
             for idx, l in enumerate(text_lengths):
@@ -468,6 +494,10 @@ class GPT(nn.Module):
 
         # Compute speech conditioning input
         if cond_latents is None:
+            if cond_lens is not None:
+                min_cond_len = torch.min(cond_lens)
+                cond_mels = cond_mels[:, :, :, :min_cond_len]
+            
             cond_latents = self.get_style_emb(cond_mels).transpose(1, 2)
 
         # Get logits
@@ -483,7 +513,7 @@ class GPT(nn.Module):
             prompt=cond_latents,
             get_attns=return_attentions,
             return_latent=return_latent,
-            attn_mask_cond=attn_mask_cond,
+            attn_mask_cond=attn_mask_cond if not self.use_perceiver_resampler else None,
             attn_mask_text=attn_mask_text,
             attn_mask_mel=attn_mask_mel,
         )

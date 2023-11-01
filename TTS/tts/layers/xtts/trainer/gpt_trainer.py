@@ -142,17 +142,30 @@ class GPTTrainer(BaseTTS):
             print(">> GPT weights restored from:", self.args.gpt_checkpoint)
 
         # Mel spectrogram extractor for conditioning
-        self.torch_mel_spectrogram_style_encoder = TorchMelSpectrogram(
-            filter_length=4096,
-            hop_length=1024,
-            win_length=4096,
-            normalize=False,
-            sampling_rate=config.audio.sample_rate,
-            mel_fmin=0,
-            mel_fmax=8000,
-            n_mel_channels=80,
-            mel_norm_file=self.args.mel_norm_file,
-        )
+        if self.args.gpt_use_perceiver_resampler:
+            self.torch_mel_spectrogram_style_encoder = TorchMelSpectrogram(
+                filter_length=2048,
+                hop_length=256,
+                win_length=1024,
+                normalize=False,
+                sampling_rate=config.audio.sample_rate,
+                mel_fmin=0,
+                mel_fmax=8000,
+                n_mel_channels=80,
+                mel_norm_file=self.args.mel_norm_file,
+            )
+        else:
+            self.torch_mel_spectrogram_style_encoder = TorchMelSpectrogram(
+                filter_length=4096,
+                hop_length=1024,
+                win_length=4096,
+                normalize=False,
+                sampling_rate=config.audio.sample_rate,
+                mel_fmin=0,
+                mel_fmax=8000,
+                n_mel_channels=80,
+                mel_norm_file=self.args.mel_norm_file,
+            )
 
         # Load DVAE
         self.dvae = DiscreteVAE(

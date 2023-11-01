@@ -23,7 +23,19 @@ init_stream_support()
 
 
 def wav_to_mel_cloning(
-    wav, mel_norms_file="../experiments/clips_mel_norms.pth", mel_norms=None, device=torch.device("cpu")
+    wav,
+    mel_norms_file="../experiments/clips_mel_norms.pth",
+    mel_norms=None, 
+    device=torch.device("cpu"),
+    n_fft=4096,
+    hop_length=1024,
+    win_length=4096,
+    power=2,
+    normalized=False,
+    sample_rate=22050,
+    f_min=0,
+    f_max=8000,
+    n_mels=80,
 ):
     """
     Convert waveform to mel-spectrogram with hard-coded parameters for cloning.
@@ -38,15 +50,15 @@ def wav_to_mel_cloning(
         torch.Tensor: Mel-spectrogram tensor.
     """
     mel_stft = torchaudio.transforms.MelSpectrogram(
-        n_fft=4096,
-        hop_length=1024,
-        win_length=4096,
-        power=2,
-        normalized=False,
-        sample_rate=22050,
-        f_min=0,
-        f_max=8000,
-        n_mels=80,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        win_length=win_length,
+        power=power,
+        normalized=normalized,
+        sample_rate=sample_rate,
+        f_min=f_min,
+        f_max=f_max,
+        n_mels=n_mels,
         norm="slaney",
     ).to(device)
     wav = wav.to(device)
@@ -229,6 +241,7 @@ class XttsArgs(Coqpit):
     gpt_num_audio_tokens: int = 8194
     gpt_start_audio_token: int = 8192
     gpt_stop_audio_token: int = 8193
+    gpt_use_perceiver_resampler: bool = False
 
     # Diffusion Decoder params
     diff_model_channels: int = 1024
@@ -304,6 +317,7 @@ class Xtts(BaseTTS):
                 num_audio_tokens=self.args.gpt_num_audio_tokens,
                 start_audio_token=self.args.gpt_start_audio_token,
                 stop_audio_token=self.args.gpt_stop_audio_token,
+                use_perceiver_resampler=self.args.gpt_use_perceiver_resampler,
             )
 
         if self.args.use_hifigan:
@@ -359,7 +373,32 @@ class Xtts(BaseTTS):
 
         audio_22k = torchaudio.functional.resample(audio, sr, 22050)
         audio_22k = audio_22k[:, : 22050 * length]
-        mel = wav_to_mel_cloning(audio_22k, mel_norms=self.mel_stats.cpu())
+        if self.args.gpt_use_perceiver_resampler:
+            mel = wav_to_mel_cloning(audio_22k,
+                mel_norms=self.mel_stats.cpu(),
+                n_fft=2048,
+                hop_length=256,
+                win_length=1024,
+                power=2,
+                normalized=False,
+                sample_rate=22050,
+                f_min=0,
+                f_max=8000,
+                n_mels=80
+            )
+        else:
+            mel = wav_to_mel_cloning(audio_22k,
+                mel_norms=self.mel_stats.cpu(),
+                n_fft=4096,
+                hop_length=1024,
+                win_length=4096,
+                power=2,
+                normalized=False,
+                sample_rate=22050,
+                f_min=0,
+                f_max=8000,
+                n_mels=80
+            )
         cond_latent = self.gpt.get_style_emb(mel.to(self.device))
         return cond_latent.transpose(1, 2)
 
