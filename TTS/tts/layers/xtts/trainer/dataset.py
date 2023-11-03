@@ -211,7 +211,7 @@ class XTTSDataset(torch.utils.data.Dataset):
             "filenames": audiopath,
             "conditioning": cond.unsqueeze(1),
             "cond_lens": torch.tensor(cond_len, dtype=torch.long) if cond_len is not torch.nan else torch.tensor([cond_len]),
-            "cond_idxs": torch.tensor(cond_idxs) if cond_idxs is not torch.nan else torch.tensor([cond_len]),
+            "cond_idxs": torch.tensor(cond_idxs) if cond_idxs is not torch.nan else torch.tensor([cond_idxs]),
         }
         return res
 
@@ -234,7 +234,7 @@ class XTTSDataset(torch.utils.data.Dataset):
         batch["cond_idxs"] = torch.stack(batch["cond_idxs"])
 
         if torch.any(batch["cond_idxs"].isnan()):
-            batch["cond_lens"] = None
+            batch["cond_idxs"] = None
 
         if torch.any(batch["cond_lens"].isnan()):
             batch["cond_lens"] = None
