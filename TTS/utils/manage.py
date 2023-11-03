@@ -346,7 +346,10 @@ class ModelManager(object):
 
     def check_if_configs_are_equal(self, model_name, model_item, output_path):
         with fsspec.open(self._find_files(output_path)[1], "r", encoding="utf-8") as f:
-            config_local = json.load(f)
+            try:
+                config_local = json.load(f)
+            except:
+                config_local = None
         remote_url = None
         for url in model_item["hf_url"]:
             if "config.json" in url:
