@@ -112,7 +112,7 @@ def load_discrete_vocoder_diffuser(
     return SpacedDiffusion(
         use_timesteps=space_timesteps(trained_diffusion_steps, [desired_diffusion_steps]),
         model_mean_type="epsilon",
-        model_vgpt_type="learned_range",
+        model_var_type="learned_range",
         loss_type="mse",
         betas=get_named_beta_schedule("linear", trained_diffusion_steps),
         conditioning_free=cond_free,
