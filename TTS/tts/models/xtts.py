@@ -377,8 +377,8 @@ class Xtts(BaseTTS):
             sr (int): Sample rate of the audio.
             length (int): Length of the audio in seconds. Defaults to 3.
         """
-
-        audio_22k = torchaudio.functional.resample(audio, sr, 22050)
+        if sr != 22050:
+            audio_22k = torchaudio.functional.resample(audio, sr, 22050)
         audio_22k = audio_22k[:, : 22050 * length]
         if self.args.gpt_use_perceiver_resampler:
             mel = wav_to_mel_cloning(audio_22k,
@@ -600,6 +600,7 @@ class Xtts(BaseTTS):
         (gpt_cond_latent, diffusion_conditioning, speaker_embedding) = self.get_conditioning_latents(
             audio_path=ref_audio_path, gpt_cond_len=gpt_cond_len, max_ref_length=max_ref_len, sound_norm_refs=sound_norm_refs
         )
+
         return self.inference(
             text,
             language,
