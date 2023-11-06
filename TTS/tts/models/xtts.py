@@ -433,7 +433,7 @@ class Xtts(BaseTTS):
     ):
         # deal with multiples references
         if not isinstance(audio_path, list):
-            audio_paths = list(audio_path)
+            audio_paths = [audio_path]
         else:
             audio_paths = audio_path
 

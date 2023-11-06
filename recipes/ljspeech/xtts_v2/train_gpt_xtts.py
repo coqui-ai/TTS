@@ -71,9 +71,9 @@ if not os.path.isfile(TOKENIZER_FILE) or not os.path.isfile(XTTS_CHECKPOINT):
 
 
 # Training sentences generations
-SPEAKER_REFERENCE = (
+SPEAKER_REFERENCE = [
     "./tests/data/ljspeech/wavs/LJ001-0002.wav"  # speaker reference to be used in training test sentences
-)
+]
 LANGUAGE = config_dataset.language
 
 
