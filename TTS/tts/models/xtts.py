@@ -381,7 +381,8 @@ class Xtts(BaseTTS):
             audio_22k = torchaudio.functional.resample(audio, sr, 22050)
         audio_22k = audio_22k[:, : 22050 * length]
         if self.args.gpt_use_perceiver_resampler:
-            mel = wav_to_mel_cloning(audio_22k,
+            mel = wav_to_mel_cloning(
+                audio_22k,
                 mel_norms=self.mel_stats.cpu(),
                 n_fft=2048,
                 hop_length=256,
@@ -391,10 +392,11 @@ class Xtts(BaseTTS):
                 sample_rate=22050,
                 f_min=0,
                 f_max=8000,
-                n_mels=80
+                n_mels=80,
             )
         else:
-            mel = wav_to_mel_cloning(audio_22k,
+            mel = wav_to_mel_cloning(
+                audio_22k,
                 mel_norms=self.mel_stats.cpu(),
                 n_fft=4096,
                 hop_length=1024,
@@ -404,7 +406,7 @@ class Xtts(BaseTTS):
                 sample_rate=22050,
                 f_min=0,
                 f_max=8000,
-                n_mels=80
+                n_mels=80,
             )
         cond_latent = self.gpt.get_style_emb(mel.to(self.device))
         return cond_latent.transpose(1, 2)
@@ -598,7 +600,10 @@ class Xtts(BaseTTS):
             Sample rate is 24kHz.
         """
         (gpt_cond_latent, diffusion_conditioning, speaker_embedding) = self.get_conditioning_latents(
-            audio_path=ref_audio_path, gpt_cond_len=gpt_cond_len, max_ref_length=max_ref_len, sound_norm_refs=sound_norm_refs
+            audio_path=ref_audio_path,
+            gpt_cond_len=gpt_cond_len,
+            max_ref_length=max_ref_len,
+            sound_norm_refs=sound_norm_refs,
         )
 
         return self.inference(
@@ -728,7 +733,12 @@ class Xtts(BaseTTS):
                 )
                 wav = self.vocoder.inference(mel)
 
-        return {"wav": wav.cpu().numpy().squeeze(), "gpt_latents": gpt_latents, "speaker_embedding": speaker_embedding, "diffusion_conditioning": diffusion_conditioning}
+        return {
+            "wav": wav.cpu().numpy().squeeze(),
+            "gpt_latents": gpt_latents,
+            "speaker_embedding": speaker_embedding,
+            "diffusion_conditioning": diffusion_conditioning,
+        }
 
     def handle_chunks(self, wav_gen, wav_gen_prev, wav_overlap, overlap_len):
         """Handle chunk formatting in streaming mode"""

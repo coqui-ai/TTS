@@ -213,7 +213,13 @@ class GPTTrainer(BaseTTS):
         cond_lens: long tensor, (b,)
         """
         losses = self.xtts.gpt(
-            text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels=cond_mels, cond_idxs=cond_idxs, cond_lens=cond_lens,
+            text_inputs,
+            text_lengths,
+            audio_codes,
+            wav_lengths,
+            cond_mels=cond_mels,
+            cond_idxs=cond_idxs,
+            cond_lens=cond_lens,
         )
         return losses
 
@@ -227,7 +233,12 @@ class GPTTrainer(BaseTTS):
             print(" | > Synthesizing test sentences.")
             for idx, s_info in enumerate(self.config.test_sentences):
                 wav = self.xtts.synthesize(
-                    s_info["text"], self.config, s_info["speaker_wav"], s_info["language"], gpt_cond_len=3, decoder="ne_hifigan"
+                    s_info["text"],
+                    self.config,
+                    s_info["speaker_wav"],
+                    s_info["language"],
+                    gpt_cond_len=3,
+                    decoder="ne_hifigan",
                 )["wav"]
                 test_audios["{}-audio".format(idx)] = wav
 
@@ -295,7 +306,9 @@ class GPTTrainer(BaseTTS):
         cond_idxs = batch["cond_idxs"]
         cond_lens = batch["cond_lens"]
 
-        loss_text, loss_mel, _ = self.forward(text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs, cond_lens)
+        loss_text, loss_mel, _ = self.forward(
+            text_inputs, text_lengths, audio_codes, wav_lengths, cond_mels, cond_idxs, cond_lens
+        )
         loss_dict["loss_text_ce"] = loss_text * self.args.gpt_loss_text_ce_weight
         loss_dict["loss_mel_ce"] = loss_mel * self.args.gpt_loss_mel_ce_weight
         loss_dict["loss"] = loss_dict["loss_text_ce"] + loss_dict["loss_mel_ce"]

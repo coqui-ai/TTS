@@ -13,6 +13,7 @@ from TTS.tts.layers.xtts.gpt_inference import GPT2InferenceModel
 from TTS.tts.layers.xtts.latent_encoder import ConditioningEncoder
 from TTS.tts.layers.xtts.perceiver_encoder import PerceiverResampler
 
+
 def null_position_embeddings(range, dim):
     return torch.zeros((range.shape[0], range.shape[1], dim), device=range.device)
 
@@ -186,7 +187,9 @@ class GPT(nn.Module):
     def get_grad_norm_parameter_groups(self):
         return {
             "conditioning_encoder": list(self.conditioning_encoder.parameters()),
-            "conditioning_perceiver": list(self.conditioning_perceiver.parameters()) if self.use_perceiver_resampler else None,
+            "conditioning_perceiver": list(self.conditioning_perceiver.parameters())
+            if self.use_perceiver_resampler
+            else None,
             "gpt": list(self.gpt.parameters()),
             "heads": list(self.text_head.parameters()) + list(self.mel_head.parameters()),
         }
@@ -355,9 +358,9 @@ class GPT(nn.Module):
         if not return_latent:
             if cond_input.ndim == 4:
                 cond_input = cond_input.squeeze(1)
-            conds = self.conditioning_encoder(cond_input) # (b, d, s)
+            conds = self.conditioning_encoder(cond_input)  # (b, d, s)
             if self.use_perceiver_resampler:
-                conds = self.conditioning_perceiver(conds.permute(0, 2, 1)).transpose(1, 2) # (b, d, 32)
+                conds = self.conditioning_perceiver(conds.permute(0, 2, 1)).transpose(1, 2)  # (b, d, 32)
         else:
             # already computed
             conds = cond_input.unsqueeze(1)

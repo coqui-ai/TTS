@@ -149,7 +149,11 @@ class XTTSDataset(torch.utils.data.Dataset):
             # if use masking do not use cond_len
             cond_len = torch.nan
         else:
-            ref_sample = sample["reference_path"] if "reference_path" in sample and sample["reference_path"] is not None else audiopath
+            ref_sample = (
+                sample["reference_path"]
+                if "reference_path" in sample and sample["reference_path"] is not None
+                else audiopath
+            )
             cond, cond_len, _ = get_prompt_slice(
                 ref_sample, self.max_conditioning_length, self.min_conditioning_length, self.sample_rate, self.is_eval
             )
@@ -210,7 +214,9 @@ class XTTSDataset(torch.utils.data.Dataset):
             "wav_lengths": torch.tensor(wav.shape[-1], dtype=torch.long),
             "filenames": audiopath,
             "conditioning": cond.unsqueeze(1),
-            "cond_lens": torch.tensor(cond_len, dtype=torch.long) if cond_len is not torch.nan else torch.tensor([cond_len]),
+            "cond_lens": torch.tensor(cond_len, dtype=torch.long)
+            if cond_len is not torch.nan
+            else torch.tensor([cond_len]),
             "cond_idxs": torch.tensor(cond_idxs) if cond_idxs is not torch.nan else torch.tensor([cond_idxs]),
         }
         return res

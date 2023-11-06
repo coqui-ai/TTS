@@ -84,7 +84,24 @@ class XttsConfig(BaseTTSConfig):
     audio: XttsAudioConfig = field(default_factory=XttsAudioConfig)
     model_dir: str = None
     languages: List[str] = field(
-        default_factory=lambda: ["en", "es", "fr", "de", "it", "pt", "pl", "tr", "ru", "nl", "cs", "ar", "zh-cn", "hu", "ko", "ja"]
+        default_factory=lambda: [
+            "en",
+            "es",
+            "fr",
+            "de",
+            "it",
+            "pt",
+            "pl",
+            "tr",
+            "ru",
+            "nl",
+            "cs",
+            "ar",
+            "zh-cn",
+            "hu",
+            "ko",
+            "ja",
+        ]
     )
 
     # inference params
