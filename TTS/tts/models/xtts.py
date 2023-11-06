@@ -111,78 +111,6 @@ def pad_or_truncate(t, length):
     return tp
 
 
-def load_discrete_vocoder_diffuser(
-    trained_diffusion_steps=4000,
-    desired_diffusion_steps=200,
-    cond_free=True,
-    cond_free_k=1,
-    sampler="ddim",
-):
-    """
-    Load a GaussianDiffusion instance configured for use as a decoder.
-
-    Args:
-        trained_diffusion_steps (int): The number of diffusion steps used during training.
-        desired_diffusion_steps (int): The number of diffusion steps to use during inference.
-        cond_free (bool): Whether to use a conditioning-free model.
-        cond_free_k (int): The number of samples to use for conditioning-free models.
-        sampler (str): The name of the sampler to use.
-
-    Returns:
-        A SpacedDiffusion instance configured with the given parameters.
-    """
-    return SpacedDiffusion(
-        use_timesteps=space_timesteps(trained_diffusion_steps, [desired_diffusion_steps]),
-        model_mean_type="epsilon",
-        model_var_type="learned_range",
-        loss_type="mse",
-        betas=get_named_beta_schedule("linear", trained_diffusion_steps),
-        conditioning_free=cond_free,
-        conditioning_free_k=cond_free_k,
-        sampler=sampler,
-    )
-
-
-def do_spectrogram_diffusion(
-    diffusion_model,
-    diffuser,
-    latents,
-    conditioning_latents,
-    temperature=1,
-):
-    """
-    Generate a mel-spectrogram using a diffusion model and a diffuser.
-
-    Args:
-        diffusion_model (nn.Module): A diffusion model that converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
-        diffuser (Diffuser): A diffuser that generates a mel-spectrogram from noise.
-        latents (torch.Tensor): A tensor of shape (batch_size, seq_len, code_size) containing the input spectrogram codes.
-        conditioning_latents (torch.Tensor): A tensor of shape (batch_size, code_size) containing the conditioning codes.
-        temperature (float, optional): The temperature of the noise used by the diffuser. Defaults to 1.
-
-    Returns:
-        torch.Tensor: A tensor of shape (batch_size, mel_channels, mel_seq_len) containing the generated mel-spectrogram.
-    """
-    with torch.no_grad():
-        output_seq_len = (
-            latents.shape[1] * 4 * 24000 // 22050
-        )  # This diffusion model converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
-        output_shape = (latents.shape[0], 100, output_seq_len)
-        precomputed_embeddings = diffusion_model.timestep_independent(
-            latents, conditioning_latents, output_seq_len, False
-        )
-
-        noise = torch.randn(output_shape, device=latents.device) * temperature
-        mel = diffuser.sample_loop(
-            diffusion_model,
-            output_shape,
-            noise=noise,
-            model_kwargs={"precomputed_aligned_embeddings": precomputed_embeddings},
-            progress=False,
-        )
-        return denormalize_tacotron_mel(mel)[:, :, :output_seq_len]
-
-
 @dataclass
 class XttsAudioConfig(Coqpit):
     """
@@ -563,27 +491,6 @@ class Xtts(BaseTTS):
             gpt_cond_len: (int) Length of the audio used for cloning. If audio is shorter, then audio length is used
                 else the first `gpt_cond_len` secs is used. Defaults to 6 seconds.
 
-            decoder_iterations: (int) Number of diffusion steps to perform. [0,4000]. More steps means the network has
-                more chances to iteratively refine the output, which should theoretically mean a higher quality output.
-                Generally a value above 250 is not noticeably better, however. Defaults to 100.
-
-            cond_free: (bool) Whether or not to perform conditioning-free diffusion. Conditioning-free diffusion
-                performs two forward passes for each diffusion step: one with the outputs of the autoregressive model
-                and one with no conditioning priors. The output of the two is blended according to the cond_free_k
-                value below. Conditioning-free diffusion is the real deal, and dramatically improves realism.
-                Defaults to True.
-
-            cond_free_k: (float) Knob that determines how to balance the conditioning free signal with the
-                conditioning-present signal. [0,inf]. As cond_free_k increases, the output becomes dominated by the
-                conditioning-free signal. Defaults to 2.0.
-
-            diffusion_temperature: (float) Controls the variance of the noise fed into the diffusion model. [0,1].
-                Values at 0 re the "mean" prediction of the diffusion network and will sound bland and smeared.
-                Defaults to 1.0.
-
-            decoder: (str) Selects the decoder to use between ("hifigan", "diffusion")
-                Defaults to hifigan
-
             hf_generate_kwargs: (**kwargs) The huggingface Transformers generate API is used for the autoregressive
                 transformer. Extra keyword args fed to this function get forwarded directly to that API. Documentation
                 here: https://huggingface.co/docs/transformers/internal/generation_utils
@@ -610,12 +517,6 @@ class Xtts(BaseTTS):
             top_k=top_k,
             top_p=top_p,
             do_sample=do_sample,
-            decoder_iterations=decoder_iterations,
-            cond_free=cond_free,
-            cond_free_k=cond_free_k,
-            diffusion_temperature=diffusion_temperature,
-            decoder_sampler=decoder_sampler,
-            decoder=decoder,
             **hf_generate_kwargs,
         )
 
@@ -633,13 +534,6 @@ class Xtts(BaseTTS):
         top_k=50,
         top_p=0.85,
         do_sample=True,
-        # Decoder inference
-        decoder_iterations=100,
-        cond_free=True,
-        cond_free_k=2,
-        diffusion_temperature=1.0,
-        decoder_sampler="ddim",
-        decoder="hifigan",
         num_beams=1,
         **hf_generate_kwargs,
     ):
@@ -734,8 +628,6 @@ class Xtts(BaseTTS):
         top_k=50,
         top_p=0.85,
         do_sample=True,
-        # Decoder inference
-        decoder="hifigan",
         **hf_generate_kwargs,
     ):
         text = text.strip().lower()
