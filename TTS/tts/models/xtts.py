@@ -916,7 +916,7 @@ class Xtts(BaseTTS):
             if hasattr(self, "hifigan_decoder"):
                 self.hifigan_decoder.eval()
             if hasattr(self, "ne_hifigan_decoder"):
-                self.hifigan_decoder.eval()
+                self.ne_hifigan_decoder.eval()
             if hasattr(self, "diffusion_decoder"):
                 self.diffusion_decoder.eval()
             if hasattr(self, "vocoder"):

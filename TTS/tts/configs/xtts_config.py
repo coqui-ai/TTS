@@ -30,7 +30,7 @@ class XttsConfig(BaseTTSConfig):
             which in turn is used to divide the score of the sequence. Since the score is the log likelihood of the sequence (i.e. negative),
             length_penalty > 0.0 promotes longer sequences, while length_penalty < 0.0 encourages shorter sequences.
 
-        reperation_penalty (float):
+        repetition_penalty (float):
             The parameter for repetition penalty. 1.0 means no penalty. Defaults to `2.0`.
 
         top_p (float):
