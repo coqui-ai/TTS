@@ -642,6 +642,7 @@ class Xtts(BaseTTS):
         diffusion_temperature=1.0,
         decoder_sampler="ddim",
         decoder="hifigan",
+        num_beams=1,
         **hf_generate_kwargs,
     ):
         text = text.strip().lower()
@@ -673,6 +674,7 @@ class Xtts(BaseTTS):
                 top_k=top_k,
                 temperature=temperature,
                 num_return_sequences=self.gpt_batch_size,
+                num_beams=num_beams,
                 length_penalty=length_penalty,
                 repetition_penalty=repetition_penalty,
                 output_attentions=False,

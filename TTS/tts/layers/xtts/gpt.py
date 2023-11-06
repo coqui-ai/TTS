@@ -562,7 +562,7 @@ class GPT(nn.Module):
 
     def inference(self, cond_latents, text_inputs, **hf_generate_kwargs):
         self.compute_embeddings(cond_latents, text_inputs)
-        return self.generate(cond_latents, text_inputs, input_tokens=None, **hf_generate_kwargs)
+        return self.generate(cond_latents, text_inputs, **hf_generate_kwargs)
 
     def compute_embeddings(
         self,
