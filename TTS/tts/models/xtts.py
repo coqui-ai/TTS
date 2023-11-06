@@ -568,7 +568,7 @@ class Xtts(BaseTTS):
                 Values at 0 re the "mean" prediction of the diffusion network and will sound bland and smeared.
                 Defaults to 1.0.
 
-            decoder: (str) Selects the decoder to use between ("hifigan", "ne_hifigan" and "diffusion")
+            decoder: (str) Selects the decoder to use between ("hifigan", "diffusion")
                 Defaults to hifigan
 
             hf_generate_kwargs: (**kwargs) The huggingface Transformers generate API is used for the autoregressive
