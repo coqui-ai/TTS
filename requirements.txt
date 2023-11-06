@@ -33,6 +33,8 @@ coqpit>=0.0.16
 # chinese g2p deps
 jieba
 pypinyin
+# korean
+hangul_romanize
 # gruut+supported langs
 gruut[de,es,fr]==2.2.3
 # deps for korean
@@ -51,3 +53,4 @@ transformers==4.33.*
 encodec==0.1.*
 # deps for XTTS
 unidecode==1.3.*
+num2words

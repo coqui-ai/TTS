@@ -676,12 +676,7 @@ class Tortoise(BaseTTS):
         ), "Too much text provided. Break the text up into separate segments and re-try inference."
 
         if voice_samples is not None:
-            (
-                auto_conditioning,
-                diffusion_conditioning,
-                _,
-                _,
-            ) = self.get_conditioning_latents(
+            (auto_conditioning, diffusion_conditioning, _, _,) = self.get_conditioning_latents(
                 voice_samples,
                 return_mels=True,
                 latent_averaging_mode=latent_averaging_mode,
