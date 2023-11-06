@@ -381,33 +381,26 @@ class Xtts(BaseTTS):
             audio_22k = torchaudio.functional.resample(audio, sr, 22050)
         audio_22k = audio_22k[:, : 22050 * length]
         if self.args.gpt_use_perceiver_resampler:
-            mel = wav_to_mel_cloning(
-                audio_22k,
-                mel_norms=self.mel_stats.cpu(),
-                n_fft=2048,
-                hop_length=256,
-                win_length=1024,
-                power=2,
-                normalized=False,
-                sample_rate=22050,
-                f_min=0,
-                f_max=8000,
-                n_mels=80,
-            )
+            n_fft = 2048
+            hop_length = 256
+            win_length = 1024
         else:
-            mel = wav_to_mel_cloning(
-                audio_22k,
-                mel_norms=self.mel_stats.cpu(),
-                n_fft=4096,
-                hop_length=1024,
-                win_length=4096,
-                power=2,
-                normalized=False,
-                sample_rate=22050,
-                f_min=0,
-                f_max=8000,
-                n_mels=80,
-            )
+            n_fft = 4096
+            hop_length = 1024
+            win_length = 4096
+        mel = wav_to_mel_cloning(
+            audio_22k,
+            mel_norms=self.mel_stats.cpu(),
+            n_fft=n_fft,
+            hop_length=hop_length,
+            win_length=win_length,
+            power=2,
+            normalized=False,
+            sample_rate=22050,
+            f_min=0,
+            f_max=8000,
+            n_mels=80,
+        )
         cond_latent = self.gpt.get_style_emb(mel.to(self.device))
         return cond_latent.transpose(1, 2)
 
