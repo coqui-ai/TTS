@@ -252,7 +252,12 @@ class BaseTacotron(BaseTTS):
 
     def compute_capacitron_VAE_embedding(self, inputs, reference_mel_info, text_info=None, speaker_embedding=None):
         """Capacitron Variational Autoencoder"""
-        (VAE_outputs, posterior_distribution, prior_distribution, capacitron_beta,) = self.capacitron_vae_layer(
+        (
+            VAE_outputs,
+            posterior_distribution,
+            prior_distribution,
+            capacitron_beta,
+        ) = self.capacitron_vae_layer(
             reference_mel_info,
             text_info,
             speaker_embedding,  # pylint: disable=not-callable
