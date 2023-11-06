@@ -27,16 +27,14 @@ PROJECT_NAME = "XTTS_trainer"
 DASHBOARD_LOGGER = "tensorboard"
 LOGGER_URI = None
 
-# Set here the path that the checkpoints will be saved. Default: ./run/training/
 OUT_PATH = os.path.join(get_tests_output_path(), "train_outputs", "xtts_tests")
 os.makedirs(OUT_PATH, exist_ok=True)
 
 # Create DVAE checkpoint and mel_norms on test time
 # DVAE parameters: For the training we need the dvae to extract the dvae tokens, given that you must provide the paths for this model
 DVAE_CHECKPOINT = os.path.join(OUT_PATH, "dvae.pth")  # DVAE checkpoint
-MEL_NORM_FILE = os.path.join(
-    OUT_PATH, "mel_stats.pth"
-)  # Mel spectrogram norms, required for dvae mel spectrogram extraction
+# Mel spectrogram norms, required for dvae mel spectrogram extraction
+MEL_NORM_FILE = os.path.join(OUT_PATH, "mel_stats.pth")
 dvae = DiscreteVAE(
     channels=80,
     normalization=None,
@@ -86,6 +84,8 @@ model_args = GPTArgs(
     gpt_num_audio_tokens=8194,
     gpt_start_audio_token=8192,
     gpt_stop_audio_token=8193,
+    gpt_use_masking_gt_prompt_approach=True,
+    gpt_use_perceiver_resampler=True,
     use_ne_hifigan=True,
 )
 audio_config = XttsAudioConfig(
@@ -97,9 +97,7 @@ config = GPTTrainerConfig(
     model_args=model_args,
     run_name=RUN_NAME,
     project_name=PROJECT_NAME,
-    run_description="""
-        GPT XTTS training
-        """,
+    run_description="GPT XTTS training",
     dashboard_logger=DASHBOARD_LOGGER,
     logger_uri=LOGGER_URI,
     audio=audio_config,
