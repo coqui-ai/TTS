@@ -694,7 +694,7 @@ class AudioProcessor(object):
             x = self.rms_volume_norm(x, self.db_level)
         return x
 
-    def save_wav(self, wav: np.ndarray, path: str, sr: int = None, pipe_out = None) -> None:
+    def save_wav(self, wav: np.ndarray, path: str, sr: int = None, pipe_out=None) -> None:
         """Save a waveform to a file using Scipy.
 
         Args:

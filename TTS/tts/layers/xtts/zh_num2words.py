@@ -2,9 +2,14 @@
 #   2019.5 Zhiyang Zhou (https://github.com/Joee1995/chn_text_norm.git)
 #   2019.9 - 2022 Jiayu DU
 
-import sys, os, argparse
-import string, re
+import argparse
 import csv
+import os
+import re
+import string
+import sys
+
+# fmt: off
 
 # ================================================================================ #
 #                                    basic constant

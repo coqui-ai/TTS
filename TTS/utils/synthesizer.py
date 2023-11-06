@@ -235,7 +235,7 @@ class Synthesizer(nn.Module):
         """
         return self.seg.segment(text)
 
-    def save_wav(self, wav: List[int], path: str, pipe_out = None) -> None:
+    def save_wav(self, wav: List[int], path: str, pipe_out=None) -> None:
         """Save the waveform as a file.
 
         Args:

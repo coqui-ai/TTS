@@ -264,7 +264,7 @@ class TTS(nn.Module):
         language: str = None,
         emotion: str = None,
         speed: float = 1.0,
-        pipe_out = None,
+        pipe_out=None,
         file_path: str = None,
     ) -> Union[np.ndarray, str]:
         """Convert text to speech using Coqui Studio models. Use `CS_API` class if you are only interested in the API.
@@ -359,7 +359,7 @@ class TTS(nn.Module):
         speaker_wav: str = None,
         emotion: str = None,
         speed: float = 1.0,
-        pipe_out = None,
+        pipe_out=None,
         file_path: str = "output.wav",
         **kwargs,
     ):
@@ -460,7 +460,7 @@ class TTS(nn.Module):
         """
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fp:
             # Lazy code... save it to a temp file to resample it while reading it for VC
-            self.tts_to_file(text=text, speaker=None, language=language, file_path=fp.name,speaker_wav=speaker_wav)
+            self.tts_to_file(text=text, speaker=None, language=language, file_path=fp.name, speaker_wav=speaker_wav)
         if self.voice_converter is None:
             self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
         wav = self.voice_converter.voice_conversion(source_wav=fp.name, target_wav=speaker_wav)
