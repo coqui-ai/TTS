@@ -2,13 +2,10 @@ import os
 import random
 import sys
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.utils.data
-import torchaudio
-from torchaudio.backend.soundfile_backend import load as torchaudio_soundfile_load
-from torchaudio.backend.sox_io_backend import load as torchaudio_sox_load
+from TTS.tts.models.xtts import load_audio
 
 torch.set_num_threads(1)
 
@@ -48,31 +45,6 @@ def get_prompt_slice(gt_path, max_sample_length, min_sample_length, sample_rate,
     rel_clip = F.pad(rel_clip, pad=(0, max_sample_length - rel_clip.shape[-1]))
     cond_idxs = [rand_start, rand_end]
     return rel_clip, rel_clip.shape[-1], cond_idxs
-
-
-def load_audio(audiopath, sampling_rate):
-    # better load setting following: https://github.com/faroit/python_audio_loading_benchmark
-    if audiopath[-4:] == ".mp3":
-        # it uses torchaudio with sox backend to load mp3
-        audio, lsr = torchaudio_sox_load(audiopath)
-    else:
-        # it uses torchaudio soundfile backend to load all the others data type
-        audio, lsr = torchaudio_soundfile_load(audiopath)
-
-    # stereo to mono if needed
-    if audio.size(0) != 1:
-        audio = torch.mean(audio, dim=0, keepdim=True)
-
-    if lsr != sampling_rate:
-        audio = torchaudio.functional.resample(audio, lsr, sampling_rate)
-
-    # Check some assumptions about audio range. This should be automatically fixed in load_wav_to_torch, but might not be in some edge cases, where we should squawk.
-    # '10' is arbitrarily chosen since it seems like audio will often "overdrive" the [-1,1] bounds.
-    if torch.any(audio > 10) or not torch.any(audio < 0):
-        print(f"Error with {audiopath}. Max={audio.max()} min={audio.min()}")
-    # clip audio invalid values
-    audio.clip_(-1, 1)
-    return audio
 
 
 class XTTSDataset(torch.utils.data.Dataset):
