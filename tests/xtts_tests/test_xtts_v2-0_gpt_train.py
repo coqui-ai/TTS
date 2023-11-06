@@ -86,7 +86,6 @@ model_args = GPTArgs(
     gpt_stop_audio_token=8193,
     gpt_use_masking_gt_prompt_approach=True,
     gpt_use_perceiver_resampler=True,
-    use_ne_hifigan=True,
 )
 audio_config = XttsAudioConfig(sample_rate=22050, dvae_sample_rate=22050, output_sample_rate=24000)
 config = GPTTrainerConfig(
