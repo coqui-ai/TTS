@@ -3,17 +3,17 @@
         "multilingual": {
             "multi-dataset": {
                 "xtts_v2": {
-                    "description": "",
+                    "description": "XTTS-v2 by Coqui with 16 languages.",
                     "hf_url": [
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/v1.0.0/model.pth",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/v1.0.0/config.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/v1.0.0/vocab.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/hash.md5"
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5"
                     ],
                     "default_vocoder": null,
-                    "commit": "e9a1953e",
+                    "commit": "480a6cdf7",
                     "license": "CPML",
-                    "contact": "",
+                    "contact": "info@coqui.ai",
                     "tos_required": true
                 },
                 "xtts_v1": {
