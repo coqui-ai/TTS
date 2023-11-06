@@ -53,3 +53,4 @@ transformers==4.33.*
 encodec==0.1.*
 # deps for XTTS
 unidecode==1.3.*
+num2words
