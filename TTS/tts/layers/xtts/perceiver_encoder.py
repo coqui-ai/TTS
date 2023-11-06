@@ -1,16 +1,14 @@
 # Adapted from https://github.com/lucidrains/naturalspeech2-pytorch/blob/659bec7f7543e7747e809e950cc2f84242fbeec7/naturalspeech2_pytorch/naturalspeech2_pytorch.py#L532
 
-import torch
-from torch import nn, einsum
-import torch.nn.functional as F
-
 from collections import namedtuple
 from functools import wraps
-from packaging import version
 
-
+import torch
+import torch.nn.functional as F
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
+from packaging import version
+from torch import einsum, nn
 
 
 def exists(val):

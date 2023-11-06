@@ -34,9 +34,7 @@ os.makedirs(OUT_PATH, exist_ok=True)
 # DVAE parameters: For the training we need the dvae to extract the dvae tokens, given that you must provide the paths for this model
 DVAE_CHECKPOINT = os.path.join(OUT_PATH, "dvae.pth")  # DVAE checkpoint
 # Mel spectrogram norms, required for dvae mel spectrogram extraction
-MEL_NORM_FILE = os.path.join(
-    OUT_PATH, "mel_stats.pth"
-)
+MEL_NORM_FILE = os.path.join(OUT_PATH, "mel_stats.pth")
 dvae = DiscreteVAE(
     channels=80,
     normalization=None,
