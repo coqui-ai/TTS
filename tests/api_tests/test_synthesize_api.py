@@ -22,8 +22,4 @@ def test_synthesize():
     )
 
     # test pipe_out command
-<<<<<<< HEAD
     run_cli(f'tts --text "test." --pipe_out --out_path "{output_path}" | aplay')
-=======
-    run_cli('tts --text "test." --pipe_out ' f'--out_path "{output_path}" | aplay')
->>>>>>> Make style
