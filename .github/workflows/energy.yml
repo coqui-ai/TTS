@@ -76,3 +76,4 @@ jobs:
         with:
           task: display-results
           send-data: false
+          pr-comment: true
