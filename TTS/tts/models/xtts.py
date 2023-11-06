@@ -378,8 +378,8 @@ class Xtts(BaseTTS):
             length (int): Length of the audio in seconds. Defaults to 3.
         """
         if sr != 22050:
-            audio_22k = torchaudio.functional.resample(audio, sr, 22050)
-        audio_22k = audio_22k[:, : 22050 * length]
+            audio = torchaudio.functional.resample(audio, sr, 22050)
+        audio = audio[:, : 22050 * length]
         if self.args.gpt_use_perceiver_resampler:
             n_fft = 2048
             hop_length = 256
@@ -389,7 +389,7 @@ class Xtts(BaseTTS):
             hop_length = 1024
             win_length = 4096
         mel = wav_to_mel_cloning(
-            audio_22k,
+            audio,
             mel_norms=self.mel_stats.cpu(),
             n_fft=n_fft,
             hop_length=hop_length,
