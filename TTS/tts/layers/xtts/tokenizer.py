@@ -529,31 +529,18 @@ def korean_cleaners(text):
     return r.translit(text)
 
 
-def preprocess_text(txt, lang):
-    if lang in ["en", "es", "fr", "de", "pt", "it", "pl", "zh", "ar", "cs", "ru", "nl", "tr", "hu"]:
-        txt = multilingual_cleaners(txt, lang)
-    elif lang == "ja":
-        txt = japanese_cleaners(txt)
-    elif lang == "zh-cn" or lang == "zh":
-        txt = chinese_transliterate(txt)
-    elif lang == "ko":
-        txt = korean_cleaners(txt)
-    else:
-        raise NotImplementedError()
-    return txt
-
-
 DEFAULT_VOCAB_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../data/tokenizer.json")
 
 
 class VoiceBpeTokenizer:
     def __init__(self, vocab_file=None):
         self.tokenizer = None
+        self.katsu = None
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
 
     def encode(self, txt, lang):
-        txt = preprocess_text(txt, lang)
+        txt = self.preprocess_text(txt, lang)
         txt = f"[{lang}]{txt}"
         txt = txt.replace(" ", "[SPACE]")
         return self.tokenizer.encode(txt).ids
@@ -565,6 +552,23 @@ class VoiceBpeTokenizer:
         txt = txt.replace("[SPACE]", " ")
         txt = txt.replace("[STOP]", "")
         txt = txt.replace("[UNK]", "")
+        return txt
+
+    def preprocess_text(self, txt, lang):
+        if lang in ["en", "es", "fr", "de", "pt", "it", "pl", "zh", "ar", "cs", "ru", "nl", "tr", "hu"]:
+            txt = multilingual_cleaners(txt, lang)
+        elif lang == "ja":
+            if self.katsu is None:
+                import cutlet
+
+                self.katsu = cutlet.Cutlet()
+            txt = japanese_cleaners(txt, self.katsu)
+        elif lang == "zh-cn" or lang == "zh":
+            txt = chinese_transliterate(txt)
+        elif lang == "ko":
+            txt = korean_cleaners(txt)
+        else:
+            raise NotImplementedError()
         return txt
 
     def __len__(self):
