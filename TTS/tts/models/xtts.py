@@ -9,8 +9,6 @@ import torchaudio
 from coqpit import Coqpit
 
 from TTS.tts.layers.tortoise.audio_utils import denormalize_tacotron_mel, wav_to_univnet_mel
-from TTS.tts.layers.tortoise.diffusion_decoder import DiffusionTts
-from TTS.tts.layers.xtts.diffusion import SpacedDiffusion, get_named_beta_schedule, space_timesteps
 from TTS.tts.layers.xtts.gpt import GPT
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
@@ -168,12 +166,10 @@ class XttsAudioConfig(Coqpit):
 
     Args:
         sample_rate (int): The sample rate in which the GPT operates.
-        diffusion_sample_rate (int): The sample rate of the diffusion audio waveform.
         output_sample_rate (int): The sample rate of the output audio waveform.
     """
 
     sample_rate: int = 22050
-    diffusion_sample_rate: int = 24000
     output_sample_rate: int = 24000
 
 
@@ -697,24 +693,11 @@ class Xtts(BaseTTS):
                     hasattr(self, "hifigan_decoder") and self.hifigan_decoder is not None
                 ), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
                 wav = self.hifigan_decoder(gpt_latents, g=speaker_embedding)
-            else:
-                assert hasattr(
-                    self, "diffusion_decoder"
-                ), "You must disable hifigan decoders to use difffusion by setting `use_hifigan: false`"
-                mel = do_spectrogram_diffusion(
-                    self.diffusion_decoder,
-                    diffuser,
-                    gpt_latents,
-                    diffusion_conditioning,
-                    temperature=diffusion_temperature,
-                )
-                wav = self.vocoder.inference(mel)
 
         return {
             "wav": wav.cpu().numpy().squeeze(),
             "gpt_latents": gpt_latents,
             "speaker_embedding": speaker_embedding,
-            "diffusion_conditioning": diffusion_conditioning,
         }
 
     def handle_chunks(self, wav_gen, wav_gen_prev, wav_overlap, overlap_len):

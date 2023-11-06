@@ -99,7 +99,7 @@ def main():
     )
     # define audio config
     audio_config = XttsAudioConfig(
-        sample_rate=22050, dvae_sample_rate=22050, diffusion_sample_rate=24000, output_sample_rate=24000
+        sample_rate=22050, dvae_sample_rate=22050, output_sample_rate=24000
     )
     # training parameters config
     config = GPTTrainerConfig(

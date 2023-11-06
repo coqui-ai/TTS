@@ -89,7 +89,7 @@ model_args = GPTArgs(
     use_ne_hifigan=True,
 )
 audio_config = XttsAudioConfig(
-    sample_rate=22050, dvae_sample_rate=22050, diffusion_sample_rate=24000, output_sample_rate=24000
+    sample_rate=22050, dvae_sample_rate=22050, output_sample_rate=24000
 )
 config = GPTTrainerConfig(
     epochs=1,
