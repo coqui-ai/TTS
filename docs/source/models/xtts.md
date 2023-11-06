@@ -7,17 +7,25 @@ This is the same model that powers [Coqui Studio](https://coqui.ai/), and [Coqui
 a few tricks to make it faster and support streaming inference.
 
 ### Features
-- Voice cloning with just a 3-second audio clip.
+- Voice cloning.
 - Cross-language voice cloning.
 - Multi-lingual speech generation.
 - 24khz sampling rate.
+- Streaming inference with < 200ms latency. (See [Streaming inference](#streaming-inference))
+- Fine-tuning support. (See [Training](#training))
+
+### Updates with v2
+- Improved voice cloning.
+- Voices can be cloned with a single audio file or multiple audio files, without any effect on the runtime.
+- 2 new languages: Hungarian and Korean.
+- Across the board quality improvements.
 
 ### Code
 Current implementation only supports inference.
 
 ### Languages
-As of now, XTTS-v1.1 supports 14 languages: English, Spanish, French, German, Italian, Portuguese,
-Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese (Simplified) and Japanese.
+As of now, XTTS-v2 supports 16 languages: English, Spanish, French, German, Italian, Portuguese,
+Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese (Simplified), Japanese, Hungarian, Korean
 
 Stay tuned as we continue to add support for more languages. If you have any language requests, please feel free to reach out.
 
@@ -33,7 +41,7 @@ You can also mail us at info@coqui.ai.
 
 ```python
 from TTS.api import TTS
-tts = TTS("tts_models/multilingual/multi-dataset/xtts_v1.1", gpu=True)
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
 
 # generate speech by cloning a voice using default settings
 tts.tts_to_file(text="It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
@@ -45,7 +53,7 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
 #### 🐸TTS Command line
 
 ```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v1.1 \
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
      --text "Bugün okula gitmek istemiyorum." \
      --speaker_wav /path/to/target/speaker.wav \
      --language_idx tr \
@@ -73,7 +81,7 @@ config.load_json("/path/to/xtts/config.json")
 model = Xtts.init_from_config(config)
 model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=True)
 model.cuda()
-    
+
 print("Computing speaker latents...")
 gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path="reference.wav")
 
@@ -122,7 +130,7 @@ chunks = model.inference_stream(
     gpt_cond_latent,
     speaker_embedding
 )
-    
+
 wav_chuncks = []
 for i, chunk in enumerate(chunks):
     if i == 0:
@@ -136,7 +144,7 @@ torchaudio.save("xtts_streaming.wav", wav.squeeze().unsqueeze(0).cpu(), 24000)
 
 ### Training
 
-A recipe for `XTTS_v1.1` GPT encoder training using `LJSpeech` dataset is available at https://github.com/coqui-ai/TTS/tree/dev/recipes/ljspeech/xtts_v1/train_gpt_xtts.py
+A recipe for `XTTS_v2` GPT encoder training using `LJSpeech` dataset is available at https://github.com/coqui-ai/TTS/tree/dev/recipes/ljspeech/xtts_v1/train_gpt_xtts.py
 
 You need to change the fields of the `BaseDatasetConfig` to match your dataset and then update `GPTArgs` and `GPTTrainerConfig` fields as you need. By default, it will use the same parameters that XTTS v1.1 model was trained with. To speed up the model convergence, as default, it will also download the XTTS v1.1 checkpoint and load it.
 
@@ -152,7 +160,7 @@ from TTS.tts.models.xtts import Xtts
 # Add here the xtts_config path
 CONFIG_PATH = "recipes/ljspeech/xtts_v1/run/training/GPT_XTTS_LJSpeech_FT-October-23-2023_10+36AM-653f2e75/config.json"
 # Add here the vocab file that you have used to train the model
-TOKENIZER_PATH = "recipes/ljspeech/xtts_v1/run/training/XTTS_v1.1_original_model_files/vocab.json"
+TOKENIZER_PATH = "recipes/ljspeech/xtts_v1/run/training/XTTS_v2_original_model_files/vocab.json"
 # Add here the checkpoint that you want to do inference with
 XTTS_CHECKPOINT = "recipes/ljspeech/xtts_v1/run/training/GPT_XTTS_LJSpeech_FT/best_model.pth"
 # Add here the speaker reference
@@ -184,13 +192,14 @@ torchaudio.save(OUTPUT_WAV_PATH, torch.tensor(out["wav"]).unsqueeze(0), 24000)
 ```
 
 
-## Important resources & papers
+## References and Acknowledgements
 - VallE: https://arxiv.org/abs/2301.02111
 - Tortoise Repo: https://github.com/neonbjb/tortoise-tts
 - Faster implementation: https://github.com/152334H/tortoise-tts-fast
 - Univnet: https://arxiv.org/abs/2106.07889
 - Latent Diffusion:https://arxiv.org/abs/2112.10752
 - DALL-E: https://arxiv.org/abs/2102.12092
+- Perceiver: https://arxiv.org/abs/2103.03206
 
 
 ## XttsConfig
