@@ -40,6 +40,7 @@ CHECKPOINTS_OUT_PATH = os.path.join(OUT_PATH, "XTTS_v2.0_original_model_files/")
 os.makedirs(CHECKPOINTS_OUT_PATH, exist_ok=True)
 
 
+# ToDo: update DVAE checkpoint
 # DVAE files
 DVAE_CHECKPOINT_LINK = "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/dvae.pth"
 MEL_NORM_LINK = "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.1/mel_stats.pth"
@@ -89,9 +90,9 @@ def main():
         dvae_checkpoint=DVAE_CHECKPOINT,
         xtts_checkpoint=XTTS_CHECKPOINT,  # checkpoint path of the model that you want to fine-tune
         tokenizer_file=TOKENIZER_FILE,
-        gpt_num_audio_tokens=8194,
-        gpt_start_audio_token=8192,
-        gpt_stop_audio_token=8193,
+        gpt_num_audio_tokens=1024,
+        gpt_start_audio_token=1025,
+        gpt_stop_audio_token=1026,
         gpt_use_masking_gt_prompt_approach=True,
         gpt_use_perceiver_resampler=True,
     )
