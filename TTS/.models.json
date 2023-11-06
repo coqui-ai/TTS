@@ -17,19 +17,6 @@
                     "contact": "info@coqui.ai",
                     "tos_required": true
                 },
-                "xtts_v1": {
-                    "description": "XTTS-v1 by Coqui with 13 languages and cross-language voice cloning.",
-                    "hf_url": [
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/model.pth",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/config.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/hifigan/vocab.json"
-                    ],
-                    "default_vocoder": null,
-                    "commit": "e5140314",
-                    "license": "CPML",
-                    "contact": "info@coqui.ai",
-                    "tos_required": true
-                },
                 "xtts_v1.1": {
                     "description": "XTTS-v1.1 by Coqui with 14 languages, cross-language voice cloning and reference leak fixed.",
                     "hf_url": [
