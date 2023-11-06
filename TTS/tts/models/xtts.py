@@ -336,7 +336,7 @@ class Xtts(BaseTTS):
         """Compute the conditioning latents for the GPT model from the given audio.
 
         Args:
-            audio_path (str): Path to the audio file.
+            audio (tensor): audio tensor.
             sr (int): Sample rate of the audio.
             length (int): Length of the audio in seconds. Defaults to 3.
         """
@@ -444,7 +444,7 @@ class Xtts(BaseTTS):
         Args:
             text (str): Input text.
             config (XttsConfig): Config with inference parameters.
-            speaker_wav (str): Path to the speaker audio file for cloning.
+            speaker_wav (list): List of paths to the speaker audio files to be used for cloning.
             language (str): Language ID of the speaker.
             **kwargs: Inference settings. See `inference()`.
 

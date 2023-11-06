@@ -39,6 +39,7 @@ You can also mail us at info@coqui.ai.
 ### Inference
 #### 🐸TTS API
 
+##### Single reference
 ```python
 from TTS.api import TTS
 tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
@@ -46,12 +47,25 @@ tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
 # generate speech by cloning a voice using default settings
 tts.tts_to_file(text="It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
                 file_path="output.wav",
-                speaker_wav="/path/to/target/speaker.wav",
+                speaker_wav=["/path/to/target/speaker.wav"],
+                language="en")
+```
+
+##### Multiple references
+```python
+from TTS.api import TTS
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
+
+# generate speech by cloning a voice using default settings
+tts.tts_to_file(text="It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                file_path="output.wav",
+                speaker_wav=["/path/to/target/speaker.wav", "/path/to/target/speaker_2.wav", "/path/to/target/speaker_3.wav"],
                 language="en")
 ```
 
 #### 🐸TTS Command line
 
+##### Single reference
 ```console
  tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
      --text "Bugün okula gitmek istemiyorum." \
@@ -59,6 +73,25 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
      --language_idx tr \
      --use_cuda true
 ```
+
+##### Multiple references
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/speaker.wav /path/to/target/speaker_2.wav /path/to/target/speaker_3.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+or for all wav files in a directory you can use:
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/*.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+
 
 #### model directly
 
@@ -83,7 +116,7 @@ model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=Tru
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path="reference.wav")
+gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
 
 print("Inference...")
 out = model.inference(
@@ -120,7 +153,7 @@ model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=Tru
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path="reference.wav")
+gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
 
 print("Inference...")
 t0 = time.time()
@@ -177,7 +210,7 @@ model.load_checkpoint(config, checkpoint_path=XTTS_CHECKPOINT, vocab_path=TOKENI
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path=SPEAKER_REFERENCE)
+gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path=[SPEAKER_REFERENCE])
 
 print("Inference...")
 out = model.inference(
