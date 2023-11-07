@@ -3,14 +3,13 @@ name: api_tests
 on:
   push:
     branches:
-      - main
+      - energy
 jobs:
-  check_skip:
+  measure-energy:
     runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[ci skip]')"
+    name: Run power usage check
     steps:
-      - run: echo "${{ github.event.head_commit.message }}"
-
+      - run: sar -u 1 240
   test:
     runs-on: ubuntu-latest
     strategy:

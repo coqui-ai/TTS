@@ -3,25 +3,16 @@ name: data-tests
 on:
   push:
     branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
+      - energy
 jobs:
-  check_skip:
+  measure-energy:
     runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[ci skip]')"
+    permissions:
+      contents: read
+      pull-requests: write
+    name: A job to measure energy
     steps:
-      - run: echo "${{ github.event.head_commit.message }}"
-
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: [3.9, "3.10", "3.11"]
-        experimental: [false]
-    steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -47,5 +38,8 @@ jobs:
         run: |
           python3 -m pip install .[all]
           python3 setup.py egg_info
-      - name: Unit tests
-        run: make data_tests
+
+      - name: Measure unit test energy
+        uses: koenhagen/measure-energy-action@v0.4
+        with:
+          what-to-test: make data_tests
