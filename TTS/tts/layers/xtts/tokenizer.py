@@ -8,7 +8,7 @@ from hangul_romanize import Transliter
 from hangul_romanize.rule import academic
 from num2words import num2words
 from tokenizers import Tokenizer
-from yarl import cached_property
+from functools import cached_property
 
 from TTS.tts.layers.xtts.zh_num2words import TextNorm as zh_num2words
 
