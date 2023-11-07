@@ -10,7 +10,7 @@
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5"
                     ],
-                    "model_hash": "ae9e4b39e095fd5728fe7f7931eccoqui",
+                    "model_hash": "6a09d1ad43896f06041ed8195956c9698f13b6189dc80f1c74bdc2b8e8d15324",
                     "default_vocoder": null,
                     "commit": "480a6cdf7",
                     "license": "CPML",
