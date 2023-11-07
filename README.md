@@ -14,7 +14,6 @@
 
 📚 Utilities for dataset analysis and curation.
 ______________________________________________________________________
-[![Energy Used](https://api.green-coding.berlin/v1/ci/measurement/get?repo=koenhagen%2FTTS&branch=4%2Fmerge&workflow=75154825)](https://metrics.green-coding.berlin/ci.html?repo=koenhagen%2FTTS&branch=4%2Fmerge&workflow=75154825)
 <a href="https://metrics.green-coding.berlin/ci.html?repo=koenhagen%2FTTS&amp;branch=4%2Fmerge&amp;workflow=75154825"><img src="https://api.green-coding.berlin/v1/ci/badge/get?repo=koenhagen/TTS&amp;branch=4/merge&amp;workflow=75154825"></a>
 [![Dicord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
