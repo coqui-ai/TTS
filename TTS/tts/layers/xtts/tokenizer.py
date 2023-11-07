@@ -8,6 +8,7 @@ from hangul_romanize import Transliter
 from hangul_romanize.rule import academic
 from num2words import num2words
 from tokenizers import Tokenizer
+from yarl import cached_property
 
 from TTS.tts.layers.xtts.zh_num2words import TextNorm as zh_num2words
 
@@ -535,7 +536,6 @@ DEFAULT_VOCAB_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "
 class VoiceBpeTokenizer:
     def __init__(self, vocab_file=None):
         self.tokenizer = None
-        self.katsu = None
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
         self.char_limits = {
@@ -556,6 +556,11 @@ class VoiceBpeTokenizer:
             "hu": 224,
             "ko": 95,
         }
+
+    @cached_property
+    def katsu(self):
+        import cutlet
+        return cutlet.Cutlet()
     
     def check_input_length(self, txt, lang):
         limit = self.char_limits.get(lang, 250)
@@ -567,10 +572,7 @@ class VoiceBpeTokenizer:
             txt = multilingual_cleaners(txt, lang)
             if lang == "zh-cn":
                 txt = chinese_transliterate(txt)
-        elif lang == "ja":
-            if self.katsu is None:
-                import cutlet
-                self.katsu = cutlet.Cutlet()
+        elif lang == "ja":                
             txt = japanese_cleaners(txt, self.katsu)
         else:
             raise NotImplementedError()
