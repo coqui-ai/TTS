@@ -14,7 +14,6 @@ jobs:
         uses: green-coding-berlin/eco-ci-energy-estimation@v2 # use hash or @vX here (See note below)
         with:
           task: start-measurement
-          send-data: false
 
       - name: 'Checkout repository'
         uses: actions/checkout@v3
@@ -59,7 +58,6 @@ jobs:
         with:
           task: get-measurement
           label: 'setup'
-          send-data: false
           
       - name: Unit tests
         run: make data_tests
@@ -69,11 +67,9 @@ jobs:
         with:
           task: get-measurement
           label: 'unit tests'
-          send-data: false
 
       - name: Show Energy Results
         uses: green-coding-berlin/eco-ci-energy-estimation@v2 # use hash or @vX here (See note below)
         with:
           task: display-results
-          send-data: false
           pr-comment: true
