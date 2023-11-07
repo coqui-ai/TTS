@@ -24,8 +24,7 @@ a few tricks to make it faster and support streaming inference.
 Current implementation only supports inference.
 
 ### Languages
-As of now, XTTS-v2 supports 16 languages: English, Spanish, French, German, Italian, Portuguese,
-Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese (Simplified), Japanese, Hungarian, Korean
+As of now, XTTS-v2 supports 16 languages: English (en), Spanish (es), French (fr), German (de), Italian (it), Portuguese (pt), Polish (pl), Turkish (tr), Russian (ru), Dutch (nl), Czech (cs), Arabic (ar), Chinese (zh-cn), Japanese (ja), Hungarian (hu) and Korean (ko).
 
 Stay tuned as we continue to add support for more languages. If you have any language requests, please feel free to reach out.
 
