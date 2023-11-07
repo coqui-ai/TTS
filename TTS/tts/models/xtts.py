@@ -67,6 +67,31 @@ def wav_to_mel_cloning(
     return mel
 
 
+def load_audio(audiopath, sampling_rate):
+    # better load setting following: https://github.com/faroit/python_audio_loading_benchmark
+    if audiopath[-4:] == ".mp3":
+        # it uses torchaudio with sox backend to load mp3
+        audio, lsr = torchaudio.backend.sox_io_backend.load(audiopath)
+    else:
+        # it uses torchaudio soundfile backend to load all the others data type
+        audio, lsr = torchaudio.backend.soundfile_backend.load(audiopath)
+
+    # stereo to mono if needed
+    if audio.size(0) != 1:
+        audio = torch.mean(audio, dim=0, keepdim=True)
+
+    if lsr != sampling_rate:
+        audio = torchaudio.functional.resample(audio, lsr, sampling_rate)
+
+    # Check some assumptions about audio range. This should be automatically fixed in load_wav_to_torch, but might not be in some edge cases, where we should squawk.
+    # '10' is arbitrarily chosen since it seems like audio will often "overdrive" the [-1,1] bounds.
+    if torch.any(audio > 10) or not torch.any(audio < 0):
+        print(f"Error with {audiopath}. Max={audio.max()} min={audio.min()}")
+    # clip audio invalid values
+    audio.clip_(-1, 1)
+    return audio
+
+
 def pad_or_truncate(t, length):
     """
     Ensure a given tensor t has a specified sequence length by either padding it with zeros or clipping it.
@@ -84,78 +109,6 @@ def pad_or_truncate(t, length):
     elif t.shape[-1] < length:
         tp = F.pad(t, (0, length - t.shape[-1]))
     return tp
-
-
-def load_discrete_vocoder_diffuser(
-    trained_diffusion_steps=4000,
-    desired_diffusion_steps=200,
-    cond_free=True,
-    cond_free_k=1,
-    sampler="ddim",
-):
-    """
-    Load a GaussianDiffusion instance configured for use as a decoder.
-
-    Args:
-        trained_diffusion_steps (int): The number of diffusion steps used during training.
-        desired_diffusion_steps (int): The number of diffusion steps to use during inference.
-        cond_free (bool): Whether to use a conditioning-free model.
-        cond_free_k (int): The number of samples to use for conditioning-free models.
-        sampler (str): The name of the sampler to use.
-
-    Returns:
-        A SpacedDiffusion instance configured with the given parameters.
-    """
-    return SpacedDiffusion(
-        use_timesteps=space_timesteps(trained_diffusion_steps, [desired_diffusion_steps]),
-        model_mean_type="epsilon",
-        model_var_type="learned_range",
-        loss_type="mse",
-        betas=get_named_beta_schedule("linear", trained_diffusion_steps),
-        conditioning_free=cond_free,
-        conditioning_free_k=cond_free_k,
-        sampler=sampler,
-    )
-
-
-def do_spectrogram_diffusion(
-    diffusion_model,
-    diffuser,
-    latents,
-    conditioning_latents,
-    temperature=1,
-):
-    """
-    Generate a mel-spectrogram using a diffusion model and a diffuser.
-
-    Args:
-        diffusion_model (nn.Module): A diffusion model that converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
-        diffuser (Diffuser): A diffuser that generates a mel-spectrogram from noise.
-        latents (torch.Tensor): A tensor of shape (batch_size, seq_len, code_size) containing the input spectrogram codes.
-        conditioning_latents (torch.Tensor): A tensor of shape (batch_size, code_size) containing the conditioning codes.
-        temperature (float, optional): The temperature of the noise used by the diffuser. Defaults to 1.
-
-    Returns:
-        torch.Tensor: A tensor of shape (batch_size, mel_channels, mel_seq_len) containing the generated mel-spectrogram.
-    """
-    with torch.no_grad():
-        output_seq_len = (
-            latents.shape[1] * 4 * 24000 // 22050
-        )  # This diffusion model converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
-        output_shape = (latents.shape[0], 100, output_seq_len)
-        precomputed_embeddings = diffusion_model.timestep_independent(
-            latents, conditioning_latents, output_seq_len, False
-        )
-
-        noise = torch.randn(output_shape, device=latents.device) * temperature
-        mel = diffuser.sample_loop(
-            diffusion_model,
-            output_shape,
-            noise=noise,
-            model_kwargs={"precomputed_aligned_embeddings": precomputed_embeddings},
-            progress=False,
-        )
-        return denormalize_tacotron_mel(mel)[:, :, :output_seq_len]
 
 
 @dataclass
@@ -336,7 +289,7 @@ class Xtts(BaseTTS):
         """Compute the conditioning latents for the GPT model from the given audio.
 
         Args:
-            audio_path (str): Path to the audio file.
+            audio (tensor): audio tensor.
             sr (int): Sample rate of the audio.
             length (int): Length of the audio in seconds. Defaults to 3.
         """
@@ -404,20 +357,41 @@ class Xtts(BaseTTS):
         max_ref_length=10,
         librosa_trim_db=None,
         sound_norm_refs=False,
+        load_sr=24000,
     ):
+        # deal with multiples references
+        if not isinstance(audio_path, list):
+            audio_paths = [audio_path]
+        else:
+            audio_paths = audio_path
+
+        speaker_embeddings = []
+        audios = []
         speaker_embedding = None
+        for file_path in audio_paths:
+            # load the audio in 24khz to avoid issued with multiple sr references
+            audio = load_audio(file_path, load_sr)
+            audio = audio[:, : load_sr * max_ref_length].to(self.device)
+            if audio.shape[0] > 1:
+                audio = audio.mean(0, keepdim=True)
+            if sound_norm_refs:
+                audio = (audio / torch.abs(audio).max()) * 0.75
+            if librosa_trim_db is not None:
+                audio = librosa.effects.trim(audio, top_db=librosa_trim_db)[0]
 
-        audio, sr = torchaudio.load(audio_path)
-        audio = audio[:, : sr * max_ref_length].to(self.device)
-        if audio.shape[0] > 1:
-            audio = audio.mean(0, keepdim=True)
-        if sound_norm_refs:
-            audio = (audio / torch.abs(audio).max()) * 0.75
-        if librosa_trim_db is not None:
-            audio = librosa.effects.trim(audio, top_db=librosa_trim_db)[0]
+            speaker_embedding = self.get_speaker_embedding(audio, load_sr)
+            speaker_embeddings.append(speaker_embedding)
 
-        speaker_embedding = self.get_speaker_embedding(audio, sr)
-        gpt_cond_latents = self.get_gpt_cond_latents(audio, sr, length=gpt_cond_len)  # [1, 1024, T]
+            audios.append(audio)
+
+        # use a merge of all references for gpt cond latents
+        full_audio = torch.cat(audios, dim=-1)
+        gpt_cond_latents = self.get_gpt_cond_latents(full_audio, load_sr, length=gpt_cond_len)  # [1, 1024, T]
+
+        if speaker_embeddings:
+            speaker_embedding = torch.stack(speaker_embeddings)
+            speaker_embedding = speaker_embedding.mean(dim=0)
+
         return gpt_cond_latents, speaker_embedding
 
     def synthesize(self, text, config, speaker_wav, language, **kwargs):
@@ -426,7 +400,7 @@ class Xtts(BaseTTS):
         Args:
             text (str): Input text.
             config (XttsConfig): Config with inference parameters.
-            speaker_wav (str): Path to the speaker audio file for cloning.
+            speaker_wav (list): List of paths to the speaker audio files to be used for cloning.
             language (str): Language ID of the speaker.
             **kwargs: Inference settings. See `inference()`.
 
@@ -436,11 +410,6 @@ class Xtts(BaseTTS):
             as latents used at inference.
 
         """
-
-        # Make the synthesizer happy 🥳
-        if isinstance(speaker_wav, list):
-            speaker_wav = speaker_wav[0]
-
         return self.inference_with_config(text, config, ref_audio_path=speaker_wav, language=language, **kwargs)
 
     def inference_with_config(self, text, config, ref_audio_path, language, **kwargs):
@@ -522,27 +491,6 @@ class Xtts(BaseTTS):
             gpt_cond_len: (int) Length of the audio used for cloning. If audio is shorter, then audio length is used
                 else the first `gpt_cond_len` secs is used. Defaults to 6 seconds.
 
-            decoder_iterations: (int) Number of diffusion steps to perform. [0,4000]. More steps means the network has
-                more chances to iteratively refine the output, which should theoretically mean a higher quality output.
-                Generally a value above 250 is not noticeably better, however. Defaults to 100.
-
-            cond_free: (bool) Whether or not to perform conditioning-free diffusion. Conditioning-free diffusion
-                performs two forward passes for each diffusion step: one with the outputs of the autoregressive model
-                and one with no conditioning priors. The output of the two is blended according to the cond_free_k
-                value below. Conditioning-free diffusion is the real deal, and dramatically improves realism.
-                Defaults to True.
-
-            cond_free_k: (float) Knob that determines how to balance the conditioning free signal with the
-                conditioning-present signal. [0,inf]. As cond_free_k increases, the output becomes dominated by the
-                conditioning-free signal. Defaults to 2.0.
-
-            diffusion_temperature: (float) Controls the variance of the noise fed into the diffusion model. [0,1].
-                Values at 0 re the "mean" prediction of the diffusion network and will sound bland and smeared.
-                Defaults to 1.0.
-
-            decoder: (str) Selects the decoder to use between ("hifigan", "diffusion")
-                Defaults to hifigan
-
             hf_generate_kwargs: (**kwargs) The huggingface Transformers generate API is used for the autoregressive
                 transformer. Extra keyword args fed to this function get forwarded directly to that API. Documentation
                 here: https://huggingface.co/docs/transformers/internal/generation_utils
@@ -569,12 +517,6 @@ class Xtts(BaseTTS):
             top_k=top_k,
             top_p=top_p,
             do_sample=do_sample,
-            decoder_iterations=decoder_iterations,
-            cond_free=cond_free,
-            cond_free_k=cond_free_k,
-            diffusion_temperature=diffusion_temperature,
-            decoder_sampler=decoder_sampler,
-            decoder=decoder,
             **hf_generate_kwargs,
         )
 
@@ -592,13 +534,6 @@ class Xtts(BaseTTS):
         top_k=50,
         top_p=0.85,
         do_sample=True,
-        # Decoder inference
-        decoder_iterations=100,
-        cond_free=True,
-        cond_free_k=2,
-        diffusion_temperature=1.0,
-        decoder_sampler="ddim",
-        decoder="hifigan",
         num_beams=1,
         **hf_generate_kwargs,
     ):
@@ -693,8 +628,6 @@ class Xtts(BaseTTS):
         top_k=50,
         top_p=0.85,
         do_sample=True,
-        # Decoder inference
-        decoder="hifigan",
         **hf_generate_kwargs,
     ):
         text = text.strip().lower()

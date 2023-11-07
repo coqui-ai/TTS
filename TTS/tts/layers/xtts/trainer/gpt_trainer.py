@@ -238,7 +238,6 @@ class GPTTrainer(BaseTTS):
                     s_info["speaker_wav"],
                     s_info["language"],
                     gpt_cond_len=3,
-                    decoder="ne_hifigan",
                 )["wav"]
                 test_audios["{}-audio".format(idx)] = wav
 
