@@ -1,4 +1,4 @@
-[![Energy Used](https://api.green-coding.berlin/v1/ci/measurement/get?repo=koenhagen%2FTTS&branch=4%2Fmerge&workflow=75154825)](https://metrics.green-coding.berlin/ci.html?repo=koenhagen%2FTTS&branch=4%2Fmerge&workflow=75154825)
+
 
 <div align="center">
 <img src="https://static.scarf.sh/a.png?x-pxid=cf317fe7-2188-4721-bc01-124bb5d5dbb2" />
@@ -14,7 +14,7 @@
 
 📚 Utilities for dataset analysis and curation.
 ______________________________________________________________________
-
+[![Energy Used](https://api.green-coding.berlin/v1/ci/measurement/get?repo=koenhagen%2FTTS&branch=4%2Fmerge&workflow=75154825)](https://metrics.green-coding.berlin/ci.html?repo=koenhagen%2FTTS&branch=4%2Fmerge&workflow=75154825)
 [![Dicord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 [![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
