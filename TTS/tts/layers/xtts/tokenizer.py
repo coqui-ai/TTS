@@ -538,26 +538,27 @@ class VoiceBpeTokenizer:
         self.katsu = None
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
+        self.char_limits = {
+            "en": 250,
+            "de": 253,
+            "fr": 273,
+            "es": 239,
+            "it": 213,
+            "pt": 203,
+            "pl": 224,
+            "zh-cn": 82,
+            "ar": 166,
+            "cs": 186,
+            "ru": 182,
+            "nl": 251,
+            "tr": 226,
+            "ja": 71,
+            "hu": 224,
+            "ko": 95,
+        }
     
     def check_input_length(self, txt, lang):
-        char_limits = {
-            "en": 250,
-            "de": 198,
-            "fr": 226,
-            "es": 206,
-            "it": 177,
-            "pt": 166,
-            "pl": 148,
-            "zh-cn": 65,
-            "ar": 115,
-            "cs": 145,
-            "ru": 139,
-            "nl": 162,
-            "tr": 182,
-            "ja": 60
-        }
-        limit = char_limits.get(lang, 250)
-
+        limit = self.char_limits.get(lang, 250)
         if len(txt) > limit:
             print(f"[!] Warning: The text length exceeds the character limit of {limit} for language '{lang}', this might cause truncated audio.")
 
