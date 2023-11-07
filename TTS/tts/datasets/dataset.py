@@ -45,16 +45,15 @@ def string2filename(string):
 
 
 def get_audio_size(audiopath):
-    if audiopath[-4:] == ".mp3":
+    extension = audiopath.rpartition(".")[-1].lower()
+    if extension == "mp3":
         audio_info = MP3(audiopath).info
         return int(audio_info.length * audio_info.sample_rate)
-    elif audiopath[-4:] == ".wav" or audiopath[-5:] == ".flac":
+    if extension in ("wav", "flac"):
         compress_factor = 8
         bitrate = 16 # assuming 16bit audio
         return int(os.path.getsize(audiopath) / bitrate * compress_factor)
-    else:
-        audio_format = audiopath.split(".")[-1]
-        raise RuntimeError(f"The audio format {audio_format} is not supported, please convert the audio files for mp3, flac or wav format!")
+    raise RuntimeError(f"The audio format {extension} is not supported, please convert the audio files for mp3, flac or wav format!")
 
 
 class TTSDataset(Dataset):
