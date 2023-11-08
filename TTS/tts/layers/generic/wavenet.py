@@ -1,6 +1,6 @@
 import torch
-import torch.nn.utils.parametrize as parametrize
 from torch import nn
+from torch.nn.utils import parametrize
 
 
 @torch.jit.script

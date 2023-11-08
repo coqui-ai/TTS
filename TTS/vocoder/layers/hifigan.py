@@ -11,7 +11,9 @@ class ResStack(nn.Module):
             resstack += [
                 nn.LeakyReLU(0.2),
                 nn.ReflectionPad1d(dilation),
-                nn.utils.parametrizations.weight_norm(nn.Conv1d(channel, channel, kernel_size=kernel, dilation=dilation)),
+                nn.utils.parametrizations.weight_norm(
+                    nn.Conv1d(channel, channel, kernel_size=kernel, dilation=dilation)
+                ),
                 nn.LeakyReLU(0.2),
                 nn.ReflectionPad1d(padding),
                 nn.utils.parametrizations.weight_norm(nn.Conv1d(channel, channel, kernel_size=1)),

@@ -44,7 +44,9 @@ class KernelPredictor(torch.nn.Module):
         kpnet_bias_channels = conv_out_channels * conv_layers  # l_b
 
         self.input_conv = nn.Sequential(
-            nn.utils.parametrizations.weight_norm(nn.Conv1d(cond_channels, kpnet_hidden_channels, 5, padding=2, bias=True)),
+            nn.utils.parametrizations.weight_norm(
+                nn.Conv1d(cond_channels, kpnet_hidden_channels, 5, padding=2, bias=True)
+            ),
             getattr(nn, kpnet_nonlinear_activation)(**kpnet_nonlinear_activation_params),
         )
 
@@ -314,7 +316,9 @@ class UnivNetGenerator(nn.Module):
                 )
             )
 
-        self.conv_pre = nn.utils.parametrizations.weight_norm(nn.Conv1d(noise_dim, channel_size, 7, padding=3, padding_mode="reflect"))
+        self.conv_pre = nn.utils.parametrizations.weight_norm(
+            nn.Conv1d(noise_dim, channel_size, 7, padding=3, padding_mode="reflect")
+        )
 
         self.conv_post = nn.Sequential(
             nn.LeakyReLU(lReLU_slope),

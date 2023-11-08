@@ -6,10 +6,10 @@ import torch
 from coqpit import Coqpit
 from torch import nn
 from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from trainer.trainer_utils import get_optimizer, get_scheduler
-from torch.nn.utils.parametrize import remove_parametrizations
 
 from TTS.utils.io import load_fsspec
 from TTS.vocoder.datasets import WaveGradDataset

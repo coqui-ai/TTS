@@ -3,7 +3,7 @@ from typing import List
 import numpy as np
 import torch
 import torch.nn.functional as F
-import torch.nn.utils.parametrize as parametrize
+from torch.nn.utils import parametrize
 
 from TTS.vocoder.layers.lvc_block import LVCBlock
 

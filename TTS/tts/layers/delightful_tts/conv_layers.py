@@ -3,7 +3,7 @@ from typing import Tuple
 import torch
 import torch.nn as nn  # pylint: disable=consider-using-from-import
 import torch.nn.functional as F
-import torch.nn.utils.parametrize as parametrize
+from torch.nn.utils import parametrize
 
 from TTS.tts.layers.delightful_tts.kernel_predictor import KernelPredictor
 
