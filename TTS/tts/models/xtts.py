@@ -152,19 +152,6 @@ class XttsArgs(Coqpit):
         gpt_code_stride_len (int, optional): The hop_size of dvae and consequently of the gpt output. Defaults to 1024.
         gpt_use_masking_gt_prompt_approach (bool, optional):  If True, it will use ground truth as prompt and it will mask the loss to avoid repetition. Defaults to True.
         gpt_use_perceiver_resampler (bool, optional):  If True, it will use perceiver resampler from flamingo paper - https://arxiv.org/abs/2204.14198. Defaults to False.
-
-        For DiffTTS model:
-        diff_model_channels (int, optional): The number of channels for the DiffTTS model. Defaults to 1024.
-        diff_num_layers (int, optional): The number of layers for the DiffTTS model. Defaults to 10.
-        diff_in_channels (int, optional): The input channels for the DiffTTS model. Defaults to 100.
-        diff_out_channels (int, optional): The output channels for the DiffTTS model. Defaults to 200.
-        diff_in_latent_channels (int, optional): The input latent channels for the DiffTTS model. Defaults to 1024.
-        diff_in_tokens (int, optional): The input tokens for the DiffTTS model. Defaults to 8193.
-        diff_dropout (int, optional): The dropout percentage for the DiffTTS model. Defaults to 0.
-        diff_use_fp16 (bool, optional): Whether to use fp16 for the DiffTTS model. Defaults to False.
-        diff_num_heads (int, optional): The number of heads for the DiffTTS model. Defaults to 16.
-        diff_layer_drop (int, optional): The layer dropout percentage for the DiffTTS model. Defaults to 0.
-        diff_unconditioned_percentage (int, optional): The percentage of unconditioned inputs for the DiffTTS model. Defaults to 0.
     """
 
     gpt_batch_size: int = 1
@@ -192,19 +179,6 @@ class XttsArgs(Coqpit):
     gpt_code_stride_len: int = 1024
     gpt_use_masking_gt_prompt_approach: bool = True
     gpt_use_perceiver_resampler: bool = False
-
-    # Diffusion Decoder params
-    diff_model_channels: int = 1024
-    diff_num_layers: int = 10
-    diff_in_channels: int = 100
-    diff_out_channels: int = 200
-    diff_in_latent_channels: int = 1024
-    diff_in_tokens: int = 8193
-    diff_dropout: int = 0
-    diff_use_fp16: bool = False
-    diff_num_heads: int = 16
-    diff_layer_drop: int = 0
-    diff_unconditioned_percentage: int = 0
 
     # HifiGAN Decoder params
     input_sample_rate: int = 22050
@@ -426,10 +400,6 @@ class Xtts(BaseTTS):
             "repetition_penalty": config.repetition_penalty,
             "top_k": config.top_k,
             "top_p": config.top_p,
-            "cond_free_k": config.cond_free_k,
-            "diffusion_temperature": config.diffusion_temperature,
-            "decoder_iterations": config.decoder_iterations,
-            "decoder_sampler": config.decoder_sampler,
             "gpt_cond_len": config.gpt_cond_len,
             "max_ref_len": config.max_ref_len,
             "sound_norm_refs": config.sound_norm_refs,
@@ -454,13 +424,6 @@ class Xtts(BaseTTS):
         gpt_cond_len=6,
         max_ref_len=10,
         sound_norm_refs=False,
-        # Decoder inference
-        decoder_iterations=100,
-        cond_free=True,
-        cond_free_k=2,
-        diffusion_temperature=1.0,
-        decoder_sampler="ddim",
-        decoder="hifigan",
         **hf_generate_kwargs,
     ):
         """

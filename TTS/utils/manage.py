@@ -394,6 +394,7 @@ class ModelManager(object):
             # ToDo: we need a better way to handle it
             if "xtts" in model_name:
                 try:
+                    #raise Exception(" > XTTS models are not supported yet.")
                     self.check_if_configs_are_equal(model_name, model_item, output_path)
                 except:
                     pass
