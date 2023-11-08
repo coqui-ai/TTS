@@ -227,7 +227,7 @@ def main():
     parser.add_argument(
         "--cs_model",
         type=str,
-        help="Name of the 🐸Coqui Studio model. Available models are `XTTS`, `XTTS-multilingual`, `V1`.",
+        help="Name of the 🐸Coqui Studio model. Available models are `XTTS`, `V1`.",
     )
     parser.add_argument(
         "--emotion",
@@ -238,7 +238,7 @@ def main():
     parser.add_argument(
         "--language",
         type=str,
-        help="Language to condition the model with. Only available for 🐸Coqui Studio `XTTS-multilingual` model.",
+        help="Language to condition the model with. Only available for 🐸Coqui Studio `XTTS` model.",
         default=None,
     )
     parser.add_argument(

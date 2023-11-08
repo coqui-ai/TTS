@@ -109,7 +109,6 @@ class ModelManager(object):
     def _list_for_model_type(self, model_type):
         models_name_list = []
         model_count = 1
-        model_type = "tts_models"
         models_name_list.extend(self._list_models(model_type, model_count))
         return models_name_list
 
@@ -298,22 +297,22 @@ class ModelManager(object):
         model_item = self.set_model_url(model_item)
         return model_item, model_full_name, model, md5hash
 
-    def ask_tos(self, model_full_path):
+    @staticmethod
+    def ask_tos(model_full_path):
         """Ask the user to agree to the terms of service"""
         tos_path = os.path.join(model_full_path, "tos_agreed.txt")
-        if not os.path.exists(tos_path):
-            print(" > You must agree to the terms of service to use this model.")
-            print(" | > Please see the terms of service at https://coqui.ai/cpml.txt")
-            print(' | > "I have read, understood and agreed the Terms and Conditions." - [y/n]')
-            answer = input(" | | > ")
-            if answer.lower() == "y":
-                with open(tos_path, "w") as f:
-                    f.write("I have read, understood ad agree the Terms and Conditions.")
-                return True
-            else:
-                return False
+        print(" > You must agree to the terms of service to use this model.")
+        print(" | > Please see the terms of service at https://coqui.ai/cpml.txt")
+        print(' | > "I have read, understood and agreed to the Terms and Conditions." - [y/n]')
+        answer = input(" | | > ")
+        if answer.lower() == "y":
+            with open(tos_path, "w", encoding="utf-8") as f:
+                f.write("I have read, understood and agreed to the Terms and Conditions.")
+            return True
+        return False
 
-    def tos_agreed(self, model_item, model_full_path):
+    @staticmethod
+    def tos_agreed(model_item, model_full_path):
         """Check if the user has agreed to the terms of service"""
         if "tos_required" in model_item and model_item["tos_required"]:
             tos_path = os.path.join(model_full_path, "tos_agreed.txt")

@@ -24,8 +24,7 @@ a few tricks to make it faster and support streaming inference.
 Current implementation only supports inference.
 
 ### Languages
-As of now, XTTS-v2 supports 16 languages: English, Spanish, French, German, Italian, Portuguese,
-Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese (Simplified), Japanese, Hungarian, Korean
+As of now, XTTS-v2 supports 16 languages: English (en), Spanish (es), French (fr), German (de), Italian (it), Portuguese (pt), Polish (pl), Turkish (tr), Russian (ru), Dutch (nl), Czech (cs), Arabic (ar), Chinese (zh-cn), Japanese (ja), Hungarian (hu) and Korean (ko).
 
 Stay tuned as we continue to add support for more languages. If you have any language requests, please feel free to reach out.
 
@@ -116,7 +115,7 @@ model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=Tru
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
+gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
 
 print("Inference...")
 out = model.inference(
@@ -124,7 +123,6 @@ out = model.inference(
     "en",
     gpt_cond_latent,
     speaker_embedding,
-    diffusion_conditioning,
     temperature=0.7, # Add custom parameters here
 )
 torchaudio.save("xtts.wav", torch.tensor(out["wav"]).unsqueeze(0), 24000)
@@ -153,7 +151,7 @@ model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=Tru
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
+gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
 
 print("Inference...")
 t0 = time.time()
@@ -210,7 +208,7 @@ model.load_checkpoint(config, checkpoint_path=XTTS_CHECKPOINT, vocab_path=TOKENI
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path=[SPEAKER_REFERENCE])
+gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=[SPEAKER_REFERENCE])
 
 print("Inference...")
 out = model.inference(
@@ -218,7 +216,6 @@ out = model.inference(
     "en",
     gpt_cond_latent,
     speaker_embedding,
-    diffusion_conditioning,
     temperature=0.7, # Add custom parameters here
 )
 torchaudio.save(OUTPUT_WAV_PATH, torch.tensor(out["wav"]).unsqueeze(0), 24000)
