@@ -64,7 +64,7 @@ def run_tts(lang, tts_text, speaker_audio_file):
 
 
 
-# define a logger to redirect 
+# define a logger to redirect
 class Logger:
     def __init__(self, filename="log.out"):
         self.log_file = filename
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         description="""XTTS fine-tuning demo\n\n"""
         """
         Example runs:
-        python3 TTS/demos/xtts_ft_demo/xtts_demo.py --port 
+        python3 TTS/demos/xtts_ft_demo/xtts_demo.py --port
         """,
         formatter_class=argparse.RawTextHelpFormatter,
     )

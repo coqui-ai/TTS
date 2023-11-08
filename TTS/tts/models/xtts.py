@@ -274,7 +274,7 @@ class Xtts(BaseTTS):
             for i in range(0, audio.shape[1], 22050 * chunk_length):
                 audio_chunk = audio[:, i : i + 22050 * chunk_length]
 
-                # if the chunk is too short ignore it 
+                # if the chunk is too short ignore it
                 if audio_chunk.size(-1) < 22050 * 0.33:
                     continue
 
