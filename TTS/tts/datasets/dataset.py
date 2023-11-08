@@ -13,9 +13,7 @@ from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.audio.numpy_transforms import compute_energy as calculate_energy
 
-from mutagen.mp3 import MP3
-from mutagen.flac import FLAC
-from mutagen.wave import WAVE
+import mutagen
 
 # to prevent too many open files error as suggested here
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
@@ -48,15 +46,10 @@ def string2filename(string):
 
 def get_audio_size(audiopath):
     extension = audiopath.rpartition(".")[-1].lower()
-    if extension == "mp3":
-        audio_info = MP3(audiopath).info
-    elif extension == "wav":
-        audio_info = WAVE(audiopath).info
-    elif extension == "flac":
-        audio_info = FLAC(audiopath).info
-    else:
+    if extension not in {"mp3", "wav", "flac"}:
         raise RuntimeError(f"The audio format {extension} is not supported, please convert the audio files for mp3, flac or wav format!")
 
+    audio_info = mutagen.File(audiopath).info
     return int(audio_info.length * audio_info.sample_rate)
 
 
