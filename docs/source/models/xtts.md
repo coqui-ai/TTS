@@ -115,7 +115,7 @@ model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=Tru
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
+gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
 
 print("Inference...")
 out = model.inference(
@@ -123,7 +123,6 @@ out = model.inference(
     "en",
     gpt_cond_latent,
     speaker_embedding,
-    diffusion_conditioning,
     temperature=0.7, # Add custom parameters here
 )
 torchaudio.save("xtts.wav", torch.tensor(out["wav"]).unsqueeze(0), 24000)
@@ -152,7 +151,7 @@ model.load_checkpoint(config, checkpoint_dir="/path/to/xtts/", use_deepspeed=Tru
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
+gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
 
 print("Inference...")
 t0 = time.time()
@@ -209,7 +208,7 @@ model.load_checkpoint(config, checkpoint_path=XTTS_CHECKPOINT, vocab_path=TOKENI
 model.cuda()
 
 print("Computing speaker latents...")
-gpt_cond_latent, diffusion_conditioning, speaker_embedding = model.get_conditioning_latents(audio_path=[SPEAKER_REFERENCE])
+gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=[SPEAKER_REFERENCE])
 
 print("Inference...")
 out = model.inference(
@@ -217,7 +216,6 @@ out = model.inference(
     "en",
     gpt_cond_latent,
     speaker_embedding,
-    diffusion_conditioning,
     temperature=0.7, # Add custom parameters here
 )
 torchaudio.save(OUTPUT_WAV_PATH, torch.tensor(out["wav"]).unsqueeze(0), 24000)
