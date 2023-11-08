@@ -14,7 +14,6 @@ from TTS.utils.manage import ModelManager
 MODELS_WITH_SEP_TESTS = [
     "tts_models/multilingual/multi-dataset/bark",
     "tts_models/en/multi-dataset/tortoise-v2",
-    "tts_models/multilingual/multi-dataset/xtts_v1",
     "tts_models/multilingual/multi-dataset/xtts_v1.1",
     "tts_models/multilingual/multi-dataset/xtts_v2",
 ]
@@ -83,14 +82,14 @@ def test_xtts():
     if use_gpu:
         run_cli(
             "yes | "
-            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1.1 "
             f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
             f'--speaker_wav "{speaker_wav}" --language_idx "en"'
         )
     else:
         run_cli(
             "yes | "
-            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1.1 "
             f'--text "This is an example." --out_path "{output_path}" --progress_bar False '
             f'--speaker_wav "{speaker_wav}" --language_idx "en"'
         )
@@ -104,7 +103,7 @@ def test_xtts_streaming():
     speaker_wav = [os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")]
     speaker_wav_2 = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0002.wav")
     speaker_wav.append(speaker_wav_2)
-    model_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v1")
+    model_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v1.1")
     config = XttsConfig()
     config.load_json(os.path.join(model_path, "config.json"))
     model = Xtts.init_from_config(config)
