@@ -5,9 +5,11 @@ import numpy as np
 import torch
 from coqpit import Coqpit
 from torch import nn
-from torch.nn import AvgPool1d, Conv1d, Conv2d, ConvTranspose1d
+from torch.nn import Conv1d, Conv2d, ConvTranspose1d
 from torch.nn import functional as F
-from torch.nn.utils import remove_weight_norm, spectral_norm, weight_norm
+from torch.nn.utils import spectral_norm
+from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 
 import TTS.vc.modules.freevc.commons as commons
 import TTS.vc.modules.freevc.modules as modules
@@ -152,9 +154,9 @@ class Generator(torch.nn.Module):
     def remove_weight_norm(self):
         print("Removing weight norm...")
         for l in self.ups:
-            remove_weight_norm(l)
+            remove_parametrizations(l, "weight")
         for l in self.resblocks:
-            l.remove_weight_norm()
+            remove_parametrizations(l, "weight")
 
 
 class DiscriminatorP(torch.nn.Module):
