@@ -60,7 +60,7 @@ class TTS(nn.Module):
             vocoder_config_path (str, optional): Path to the vocoder config. Defaults to None.
             progress_bar (bool, optional): Whether to pring a progress bar while downloading a model. Defaults to True.
             cs_api_model (str, optional): Name of the model to use for the Coqui Studio API. Available models are
-                "XTTS", "XTTS-multilingual", "V1". You can also use `TTS.cs_api.CS_API" for more control.
+                "XTTS", "V1". You can also use `TTS.cs_api.CS_API" for more control.
                 Defaults to "XTTS".
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
@@ -275,7 +275,7 @@ class TTS(nn.Module):
             speaker_name (str, optional):
                 Speaker name from Coqui Studio. Defaults to None.
             language (str): Language of the text. If None, the default language of the speaker is used. Language is only
-                supported by `XTTS-multilang` model. Currently supports en, de, es, fr, it, pt, pl. Defaults to "en".
+                supported by `XTTS` model.
             emotion (str, optional):
                 Emotion of the speaker. One of "Neutral", "Happy", "Sad", "Angry", "Dull". Emotions are only available
                 with "V1" model. Defaults to None.
@@ -321,7 +321,7 @@ class TTS(nn.Module):
                 Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
                 `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
             language (str): Language of the text. If None, the default language of the speaker is used. Language is only
-                supported by `XTTS-multilang` model. Currently supports en, de, es, fr, it, pt, pl. Defaults to "en".
+                supported by `XTTS` model.
             speaker_wav (str, optional):
                 Path to a reference wav file to use for voice cloning with supporting models like YourTTS.
                 Defaults to None.
