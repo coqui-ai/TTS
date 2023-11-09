@@ -68,12 +68,9 @@ def wav_to_mel_cloning(
 
 def load_audio(audiopath, sampling_rate):
     # better load setting following: https://github.com/faroit/python_audio_loading_benchmark
-    if audiopath[-4:] == ".mp3":
-        # it uses torchaudio with sox backend to load mp3
-        audio, lsr = torchaudio.load(audiopath, backend="sox")
-    else:
-        # it uses torchaudio soundfile backend to load all the others data type
-        audio, lsr = torchaudio.load(audiopath, backend="soundfile")
+
+    # torchaudio should chose proper backend to load audio depending on platform
+    audio, lsr = torchaudio.load(audiopath)
 
     # stereo to mono if needed
     if audio.size(0) != 1:
