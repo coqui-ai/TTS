@@ -568,14 +568,16 @@ class VoiceBpeTokenizer:
             print(f"[!] Warning: The text length exceeds the character limit of {limit} for language '{lang}', this might cause truncated audio.")
 
     def preprocess_text(self, txt, lang):
-        if lang in ["en", "es", "fr", "de", "pt", "it", "pl", "ar", "cs", "ru", "nl", "tr", "zh-cn"]:
+        if lang in {"ar", "cs", "de", "en", "es", "fr", "hu", "it", "nl", "pl", "pt", "ru", "tr", "zh", "zh-cn"}:
             txt = multilingual_cleaners(txt, lang)
-            if lang == "zh-cn":
+            if lang in {"zh", "zh-cn"}:
                 txt = chinese_transliterate(txt)
         elif lang == "ja":                
             txt = japanese_cleaners(txt, self.katsu)
+        elif lang == "ko":
+            txt = korean_cleaners(txt)
         else:
-            raise NotImplementedError()
+            raise NotImplementedError(f"Language '{lang}' is not supported.")
         return txt
 
     def encode(self, txt, lang):
@@ -592,23 +594,6 @@ class VoiceBpeTokenizer:
         txt = txt.replace("[SPACE]", " ")
         txt = txt.replace("[STOP]", "")
         txt = txt.replace("[UNK]", "")
-        return txt
-
-    def preprocess_text(self, txt, lang):
-        if lang in ["en", "es", "fr", "de", "pt", "it", "pl", "zh", "ar", "cs", "ru", "nl", "tr", "hu"]:
-            txt = multilingual_cleaners(txt, lang)
-        elif lang == "ja":
-            if self.katsu is None:
-                import cutlet
-
-                self.katsu = cutlet.Cutlet()
-            txt = japanese_cleaners(txt, self.katsu)
-        elif lang == "zh-cn" or lang == "zh":
-            txt = chinese_transliterate(txt)
-        elif lang == "ko":
-            txt = korean_cleaners(txt)
-        else:
-            raise NotImplementedError()
         return txt
 
     def __len__(self):
