@@ -186,7 +186,7 @@ class CouplingBlock(nn.Module):
         self.sigmoid_scale = sigmoid_scale
         # input layer
         start = torch.nn.Conv1d(in_channels // 2, hidden_channels, 1)
-        start = torch.nn.utils.weight_norm(start)
+        start = torch.nn.utils.parametrizations.weight_norm(start)
         self.start = start
         # output layer
         # Initializing last layer to 0 makes the affine coupling layers

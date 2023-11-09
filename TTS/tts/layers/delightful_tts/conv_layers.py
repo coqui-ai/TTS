@@ -3,6 +3,7 @@ from typing import Tuple
 import torch
 import torch.nn as nn  # pylint: disable=consider-using-from-import
 import torch.nn.functional as F
+from torch.nn.utils import parametrize
 
 from TTS.tts.layers.delightful_tts.kernel_predictor import KernelPredictor
 
@@ -73,7 +74,7 @@ class ConvNorm(nn.Module):
         )
         nn.init.xavier_uniform_(self.conv.weight, gain=nn.init.calculate_gain(w_init_gain))
         if self.use_weight_norm:
-            self.conv = nn.utils.weight_norm(self.conv)
+            self.conv = nn.utils.parametrizations.weight_norm(self.conv)
 
     def forward(self, signal, mask=None):
         conv_signal = self.conv(signal)
@@ -113,7 +114,7 @@ class ConvLSTMLinear(nn.Module):
                 dilation=1,
                 w_init_gain="relu",
             )
-            conv_layer = nn.utils.weight_norm(conv_layer.conv, name="weight")
+            conv_layer = nn.utils.parametrizations.weight_norm(conv_layer.conv, name="weight")
             convolutions.append(conv_layer)
 
         self.convolutions = nn.ModuleList(convolutions)
@@ -567,7 +568,7 @@ class LVCBlock(torch.nn.Module):
 
         self.convt_pre = nn.Sequential(
             nn.LeakyReLU(lReLU_slope),
-            nn.utils.weight_norm(
+            nn.utils.parametrizations.weight_norm(
                 nn.ConvTranspose1d(
                     in_channels,
                     in_channels,
@@ -584,7 +585,7 @@ class LVCBlock(torch.nn.Module):
             self.conv_blocks.append(
                 nn.Sequential(
                     nn.LeakyReLU(lReLU_slope),
-                    nn.utils.weight_norm(
+                    nn.utils.parametrizations.weight_norm(
                         nn.Conv1d(
                             in_channels,
                             in_channels,
@@ -665,6 +666,6 @@ class LVCBlock(torch.nn.Module):
 
     def remove_weight_norm(self):
         self.kernel_predictor.remove_weight_norm()
-        nn.utils.remove_weight_norm(self.convt_pre[1])
+        parametrize.remove_parametrizations(self.convt_pre[1], "weight")
         for block in self.conv_blocks:
-            nn.utils.remove_weight_norm(block[1])
+            parametrize.remove_parametrizations(block[1], "weight")

@@ -1,4 +1,5 @@
 import torch.nn as nn  # pylint: disable=consider-using-from-import
+from torch.nn.utils import parametrize
 
 
 class KernelPredictor(nn.Module):
@@ -36,7 +37,9 @@ class KernelPredictor(nn.Module):
         kpnet_bias_channels = conv_out_channels * conv_layers  # l_b
 
         self.input_conv = nn.Sequential(
-            nn.utils.weight_norm(nn.Conv1d(cond_channels, kpnet_hidden_channels, 5, padding=2, bias=True)),
+            nn.utils.parametrizations.weight_norm(
+                nn.Conv1d(cond_channels, kpnet_hidden_channels, 5, padding=2, bias=True)
+            ),
             getattr(nn, kpnet_nonlinear_activation)(**kpnet_nonlinear_activation_params),
         )
 
@@ -46,7 +49,7 @@ class KernelPredictor(nn.Module):
             self.residual_convs.append(
                 nn.Sequential(
                     nn.Dropout(kpnet_dropout),
-                    nn.utils.weight_norm(
+                    nn.utils.parametrizations.weight_norm(
                         nn.Conv1d(
                             kpnet_hidden_channels,
                             kpnet_hidden_channels,
@@ -56,7 +59,7 @@ class KernelPredictor(nn.Module):
                         )
                     ),
                     getattr(nn, kpnet_nonlinear_activation)(**kpnet_nonlinear_activation_params),
-                    nn.utils.weight_norm(
+                    nn.utils.parametrizations.weight_norm(
                         nn.Conv1d(
                             kpnet_hidden_channels,
                             kpnet_hidden_channels,
@@ -68,7 +71,7 @@ class KernelPredictor(nn.Module):
                     getattr(nn, kpnet_nonlinear_activation)(**kpnet_nonlinear_activation_params),
                 )
             )
-        self.kernel_conv = nn.utils.weight_norm(
+        self.kernel_conv = nn.utils.parametrizations.weight_norm(
             nn.Conv1d(
                 kpnet_hidden_channels,
                 kpnet_kernel_channels,
@@ -77,7 +80,7 @@ class KernelPredictor(nn.Module):
                 bias=True,
             )
         )
-        self.bias_conv = nn.utils.weight_norm(
+        self.bias_conv = nn.utils.parametrizations.weight_norm(
             nn.Conv1d(
                 kpnet_hidden_channels,
                 kpnet_bias_channels,
@@ -117,9 +120,9 @@ class KernelPredictor(nn.Module):
         return kernels, bias
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.input_conv[0])
-        nn.utils.remove_weight_norm(self.kernel_conv)
-        nn.utils.remove_weight_norm(self.bias_conv)
+        parametrize.remove_parametrizations(self.input_conv[0], "weight")
+        parametrize.remove_parametrizations(self.kernel_conv, "weight")
+        parametrize.remove_parametrizations(self.bias_conv, "weight")
         for block in self.residual_convs:
-            nn.utils.remove_weight_norm(block[1])
-            nn.utils.remove_weight_norm(block[3])
+            parametrize.remove_parametrizations(block[1], "weight")
+            parametrize.remove_parametrizations(block[3], "weight")
