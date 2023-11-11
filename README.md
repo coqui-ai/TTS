@@ -344,6 +344,11 @@ If you don't specify any models, then it uses LJSpeech based English model.
   ```
   $ tts --text "Text for TTS" --out_path output/path/speech.wav
   ```
+- Run TTS with text file default models:
+
+  ```
+  $ tts --textfile "text/file/path" --out_path output/path/speech.wav
+  ```
 
 - Run TTS and pipe out the generated TTS wav file data:
 
