@@ -32,14 +32,6 @@ tts --textfile "text/file/path" \
     --out_path folder/to/save/output.wav
 ```
 
-Run a TTS model, from the release models list, with its default vocoder. (Simply copy and paste the full model names from the list as arguments for the command below.)
-
-```bash
-tts --textfile "Text for TTS" \
-    --model_name "<type>/<language>/<dataset>/<model_name>" \
-    --out_path folder/to/save/output.wav
-```
-
 Run a tts and a vocoder model from the released model list. Note that not every vocoder is compatible with every TTS model.
 
 ```bash
