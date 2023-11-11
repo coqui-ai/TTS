@@ -4,6 +4,7 @@
 import argparse
 import contextlib
 import sys
+import os
 from argparse import RawTextHelpFormatter
 
 # pylint: disable=redefined-outer-name, unused-argument
@@ -58,6 +59,9 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
   ```
   $ tts --text "Text for TTS" --out_path output/path/speech.wav
+  ```
+  ```
+  $ tts --textfile "Text file path for TTS" --out_path output/path/speech.wav
   ```
 
 - Run TTS and pipe out the generated TTS wav file data:
@@ -177,6 +181,7 @@ def main():
     )
 
     parser.add_argument("--text", type=str, default=None, help="Text to generate speech.")
+    parser.add_argument("--textfile", type=str, default=None, help="Path to a file which has Text to generate speech.")
 
     # Args for running pre-trained TTS models.
     parser.add_argument(
@@ -346,10 +351,16 @@ def main():
     )
 
     args = parser.parse_args()
+    
+    # If the text is not set and the file path is provided, read the text from the file.
+    if args.text is None and args.textfile is not None:
+        args.text = open(args.textfile, "r", encoding="utf-8").read() if os.path.exists(args.textfile) else None
+
 
     # print the description if either text or list_models is not set
     check_args = [
         args.text,
+        args.textfile,
         args.list_models,
         args.list_speaker_idxs,
         args.list_language_idxs,
