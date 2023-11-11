@@ -58,8 +58,7 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-12 text-center">
-                <img class="mt-5" src="{{url_for('static', filename='coqui-log-green-TTS.png')}}" align="middle"
-                    width="512" />
+                <img class="mt-5" src="{{url_for('static', filename='coqui-log-green-TTS.png')}}" align="middle" width="512" />
 
                 <ul class="list-unstyled">
                 </ul>
@@ -71,6 +70,9 @@
 
                 <input id="text" placeholder="Type here..." size=45 type="text" name="text">
                 <button id="speak-button" name="speak">Speak</button><br /><br />
+                
+                <input type="file" id="fileInput" name="fileInput" accept=".txt" size=45, position="relative">
+                <button id="upload-button">Upload File</button><br /><br />
 
                 {%if use_multi_speaker%}
                 Choose a speaker:
@@ -103,6 +105,7 @@
 
     <!-- Bootstrap core JavaScript -->
     <script>
+         
         function getTextValue(textId) {
             const container = q(textId)
             if (container) {
@@ -125,6 +128,7 @@
             }
             e.preventDefault()
             return false
+        
         }
         q('#speak-button').addEventListener('click', do_tts)
         q('#text').addEventListener('keyup', function (e) {
@@ -132,6 +136,21 @@
                 do_tts(e)
             }
         })
+        q('#upload-button').addEventListener('click', function () {
+        const fileInput = q('#fileInput');
+        const file = fileInput.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const textContent = e.target.result;
+                q('#text').value = textContent
+                do_tts(e)
+                
+                };
+                reader.readAsText(file);
+            }
+            
+        });
         function synthesize(text, speaker_id = "", style_wav = "", language_id = "") {
             fetch(`/api/tts?text=${encodeURIComponent(text)}&speaker_id=${encodeURIComponent(speaker_id)}&style_wav=${encodeURIComponent(style_wav)}&language_id=${encodeURIComponent(language_id)}`, { cache: 'no-cache' })
                 .then(function (res) {
