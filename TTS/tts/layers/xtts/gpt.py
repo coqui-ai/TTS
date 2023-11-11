@@ -426,15 +426,6 @@ class GPT(nn.Module):
         if max_mel_len > audio_codes.shape[-1]:
             audio_codes = F.pad(audio_codes, (0, max_mel_len - audio_codes.shape[-1]))
 
-        silence = True
-        for idx, l in enumerate(code_lengths):
-            length = l.item()
-            while silence:
-                if audio_codes[idx, length - 1] != 83:
-                    break
-                length -= 1
-            code_lengths[idx] = length
-
         # 💖 Lovely assertions
         assert (
             max_mel_len <= audio_codes.shape[-1]
@@ -450,7 +441,7 @@ class GPT(nn.Module):
         audio_codes = F.pad(audio_codes[:, :max_mel_len], (0, 1), value=self.stop_audio_token)
 
         # Pad mel codes with stop_audio_token
-        audio_codes = self.set_mel_padding(audio_codes, code_lengths)
+        audio_codes = self.set_mel_padding(audio_codes, code_lengths - 3) # -3 to get the real code lengths without consider start and stop tokens that was not added yet
 
         # Build input and target tensors
         # Prepend start token to inputs and append stop token to targets
