@@ -288,10 +288,13 @@ class Synthesizer(nn.Module):
                 "You need to define either `text` (for sythesis) or a `reference_wav` (for voice conversion) to use the Coqui TTS API."
             )
 
+        quiet = kwargs.pop('quiet', False)
+
         if text:
             sens = self.split_into_sentences(text)
-            print(" > Text splitted to sentences.")
-            print(sens)
+            if not quiet:
+                print(" > Text splitted to sentences.")
+                print(sens)
 
         # handle multi-speaker
         if "voice_dir" in kwargs:
@@ -488,6 +491,7 @@ class Synthesizer(nn.Module):
         # compute stats
         process_time = time.time() - start_time
         audio_time = len(wavs) / self.tts_config.audio["sample_rate"]
-        print(f" > Processing time: {process_time}")
-        print(f" > Real-time factor: {process_time / audio_time}")
+        if not quiet:
+            print(f" > Processing time: {process_time}")
+            print(f" > Real-time factor: {process_time / audio_time}")
         return wavs
