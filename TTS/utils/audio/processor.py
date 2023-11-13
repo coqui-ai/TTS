@@ -8,7 +8,7 @@ import scipy.signal
 import soundfile as sf
 
 from TTS.tts.utils.helpers import StandardScaler
-from TTS.utils.audio.numpy_transforms import compute_f0, stft, griffin_lim
+from TTS.utils.audio.numpy_transforms import compute_f0, db_to_amp, stft, griffin_lim
 
 # pylint: disable=too-many-public-methods
 
@@ -399,18 +399,6 @@ class AudioProcessor(object):
         """
         return self.spec_gain * _log(np.maximum(1e-5, x), self.base)
 
-    # pylint: disable=no-self-use
-    def _db_to_amp(self, x: np.ndarray) -> np.ndarray:
-        """Convert decibels spectrogram to amplitude spectrogram.
-
-        Args:
-            x (np.ndarray): Decibels spectrogram.
-
-        Returns:
-            np.ndarray: Amplitude spectrogram.
-        """
-        return _exp(x / self.spec_gain, self.base)
-
     ### Preemphasis ###
     def apply_preemphasis(self, x: np.ndarray) -> np.ndarray:
         """Apply pre-emphasis to the audio signal. Useful to reduce the correlation between neighbouring signal values.
@@ -494,7 +482,7 @@ class AudioProcessor(object):
     def inv_spectrogram(self, spectrogram: np.ndarray) -> np.ndarray:
         """Convert a spectrogram to a waveform using Griffi-Lim vocoder."""
         S = self.denormalize(spectrogram)
-        S = self._db_to_amp(S)
+        S = db_to_amp(x=S, gain=self.spec_gain, base=self.base)
         # Reconstruct phase
         W = self._griffin_lim(S**self.power)
         return self.apply_inv_preemphasis(W) if self.preemphasis != 0 else W
@@ -502,7 +490,7 @@ class AudioProcessor(object):
     def inv_melspectrogram(self, mel_spectrogram: np.ndarray) -> np.ndarray:
         """Convert a melspectrogram to a waveform using Griffi-Lim vocoder."""
         D = self.denormalize(mel_spectrogram)
-        S = self._db_to_amp(D)
+        S = db_to_amp(x=D, gain=self.spec_gain, base=self.base)
         S = self._mel_to_linear(S)  # Convert back to linear
         W = self._griffin_lim(S**self.power)
         return self.apply_inv_preemphasis(W) if self.preemphasis != 0 else W
@@ -517,7 +505,7 @@ class AudioProcessor(object):
             np.ndarray: Normalized melspectrogram.
         """
         S = self.denormalize(linear_spec)
-        S = self._db_to_amp(S)
+        S = db_to_amp(x=S, gain=self.spec_gain, base=self.base)
         S = self._linear_to_mel(np.abs(S))
         S = self._amp_to_db(S)
         mel = self.normalize(S)
@@ -584,7 +572,7 @@ class AudioProcessor(object):
         """
         window_length = int(self.sample_rate * min_silence_sec)
         hop_length = int(window_length / 4)
-        threshold = self._db_to_amp(-self.trim_db)
+        threshold = db_to_amp(x=-self.trim_db, gain=self.spec_gain, base=self.base)
         for x in range(hop_length, len(wav) - window_length, hop_length):
             if np.max(wav[x : x + window_length]) < threshold:
                 return x + hop_length
