@@ -201,7 +201,6 @@ def stft(
 def istft(
     *,
     y: np.ndarray = None,
-    fft_size: int = None,
     hop_length: int = None,
     win_length: int = None,
     window: str = "hann",
