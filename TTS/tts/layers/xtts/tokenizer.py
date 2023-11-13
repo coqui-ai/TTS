@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from functools import cached_property
 
 import pypinyin
 import torch
@@ -8,7 +9,6 @@ from hangul_romanize import Transliter
 from hangul_romanize.rule import academic
 from num2words import num2words
 from tokenizers import Tokenizer
-from functools import cached_property
 
 from TTS.tts.layers.xtts.zh_num2words import TextNorm as zh_num2words
 
@@ -560,19 +560,22 @@ class VoiceBpeTokenizer:
     @cached_property
     def katsu(self):
         import cutlet
+
         return cutlet.Cutlet()
-    
+
     def check_input_length(self, txt, lang):
         limit = self.char_limits.get(lang, 250)
         if len(txt) > limit:
-            print(f"[!] Warning: The text length exceeds the character limit of {limit} for language '{lang}', this might cause truncated audio.")
+            print(
+                f"[!] Warning: The text length exceeds the character limit of {limit} for language '{lang}', this might cause truncated audio."
+            )
 
     def preprocess_text(self, txt, lang):
         if lang in {"ar", "cs", "de", "en", "es", "fr", "hu", "it", "nl", "pl", "pt", "ru", "tr", "zh", "zh-cn"}:
             txt = multilingual_cleaners(txt, lang)
             if lang in {"zh", "zh-cn"}:
                 txt = chinese_transliterate(txt)
-        elif lang == "ja":                
+        elif lang == "ja":
             txt = japanese_cleaners(txt, self.katsu)
         elif lang == "ko":
             txt = korean_cleaners(txt)

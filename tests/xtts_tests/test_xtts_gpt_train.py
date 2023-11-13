@@ -60,7 +60,9 @@ XTTS_CHECKPOINT = None  # "/raid/edresson/dev/Checkpoints/XTTS_evaluation/xtts_s
 
 
 # Training sentences generations
-SPEAKER_REFERENCE = ["tests/data/ljspeech/wavs/LJ001-0002.wav"]  # speaker reference to be used in training test sentences
+SPEAKER_REFERENCE = [
+    "tests/data/ljspeech/wavs/LJ001-0002.wav"
+]  # speaker reference to be used in training test sentences
 LANGUAGE = config_dataset.language
 
 
