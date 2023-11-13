@@ -533,15 +533,6 @@ class AudioProcessor(object):
             pad_mode=self.stft_pad_mode,
         )
 
-    def compute_stft_paddings(self, x, pad_sides=1):
-        """Compute paddings used by Librosa's STFT. Compute right padding (final frame) or both sides padding
-        (first and final frames)"""
-        assert pad_sides in (1, 2)
-        pad = (x.shape[0] // self.hop_length + 1) * self.hop_length - x.shape[0]
-        if pad_sides == 1:
-            return 0, pad
-        return pad // 2, pad // 2 + pad % 2
-
     def compute_f0(self, x: np.ndarray) -> np.ndarray:
         """Compute pitch (f0) of a waveform using the same parameters used for computing melspectrogram.
 
