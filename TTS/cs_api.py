@@ -82,7 +82,6 @@ class CS_API:
         },
     }
 
-
     SUPPORTED_LANGUAGES = ["en", "es", "de", "fr", "it", "pt", "pl", "tr", "ru", "nl", "cs", "ar", "zh-cn", "ja"]
 
     def __init__(self, api_token=None, model="XTTS"):
@@ -308,7 +307,11 @@ if __name__ == "__main__":
     print(api.list_speakers_as_tts_models())
 
     ts = time.time()
-    wav, sr = api.tts("It took me quite a long time to develop a voice.", language="en", speaker_name=api.speakers[0].name)
+    wav, sr = api.tts(
+        "It took me quite a long time to develop a voice.", language="en", speaker_name=api.speakers[0].name
+    )
     print(f" [i] XTTS took {time.time() - ts:.2f}s")
 
-    filepath = api.tts_to_file(text="Hello world!", speaker_name=api.speakers[0].name, language="en", file_path="output.wav")
+    filepath = api.tts_to_file(
+        text="Hello world!", speaker_name=api.speakers[0].name, language="en", file_path="output.wav"
+    )

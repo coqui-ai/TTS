@@ -43,7 +43,12 @@ class XttsConfig(BaseTTSConfig):
             Defaults to `16`.
 
         gpt_cond_len (int):
-            Secs audio to be used as conditioning for the autoregressive model. Defaults to `3`.
+            Secs audio to be used as conditioning for the autoregressive model. Defaults to `12`.
+
+        gpt_cond_chunk_len (int):
+            Audio chunk size in secs. Audio is split into chunks and latents are extracted for each chunk. Then the
+            latents are averaged. Chunking improves the stability. It must be <= gpt_cond_len.
+            If gpt_cond_len == gpt_cond_chunk_len, no chunking. Defaults to `4`.
 
         max_ref_len (int):
             Maximum number of seconds of audio to be used as conditioning for the decoder. Defaults to `10`.
@@ -95,6 +100,7 @@ class XttsConfig(BaseTTSConfig):
     num_gpt_outputs: int = 1
 
     # cloning
-    gpt_cond_len: int = 3
+    gpt_cond_len: int = 12
+    gpt_cond_chunk_len: int = 4
     max_ref_len: int = 10
     sound_norm_refs: bool = False
