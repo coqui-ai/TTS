@@ -8,7 +8,7 @@ import scipy.signal
 import soundfile as sf
 
 from TTS.tts.utils.helpers import StandardScaler
-from TTS.utils.audio.numpy_transforms import compute_f0, db_to_amp, stft, griffin_lim
+from TTS.utils.audio.numpy_transforms import amp_to_db, compute_f0, db_to_amp, stft, griffin_lim
 
 # pylint: disable=too-many-public-methods
 
@@ -386,19 +386,6 @@ class AudioProcessor(object):
         self.linear_scaler = StandardScaler()
         self.linear_scaler.set_stats(linear_mean, linear_std)
 
-    ### DB and AMP conversion ###
-    # pylint: disable=no-self-use
-    def _amp_to_db(self, x: np.ndarray) -> np.ndarray:
-        """Convert amplitude values to decibels.
-
-        Args:
-            x (np.ndarray): Amplitude spectrogram.
-
-        Returns:
-            np.ndarray: Decibels spectrogram.
-        """
-        return self.spec_gain * _log(np.maximum(1e-5, x), self.base)
-
     ### Preemphasis ###
     def apply_preemphasis(self, x: np.ndarray) -> np.ndarray:
         """Apply pre-emphasis to the audio signal. Useful to reduce the correlation between neighbouring signal values.
@@ -457,7 +444,7 @@ class AudioProcessor(object):
             pad_mode=self.stft_pad_mode,
         )
         if self.do_amp_to_db_linear:
-            S = self._amp_to_db(np.abs(D))
+            S = amp_to_db(x=np.abs(D), gain=self.spec_gain, base=self.base)
         else:
             S = np.abs(D)
         return self.normalize(S).astype(np.float32)
@@ -474,7 +461,7 @@ class AudioProcessor(object):
             pad_mode=self.stft_pad_mode,
         )
         if self.do_amp_to_db_mel:
-            S = self._amp_to_db(self._linear_to_mel(np.abs(D)))
+            S = amp_to_db(x=self._linear_to_mel(np.abs(D)), gain=self.spec_gain, base=self.base)
         else:
             S = self._linear_to_mel(np.abs(D))
         return self.normalize(S).astype(np.float32)
@@ -507,7 +494,7 @@ class AudioProcessor(object):
         S = self.denormalize(linear_spec)
         S = db_to_amp(x=S, gain=self.spec_gain, base=self.base)
         S = self._linear_to_mel(np.abs(S))
-        S = self._amp_to_db(S)
+        S = amp_to_db(x=S, gain=self.spec_gain, base=self.base)
         mel = self.normalize(S)
         return mel
 
@@ -721,15 +708,3 @@ class AudioProcessor(object):
     def dequantize(x, bits):
         """Dequantize a waveform from the given number of bits."""
         return 2 * x / (2**bits - 1) - 1
-
-
-def _log(x, base):
-    if base == 10:
-        return np.log10(x)
-    return np.log(x)
-
-
-def _exp(x, base):
-    if base == 10:
-        return np.power(10, x)
-    return np.exp(x)
