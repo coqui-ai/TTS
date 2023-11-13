@@ -5,6 +5,7 @@ import torch
 from tests import get_tests_input_path, get_tests_output_path, get_tests_path
 from TTS.config import BaseAudioConfig
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.numpy_transforms import stft
 from TTS.vocoder.layers.losses import MelganFeatureLoss, MultiScaleSTFTLoss, STFTLoss, TorchSTFT
 
 TESTS_PATH = get_tests_path()
@@ -21,7 +22,7 @@ def test_torch_stft():
     torch_stft = TorchSTFT(ap.fft_size, ap.hop_length, ap.win_length)
     # librosa stft
     wav = ap.load_wav(WAV_FILE)
-    M_librosa = abs(ap._stft(wav))  # pylint: disable=protected-access
+    M_librosa = abs(stft(y=wav, fft_size=ap.fft_size, hop_length=ap.hop_length, win_length=ap.win_length))
     # torch stft
     wav = torch.from_numpy(wav[None, :]).float()
     M_torch = torch_stft(wav)
