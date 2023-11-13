@@ -369,11 +369,8 @@ class Xtts(BaseTTS):
         audios = []
         speaker_embedding = None
         for file_path in audio_paths:
-            # load the audio in 24khz to avoid issued with multiple sr references
             audio = load_audio(file_path, load_sr)
             audio = audio[:, : load_sr * max_ref_length].to(self.device)
-            if audio.shape[0] > 1:
-                audio = audio.mean(0, keepdim=True)
             if sound_norm_refs:
                 audio = (audio / torch.abs(audio).max()) * 0.75
             if librosa_trim_db is not None:
