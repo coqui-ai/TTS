@@ -14,6 +14,7 @@ from TTS.utils.audio.numpy_transforms import (
     compute_f0,
     db_to_amp,
     deemphasis,
+    find_endpoint,
     griffin_lim,
     mel_to_spec,
     millisec_to_length,
@@ -527,13 +528,14 @@ class AudioProcessor(object):
         Returns:
             int: Last point without silence.
         """
-        window_length = int(self.sample_rate * min_silence_sec)
-        hop_length = int(window_length / 4)
-        threshold = db_to_amp(x=-self.trim_db, gain=self.spec_gain, base=self.base)
-        for x in range(hop_length, len(wav) - window_length, hop_length):
-            if np.max(wav[x : x + window_length]) < threshold:
-                return x + hop_length
-        return len(wav)
+        return find_endpoint(
+            wav=wav,
+            trim_db=self.trim_db,
+            sample_rate=self.sample_rate,
+            min_silence_sec=min_silence_sec,
+            gain=self.spec_gain,
+            base=self.base,
+        )
 
     def trim_silence(self, wav):
         """Trim silent parts with a threshold and 0.01 sec margin"""
