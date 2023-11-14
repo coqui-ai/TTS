@@ -8,7 +8,15 @@ import scipy.signal
 import soundfile as sf
 
 from TTS.tts.utils.helpers import StandardScaler
-from TTS.utils.audio.numpy_transforms import amp_to_db, compute_f0, db_to_amp, griffin_lim, spec_to_mel, stft
+from TTS.utils.audio.numpy_transforms import (
+    amp_to_db,
+    compute_f0,
+    db_to_amp,
+    griffin_lim,
+    mel_to_spec,
+    spec_to_mel,
+    stft,
+)
 
 # pylint: disable=too-many-public-methods
 
@@ -216,7 +224,6 @@ class AudioProcessor(object):
                 print(" | > {}:{}".format(key, value))
         # create spectrogram utils
         self.mel_basis = self._build_mel_basis()
-        self.inv_mel_basis = np.linalg.pinv(self._build_mel_basis())
         # setup scaler
         if stats_path and signal_norm:
             mel_mean, mel_std, linear_mean, linear_std, _ = self.load_stats(stats_path)
@@ -410,10 +417,6 @@ class AudioProcessor(object):
         return scipy.signal.lfilter([1], [1, -self.preemphasis], x)
 
     ### SPECTROGRAMs ###
-    def _mel_to_linear(self, mel_spec: np.ndarray) -> np.ndarray:
-        """Convert a melspectrogram to full scale spectrogram."""
-        return np.maximum(1e-10, np.dot(self.inv_mel_basis, mel_spec))
-
     def spectrogram(self, y: np.ndarray) -> np.ndarray:
         """Compute a spectrogram from a waveform.
 
@@ -467,7 +470,7 @@ class AudioProcessor(object):
         """Convert a melspectrogram to a waveform using Griffi-Lim vocoder."""
         D = self.denormalize(mel_spectrogram)
         S = db_to_amp(x=D, gain=self.spec_gain, base=self.base)
-        S = self._mel_to_linear(S)  # Convert back to linear
+        S = mel_to_spec(mel=S, mel_basis=self.mel_basis)  # Convert back to linear
         W = self._griffin_lim(S**self.power)
         return self.apply_inv_preemphasis(W) if self.preemphasis != 0 else W
 
