@@ -22,6 +22,7 @@ from TTS.utils.audio.numpy_transforms import (
     rms_volume_norm,
     spec_to_mel,
     stft,
+    trim_silence,
 )
 
 # pylint: disable=too-many-public-methods
@@ -539,11 +540,13 @@ class AudioProcessor(object):
 
     def trim_silence(self, wav):
         """Trim silent parts with a threshold and 0.01 sec margin"""
-        margin = int(self.sample_rate * 0.01)
-        wav = wav[margin:-margin]
-        return librosa.effects.trim(wav, top_db=self.trim_db, frame_length=self.win_length, hop_length=self.hop_length)[
-            0
-        ]
+        return trim_silence(
+            wav=wav,
+            sample_rate=self.sample_rate,
+            trim_db=self.trim_db,
+            win_length=self.win_length,
+            hop_length=self.hop_length,
+        )
 
     @staticmethod
     def sound_norm(x: np.ndarray) -> np.ndarray:
