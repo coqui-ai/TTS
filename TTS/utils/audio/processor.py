@@ -5,7 +5,6 @@ import librosa
 import numpy as np
 import scipy.io.wavfile
 import scipy.signal
-import soundfile as sf
 
 from TTS.tts.utils.helpers import StandardScaler
 from TTS.utils.audio.numpy_transforms import (
@@ -16,6 +15,7 @@ from TTS.utils.audio.numpy_transforms import (
     deemphasis,
     find_endpoint,
     griffin_lim,
+    load_wav,
     mel_to_spec,
     millisec_to_length,
     preemphasis,
@@ -587,15 +587,10 @@ class AudioProcessor(object):
         Returns:
             np.ndarray: Loaded waveform.
         """
-        if self.resample:
-            # loading with resampling. It is significantly slower.
-            x, sr = librosa.load(filename, sr=self.sample_rate)
-        elif sr is None:
-            # SF is faster than librosa for loading files
-            x, sr = sf.read(filename)
-            assert self.sample_rate == sr, "%s vs %s" % (self.sample_rate, sr)
+        if sr is not None:
+            x = load_wav(filename=filename, sample_rate=sr, resample=True)
         else:
-            x, sr = librosa.load(filename, sr=sr)
+            x = load_wav(filename=filename, sample_rate=self.sample_rate, resample=self.resample)
         if self.do_trim_silence:
             try:
                 x = self.trim_silence(x)
