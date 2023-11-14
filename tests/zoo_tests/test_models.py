@@ -179,6 +179,34 @@ def test_xtts_v2_streaming():
             assert chunk.shape[-1] > 5000
         wav_chuncks.append(chunk)
     assert len(wav_chuncks) > 1
+    normal_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    chunks = model.inference_stream(
+        "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+        "en",
+        gpt_cond_latent,
+        speaker_embedding,
+        speed=1.5
+    )
+    wav_chuncks = []
+    for i, chunk in enumerate(chunks):
+        wav_chuncks.append(chunk)
+    fast_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    chunks = model.inference_stream(
+        "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+        "en",
+        gpt_cond_latent,
+        speaker_embedding,
+        speed=0.66
+    )
+    wav_chuncks = []
+    for i, chunk in enumerate(chunks):
+        wav_chuncks.append(chunk)
+    slow_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    assert slow_len > normal_len
+    assert normal_len > fast_len
 
 
 def test_tortoise():
