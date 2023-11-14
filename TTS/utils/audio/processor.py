@@ -8,7 +8,7 @@ import scipy.signal
 import soundfile as sf
 
 from TTS.tts.utils.helpers import StandardScaler
-from TTS.utils.audio.numpy_transforms import amp_to_db, compute_f0, db_to_amp, stft, griffin_lim
+from TTS.utils.audio.numpy_transforms import amp_to_db, compute_f0, db_to_amp, griffin_lim, spec_to_mel, stft
 
 # pylint: disable=too-many-public-methods
 
@@ -410,17 +410,6 @@ class AudioProcessor(object):
         return scipy.signal.lfilter([1], [1, -self.preemphasis], x)
 
     ### SPECTROGRAMs ###
-    def _linear_to_mel(self, spectrogram: np.ndarray) -> np.ndarray:
-        """Project a full scale spectrogram to a melspectrogram.
-
-        Args:
-            spectrogram (np.ndarray): Full scale spectrogram.
-
-        Returns:
-            np.ndarray: Melspectrogram
-        """
-        return np.dot(self.mel_basis, spectrogram)
-
     def _mel_to_linear(self, mel_spec: np.ndarray) -> np.ndarray:
         """Convert a melspectrogram to full scale spectrogram."""
         return np.maximum(1e-10, np.dot(self.inv_mel_basis, mel_spec))
@@ -460,10 +449,10 @@ class AudioProcessor(object):
             win_length=self.win_length,
             pad_mode=self.stft_pad_mode,
         )
+        S = spec_to_mel(spec=np.abs(D), mel_basis=self.mel_basis)
         if self.do_amp_to_db_mel:
-            S = amp_to_db(x=self._linear_to_mel(np.abs(D)), gain=self.spec_gain, base=self.base)
-        else:
-            S = self._linear_to_mel(np.abs(D))
+            S = amp_to_db(x=S, gain=self.spec_gain, base=self.base)
+
         return self.normalize(S).astype(np.float32)
 
     def inv_spectrogram(self, spectrogram: np.ndarray) -> np.ndarray:
@@ -493,7 +482,7 @@ class AudioProcessor(object):
         """
         S = self.denormalize(linear_spec)
         S = db_to_amp(x=S, gain=self.spec_gain, base=self.base)
-        S = self._linear_to_mel(np.abs(S))
+        S = spec_to_mel(spec=np.abs(S), mel_basis=self.mel_basis)
         S = amp_to_db(x=S, gain=self.spec_gain, base=self.base)
         mel = self.normalize(S)
         return mel
