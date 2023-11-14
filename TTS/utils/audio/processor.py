@@ -15,6 +15,7 @@ from TTS.utils.audio.numpy_transforms import (
     db_to_amp,
     griffin_lim,
     mel_to_spec,
+    millisec_to_length,
     spec_to_mel,
     stft,
 )
@@ -209,7 +210,9 @@ class AudioProcessor(object):
         # setup stft parameters
         if hop_length is None:
             # compute stft parameters from given time values
-            self.hop_length, self.win_length = self._stft_parameters()
+            self.win_length, self.hop_length = millisec_to_length(
+                frame_length_ms=self.frame_length_ms, frame_shift_ms=self.frame_shift_ms, sample_rate=self.sample_rate
+            )
         else:
             # use stft parameters from config file
             self.hop_length = hop_length
@@ -245,21 +248,6 @@ class AudioProcessor(object):
         if "audio" in config:
             return AudioProcessor(verbose=verbose, **config.audio)
         return AudioProcessor(verbose=verbose, **config)
-
-    ### setting up the parameters ###
-    def _stft_parameters(
-        self,
-    ) -> Tuple[int, int]:
-        """Compute the real STFT parameters from the time values.
-
-        Returns:
-            Tuple[int, int]: hop length and window length for STFT.
-        """
-        factor = self.frame_length_ms / self.frame_shift_ms
-        assert (factor).is_integer(), " [!] frame_shift_ms should divide frame_length_ms"
-        hop_length = int(self.frame_shift_ms / 1000.0 * self.sample_rate)
-        win_length = int(hop_length * factor)
-        return hop_length, win_length
 
     ### normalization ###
     def normalize(self, S: np.ndarray) -> np.ndarray:
