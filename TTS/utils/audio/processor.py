@@ -13,9 +13,11 @@ from TTS.utils.audio.numpy_transforms import (
     build_mel_basis,
     compute_f0,
     db_to_amp,
+    deemphasis,
     griffin_lim,
     mel_to_spec,
     millisec_to_length,
+    preemphasis,
     spec_to_mel,
     stft,
 )
@@ -387,15 +389,11 @@ class AudioProcessor(object):
         Returns:
             np.ndarray: Decorrelated audio signal.
         """
-        if self.preemphasis == 0:
-            raise RuntimeError(" [!] Preemphasis is set 0.0.")
-        return scipy.signal.lfilter([1, -self.preemphasis], [1], x)
+        return preemphasis(x=x, coef=self.preemphasis)
 
     def apply_inv_preemphasis(self, x: np.ndarray) -> np.ndarray:
         """Reverse pre-emphasis."""
-        if self.preemphasis == 0:
-            raise RuntimeError(" [!] Preemphasis is set 0.0.")
-        return scipy.signal.lfilter([1], [1, -self.preemphasis], x)
+        return deemphasis(x=x, coef=self.preemphasis)
 
     ### SPECTROGRAMs ###
     def spectrogram(self, y: np.ndarray) -> np.ndarray:
