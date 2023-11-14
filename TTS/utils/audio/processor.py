@@ -498,8 +498,6 @@ class AudioProcessor(object):
             >>> wav = ap.load_wav(WAV_FILE, sr=ap.sample_rate)[:5 * ap.sample_rate]
             >>> pitch = ap.compute_f0(wav)
         """
-        assert self.pitch_fmax is not None, " [!] Set `pitch_fmax` before caling `compute_f0`."
-        assert self.pitch_fmin is not None, " [!] Set `pitch_fmin` before caling `compute_f0`."
         # align F0 length to the spectrogram length
         if len(x) % self.hop_length == 0:
             x = np.pad(x, (0, self.hop_length // 2), mode=self.stft_pad_mode)
