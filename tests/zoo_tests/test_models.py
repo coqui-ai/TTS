@@ -111,7 +111,7 @@ def test_xtts_streaming():
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     print("Computing speaker latents...")
-    gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
 
     print("Inference...")
     chunks = model.inference_stream(
@@ -139,7 +139,7 @@ def test_xtts_v2():
             "yes | "
             f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v2 "
             f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
-            f'--speaker_wav "{speaker_wav}" "{speaker_wav_2}"  "--language_idx "en"'
+            f'--speaker_wav "{speaker_wav}" "{speaker_wav_2}"  --language_idx "en"'
         )
     else:
         run_cli(
@@ -164,7 +164,7 @@ def test_xtts_v2_streaming():
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     print("Computing speaker latents...")
-    gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
 
     print("Inference...")
     chunks = model.inference_stream(
