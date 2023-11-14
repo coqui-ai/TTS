@@ -10,6 +10,7 @@ import soundfile as sf
 from TTS.tts.utils.helpers import StandardScaler
 from TTS.utils.audio.numpy_transforms import (
     amp_to_db,
+    build_mel_basis,
     compute_f0,
     db_to_amp,
     griffin_lim,
@@ -223,7 +224,13 @@ class AudioProcessor(object):
             for key, value in members.items():
                 print(" | > {}:{}".format(key, value))
         # create spectrogram utils
-        self.mel_basis = self._build_mel_basis()
+        self.mel_basis = build_mel_basis(
+            sample_rate=self.sample_rate,
+            fft_size=self.fft_size,
+            num_mels=self.num_mels,
+            mel_fmax=self.mel_fmax,
+            mel_fmin=self.mel_fmin,
+        )
         # setup scaler
         if stats_path and signal_norm:
             mel_mean, mel_std, linear_mean, linear_std, _ = self.load_stats(stats_path)
@@ -240,20 +247,6 @@ class AudioProcessor(object):
         return AudioProcessor(verbose=verbose, **config)
 
     ### setting up the parameters ###
-    def _build_mel_basis(
-        self,
-    ) -> np.ndarray:
-        """Build melspectrogram basis.
-
-        Returns:
-            np.ndarray: melspectrogram basis.
-        """
-        if self.mel_fmax is not None:
-            assert self.mel_fmax <= self.sample_rate // 2
-        return librosa.filters.mel(
-            sr=self.sample_rate, n_fft=self.fft_size, n_mels=self.num_mels, fmin=self.mel_fmin, fmax=self.mel_fmax
-        )
-
     def _stft_parameters(
         self,
     ) -> Tuple[int, int]:
