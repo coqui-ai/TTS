@@ -18,6 +18,7 @@ from TTS.utils.audio.numpy_transforms import (
     mel_to_spec,
     millisec_to_length,
     preemphasis,
+    rms_volume_norm,
     spec_to_mel,
     stft,
 )
@@ -556,12 +557,6 @@ class AudioProcessor(object):
         """
         return x / abs(x).max() * 0.95
 
-    @staticmethod
-    def _rms_norm(wav, db_level=-27):
-        r = 10 ** (db_level / 20)
-        a = np.sqrt((len(wav) * (r**2)) / np.sum(wav**2))
-        return wav * a
-
     def rms_volume_norm(self, x: np.ndarray, db_level: float = None) -> np.ndarray:
         """Normalize the volume based on RMS of the signal.
 
@@ -573,9 +568,7 @@ class AudioProcessor(object):
         """
         if db_level is None:
             db_level = self.db_level
-        assert -99 <= db_level <= 0, " [!] db_level should be between -99 and 0"
-        wav = self._rms_norm(x, db_level)
-        return wav
+        return rms_volume_norm(x=x, db_level=db_level)
 
     ### save and load ###
     def load_wav(self, filename: str, sr: int = None) -> np.ndarray:
