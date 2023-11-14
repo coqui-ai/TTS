@@ -23,6 +23,7 @@ from TTS.utils.audio.numpy_transforms import (
     spec_to_mel,
     stft,
     trim_silence,
+    volume_norm,
 )
 
 # pylint: disable=too-many-public-methods
@@ -558,7 +559,7 @@ class AudioProcessor(object):
         Returns:
             np.ndarray: Volume normalized waveform.
         """
-        return x / abs(x).max() * 0.95
+        return volume_norm(x=x)
 
     def rms_volume_norm(self, x: np.ndarray, db_level: float = None) -> np.ndarray:
         """Normalize the volume based on RMS of the signal.
