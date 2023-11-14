@@ -7,7 +7,6 @@ import torch.nn.functional as F
 import torchaudio
 from coqpit import Coqpit
 
-from TTS.tts.layers.tortoise.audio_utils import wav_to_univnet_mel
 from TTS.tts.layers.xtts.gpt import GPT
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
@@ -309,26 +308,6 @@ class Xtts(BaseTTS):
         return cond_latent.transpose(1, 2)
 
     @torch.inference_mode()
-    def get_diffusion_cond_latents(self, audio, sr):
-        from math import ceil
-
-        diffusion_conds = []
-        CHUNK_SIZE = 102400
-        audio_24k = torchaudio.functional.resample(audio, sr, 24000)
-        for chunk in range(ceil(audio_24k.shape[1] / CHUNK_SIZE)):
-            current_sample = audio_24k[:, chunk * CHUNK_SIZE : (chunk + 1) * CHUNK_SIZE]
-            current_sample = pad_or_truncate(current_sample, CHUNK_SIZE)
-            cond_mel = wav_to_univnet_mel(
-                current_sample.to(self.device),
-                do_normalization=False,
-                device=self.device,
-            )
-            diffusion_conds.append(cond_mel)
-        diffusion_conds = torch.stack(diffusion_conds, dim=1)
-        diffusion_latent = self.diffusion_decoder.get_conditioning(diffusion_conds)
-        return diffusion_latent
-
-    @torch.inference_mode()
     def get_speaker_embedding(self, audio, sr):
         audio_16k = torchaudio.functional.resample(audio, sr, 16000)
         return (
@@ -575,16 +554,6 @@ class Xtts(BaseTTS):
                 return_attentions=False,
                 return_latent=True,
             )
-            silence_token = 83
-            ctokens = 0
-            for k in range(gpt_codes.shape[-1]):
-                if gpt_codes[0, k] == silence_token:
-                    ctokens += 1
-                else:
-                    ctokens = 0
-                if ctokens > 8:
-                    gpt_latents = gpt_latents[:, :k]
-                    break
 
             if length_scale != 1.0:
                 gpt_latents = F.interpolate(
