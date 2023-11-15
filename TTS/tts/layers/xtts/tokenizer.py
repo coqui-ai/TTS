@@ -115,7 +115,7 @@ _abbreviations = {
             # There are not many common abbreviations in Arabic as in English.
         ]
     ],
-    "zh": [
+    "zh-cn": [
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
             # Chinese doesn't typically use abbreviations in the same way as Latin-based scripts.
@@ -280,7 +280,7 @@ _symbols_multilingual = {
             ("°", " درجة "),
         ]
     ],
-    "zh": [
+    "zh-cn": [
         # Chinese
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
@@ -571,7 +571,7 @@ class VoiceBpeTokenizer:
             )
 
     def preprocess_text(self, txt, lang):
-        if lang in {"ar", "cs", "de", "en", "es", "fr", "hu", "it", "nl", "pl", "pt", "ru", "tr", "zh", "zh-cn"}:
+        if lang in {"ar", "cs", "de", "en", "es", "fr", "hu", "it", "nl", "pl", "pt", "ru", "tr", "zh-cn", "zh-cn"}:
             txt = multilingual_cleaners(txt, lang)
             if lang in {"zh", "zh-cn"}:
                 txt = chinese_transliterate(txt)
@@ -682,8 +682,8 @@ def test_expand_numbers_multilingual():
         ("Dat wordt dan $20 meneer.", "Dat wordt dan twintig dollar meneer.", "nl"),
         ("Dat wordt dan 20€ meneer.", "Dat wordt dan twintig euro meneer.", "nl"),
         # Chinese (Simplified)
-        ("在12.5秒内", "在十二点五秒内", "zh"),
-        ("有50名士兵", "有五十名士兵", "zh"),
+        ("在12.5秒内", "在十二点五秒内", "zh-cn"),
+        ("有50名士兵", "有五十名士兵", "zh-cn"),
         # ("那将是$20先生", '那将是二十美元先生', 'zh'), currency doesn't work
         # ("那将是20€先生", '那将是二十欧元先生', 'zh'),
         # Turkish
@@ -764,7 +764,7 @@ def test_symbols_multilingual():
         ("Ik heb 14% batterij", "Ik heb 14 procent batterij", "nl"),
         ("Ik zie je @ het feest", "Ik zie je bij het feest", "nl"),
         ("لدي 14% في البطارية", "لدي 14 في المئة في البطارية", "ar"),
-        ("我的电量为 14%", "我的电量为 14 百分之", "zh"),
+        ("我的电量为 14%", "我的电量为 14 百分之", "zh-cn"),
         ("Pilim %14 dolu.", "Pilim yüzde 14 dolu.", "tr"),
         ("Az akkumulátorom töltöttsége 14%", "Az akkumulátorom töltöttsége 14 százalék", "hu"),
         ("배터리 잔량이 14%입니다.", "배터리 잔량이 14 퍼센트입니다.", "ko"),
