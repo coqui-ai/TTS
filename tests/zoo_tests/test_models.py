@@ -111,7 +111,7 @@ def test_xtts_streaming():
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     print("Computing speaker latents...")
-    gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
 
     print("Inference...")
     chunks = model.inference_stream(
@@ -139,7 +139,7 @@ def test_xtts_v2():
             "yes | "
             f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v2 "
             f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
-            f'--speaker_wav "{speaker_wav}" "{speaker_wav_2}"  "--language_idx "en"'
+            f'--speaker_wav "{speaker_wav}" "{speaker_wav_2}"  --language_idx "en"'
         )
     else:
         run_cli(
@@ -164,7 +164,7 @@ def test_xtts_v2_streaming():
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     print("Computing speaker latents...")
-    gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
 
     print("Inference...")
     chunks = model.inference_stream(
@@ -179,6 +179,34 @@ def test_xtts_v2_streaming():
             assert chunk.shape[-1] > 5000
         wav_chuncks.append(chunk)
     assert len(wav_chuncks) > 1
+    normal_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    chunks = model.inference_stream(
+        "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+        "en",
+        gpt_cond_latent,
+        speaker_embedding,
+        speed=1.5
+    )
+    wav_chuncks = []
+    for i, chunk in enumerate(chunks):
+        wav_chuncks.append(chunk)
+    fast_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    chunks = model.inference_stream(
+        "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+        "en",
+        gpt_cond_latent,
+        speaker_embedding,
+        speed=0.66
+    )
+    wav_chuncks = []
+    for i, chunk in enumerate(chunks):
+        wav_chuncks.append(chunk)
+    slow_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    assert slow_len > normal_len
+    assert normal_len > fast_len
 
 
 def test_tortoise():
