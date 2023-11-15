@@ -10,7 +10,7 @@ from coqpit import Coqpit
 from TTS.tts.layers.xtts.gpt import GPT
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
-from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer
+from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer, split_sentence
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.utils.io import load_fsspec
 
@@ -510,63 +510,69 @@ class Xtts(BaseTTS):
         do_sample=True,
         num_beams=1,
         speed=1.0,
+        enable_text_splitting=False,
         **hf_generate_kwargs,
     ):
+        language = language.split("-")[0] # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
-        text = text.strip().lower()
-        text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
+        if enable_text_splitting:
+            text = split_sentence(text, language, self.tokenizer.char_limits[language])
+        else:
+            text = [text]
+        
+        wavs = []
+        gpt_latents_list = []
+        for sent in text:
+            sent = sent.strip().lower()
+            text_tokens = torch.IntTensor(self.tokenizer.encode(sent, lang=language)).unsqueeze(0).to(self.device)
 
-        # print(" > Input text: ", text)
-        # print(" > Input text preprocessed: ",self.tokenizer.preprocess_text(text, language))
-        # print(" > Input tokens: ", text_tokens)
-        # print(" > Decoded text: ", self.tokenizer.decode(text_tokens[0].cpu().numpy()))
-        assert (
-            text_tokens.shape[-1] < self.args.gpt_max_text_tokens
-        ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
+            assert (
+                text_tokens.shape[-1] < self.args.gpt_max_text_tokens
+            ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
 
-        with torch.no_grad():
-            gpt_codes = self.gpt.generate(
-                cond_latents=gpt_cond_latent,
-                text_inputs=text_tokens,
-                input_tokens=None,
-                do_sample=do_sample,
-                top_p=top_p,
-                top_k=top_k,
-                temperature=temperature,
-                num_return_sequences=self.gpt_batch_size,
-                num_beams=num_beams,
-                length_penalty=length_penalty,
-                repetition_penalty=repetition_penalty,
-                output_attentions=False,
-                **hf_generate_kwargs,
-            )
-            expected_output_len = torch.tensor(
-                [gpt_codes.shape[-1] * self.gpt.code_stride_len], device=text_tokens.device
-            )
+            with torch.no_grad():
+                gpt_codes = self.gpt.generate(
+                    cond_latents=gpt_cond_latent,
+                    text_inputs=text_tokens,
+                    input_tokens=None,
+                    do_sample=do_sample,
+                    top_p=top_p,
+                    top_k=top_k,
+                    temperature=temperature,
+                    num_return_sequences=self.gpt_batch_size,
+                    num_beams=num_beams,
+                    length_penalty=length_penalty,
+                    repetition_penalty=repetition_penalty,
+                    output_attentions=False,
+                    **hf_generate_kwargs,
+                )
+                expected_output_len = torch.tensor(
+                    [gpt_codes.shape[-1] * self.gpt.code_stride_len], device=text_tokens.device
+                )
 
-            text_len = torch.tensor([text_tokens.shape[-1]], device=self.device)
-            gpt_latents = self.gpt(
-                text_tokens,
-                text_len,
-                gpt_codes,
-                expected_output_len,
-                cond_latents=gpt_cond_latent,
-                return_attentions=False,
-                return_latent=True,
-            )
+                text_len = torch.tensor([text_tokens.shape[-1]], device=self.device)
+                gpt_latents = self.gpt(
+                    text_tokens,
+                    text_len,
+                    gpt_codes,
+                    expected_output_len,
+                    cond_latents=gpt_cond_latent,
+                    return_attentions=False,
+                    return_latent=True,
+                )
 
-            if length_scale != 1.0:
-                gpt_latents = F.interpolate(
-                    gpt_latents.transpose(1, 2),
-                    scale_factor=length_scale,
-                    mode="linear"
-                ).transpose(1, 2)
+                if length_scale != 1.0:
+                    gpt_latents = F.interpolate(
+                        gpt_latents.transpose(1, 2),
+                        scale_factor=length_scale,
+                        mode="linear"
+                    ).transpose(1, 2)
 
-            wav = self.hifigan_decoder(gpt_latents, g=speaker_embedding)
+                wavs.append(self.hifigan_decoder(gpt_latents, g=speaker_embedding).cpu().squeeze())
 
         return {
-            "wav": wav.cpu().numpy().squeeze(),
-            "gpt_latents": gpt_latents,
+            "wav": torch.cat(wavs, dim=0).numpy(),
+            "gpt_latents": torch.cat(gpt_latents_list, dim=0).numpy(),
             "speaker_embedding": speaker_embedding,
         }
 
@@ -613,59 +619,71 @@ class Xtts(BaseTTS):
         top_p=0.85,
         do_sample=True,
         speed=1.0,
+        enable_text_splitting=False,
         **hf_generate_kwargs,
     ):
+        language = language.split("-")[0] # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
-        text = text.strip().lower()
-        text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
+        if enable_text_splitting:
+            text = split_sentence(text, language, self.tokenizer.char_limits[language])
+        else:
+            text = [text]
 
-        fake_inputs = self.gpt.compute_embeddings(
-            gpt_cond_latent.to(self.device),
-            text_tokens,
-        )
-        gpt_generator = self.gpt.get_generator(
-            fake_inputs=fake_inputs,
-            top_k=top_k,
-            top_p=top_p,
-            temperature=temperature,
-            do_sample=do_sample,
-            num_beams=1,
-            num_return_sequences=1,
-            length_penalty=float(length_penalty),
-            repetition_penalty=float(repetition_penalty),
-            output_attentions=False,
-            output_hidden_states=True,
-            **hf_generate_kwargs,
-        )
+        for sent in text:
+            sent = sent.strip().lower()
+            text_tokens = torch.IntTensor(self.tokenizer.encode(sent, lang=language)).unsqueeze(0).to(self.device)
 
-        last_tokens = []
-        all_latents = []
-        wav_gen_prev = None
-        wav_overlap = None
-        is_end = False
+            assert (
+                text_tokens.shape[-1] < self.args.gpt_max_text_tokens
+            ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
 
-        while not is_end:
-            try:
-                x, latent = next(gpt_generator)
-                last_tokens += [x]
-                all_latents += [latent]
-            except StopIteration:
-                is_end = True
+            fake_inputs = self.gpt.compute_embeddings(
+                gpt_cond_latent.to(self.device),
+                text_tokens,
+            )
+            gpt_generator = self.gpt.get_generator(
+                fake_inputs=fake_inputs,
+                top_k=top_k,
+                top_p=top_p,
+                temperature=temperature,
+                do_sample=do_sample,
+                num_beams=1,
+                num_return_sequences=1,
+                length_penalty=float(length_penalty),
+                repetition_penalty=float(repetition_penalty),
+                output_attentions=False,
+                output_hidden_states=True,
+                **hf_generate_kwargs,
+            )
 
-            if is_end or (stream_chunk_size > 0 and len(last_tokens) >= stream_chunk_size):
-                gpt_latents = torch.cat(all_latents, dim=0)[None, :]
-                if length_scale != 1.0:
-                    gpt_latents = F.interpolate(
-                        gpt_latents.transpose(1, 2),
-                        scale_factor=length_scale,
-                        mode="linear"
-                    ).transpose(1, 2)
-                wav_gen = self.hifigan_decoder(gpt_latents, g=speaker_embedding.to(self.device))
-                wav_chunk, wav_gen_prev, wav_overlap = self.handle_chunks(
-                    wav_gen.squeeze(), wav_gen_prev, wav_overlap, overlap_wav_len
-                )
-                last_tokens = []
-                yield wav_chunk
+            last_tokens = []
+            all_latents = []
+            wav_gen_prev = None
+            wav_overlap = None
+            is_end = False
+
+            while not is_end:
+                try:
+                    x, latent = next(gpt_generator)
+                    last_tokens += [x]
+                    all_latents += [latent]
+                except StopIteration:
+                    is_end = True
+
+                if is_end or (stream_chunk_size > 0 and len(last_tokens) >= stream_chunk_size):
+                    gpt_latents = torch.cat(all_latents, dim=0)[None, :]
+                    if length_scale != 1.0:
+                        gpt_latents = F.interpolate(
+                            gpt_latents.transpose(1, 2),
+                            scale_factor=length_scale,
+                            mode="linear"
+                        ).transpose(1, 2)
+                    wav_gen = self.hifigan_decoder(gpt_latents, g=speaker_embedding.to(self.device))
+                    wav_chunk, wav_gen_prev, wav_overlap = self.handle_chunks(
+                        wav_gen.squeeze(), wav_gen_prev, wav_overlap, overlap_wav_len
+                    )
+                    last_tokens = []
+                    yield wav_chunk
 
     def forward(self):
         raise NotImplementedError(
