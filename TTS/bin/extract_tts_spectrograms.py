@@ -15,6 +15,7 @@ from TTS.tts.models import setup_model
 from TTS.tts.utils.speakers import SpeakerManager
 from TTS.tts.utils.text.tokenizer import TTSTokenizer
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.numpy_transforms import quantize
 from TTS.utils.generic_utils import count_parameters
 
 use_cuda = torch.cuda.is_available()
@@ -197,7 +198,7 @@ def extract_spectrograms(
 
             # quantize and save wav
             if quantize_bits > 0:
-                wavq = ap.quantize(wav, quantize_bits)
+                wavq = quantize(wav, quantize_bits)
                 np.save(wavq_path, wavq)
 
             # save TTS mel
