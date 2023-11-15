@@ -16,6 +16,7 @@ from spacy.lang.en import English
 from spacy.lang.zh import Chinese
 from spacy.lang.ja import Japanese
 from spacy.lang.ar import Arabic
+from spacy.lang.es import Spanish
 
 
 def get_spacy_lang(lang):
@@ -25,7 +26,10 @@ def get_spacy_lang(lang):
         return Japanese()
     elif lang == "ar":
         return Arabic()
+    elif lang == "es":
+        return Spanish()
     else:
+        # For most languages, Enlish does the job
         return English()
 
 def split_sentence(text, lang, text_split_length=250):
