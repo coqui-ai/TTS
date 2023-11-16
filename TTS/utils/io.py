@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Union
 import fsspec
 import torch
 from coqpit import Coqpit
+from trainer.io import save_fsspec
 
 from TTS.utils.generic_utils import get_user_data_dir
 
@@ -100,18 +101,6 @@ def load_checkpoint(
     if eval:
         model.eval()
     return model, state
-
-
-def save_fsspec(state: Any, path: str, **kwargs):
-    """Like torch.save but can save to other locations (e.g. s3:// , gs://).
-
-    Args:
-        state: State object to save
-        path: Any path or url supported by fsspec.
-        **kwargs: Keyword arguments forwarded to torch.save.
-    """
-    with fsspec.open(path, "wb") as f:
-        torch.save(state, f, **kwargs)
 
 
 def save_model(config, model, optimizer, scaler, current_step, epoch, output_path, **kwargs):

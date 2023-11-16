@@ -1,7 +1,7 @@
 import datetime
 import os
 
-from TTS.utils.io import save_fsspec
+from trainer.io import save_fsspec
 
 
 def save_checkpoint(model, optimizer, model_loss, out_path, current_step):
