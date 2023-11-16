@@ -396,7 +396,7 @@ class Xtts(BaseTTS):
         inference with config
         """
         assert (
-            language in self.config.languages
+            "zh-cn" if language == "zh" else language in self.config.languages
         ), f" ❗ Language {language} is not supported. Supported languages are {self.config.languages}"
         # Use generally found best tuning knobs for generation.
         settings = {
