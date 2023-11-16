@@ -1,12 +1,9 @@
-import json
 import os
 import pickle as pickle_tts
-import shutil
 from typing import Any, Callable, Dict, Union
 
 import fsspec
 import torch
-from coqpit import Coqpit
 
 from TTS.utils.generic_utils import get_user_data_dir
 
@@ -25,34 +22,6 @@ class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__dict__ = self
-
-
-def copy_model_files(config: Coqpit, out_path, new_fields=None):
-    """Copy config.json and other model files to training folder and add
-    new fields.
-
-    Args:
-        config (Coqpit): Coqpit config defining the training run.
-        out_path (str): output path to copy the file.
-        new_fields (dict): new fileds to be added or edited
-            in the config file.
-    """
-    copy_config_path = os.path.join(out_path, "config.json")
-    # add extra information fields
-    if new_fields:
-        config.update(new_fields, allow_new=True)
-    # TODO: Revert to config.save_json() once Coqpit supports arbitrary paths.
-    with fsspec.open(copy_config_path, "w", encoding="utf8") as f:
-        json.dump(config.to_dict(), f, indent=4)
-
-    # copy model stats file if available
-    if config.audio.stats_path is not None:
-        copy_stats_path = os.path.join(out_path, "scale_stats.npy")
-        filesystem = fsspec.get_mapper(copy_stats_path).fs
-        if not filesystem.exists(copy_stats_path):
-            with fsspec.open(config.audio.stats_path, "rb") as source_file:
-                with fsspec.open(copy_stats_path, "wb") as target_file:
-                    shutil.copyfileobj(source_file, target_file)
 
 
 def load_fsspec(

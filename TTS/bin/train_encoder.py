@@ -8,6 +8,7 @@ import traceback
 
 import torch
 from torch.utils.data import DataLoader
+from trainer.io import copy_model_files
 from trainer.torch import NoamLR
 from trainer.trainer_utils import get_optimizer
 
@@ -18,7 +19,6 @@ from TTS.encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder
-from TTS.utils.io import copy_model_files
 from TTS.utils.samplers import PerfectBatchSampler
 from TTS.utils.training import check_update
 
@@ -276,7 +276,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     if c.loss == "softmaxproto" and c.model != "speaker_encoder":
         c.map_classid_to_classname = map_classid_to_classname
-        copy_model_files(c, OUT_PATH)
+        copy_model_files(c, OUT_PATH, new_fields={})
 
     if args.restore_path:
         criterion, args.restore_step = model.load_checkpoint(
