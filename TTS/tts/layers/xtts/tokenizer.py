@@ -20,7 +20,7 @@ from spacy.lang.es import Spanish
 
 
 def get_spacy_lang(lang):
-    if lang == "zh":
+    if lang in ["zh", "zh-cn"]:
         return Chinese()
     elif lang == "ja":
         return Japanese()
@@ -170,7 +170,7 @@ _abbreviations = {
             # There are not many common abbreviations in Arabic as in English.
         ]
     ],
-    "zh": [
+    "zh-cn": [
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
             # Chinese doesn't typically use abbreviations in the same way as Latin-based scripts.
@@ -335,7 +335,7 @@ _symbols_multilingual = {
             ("°", " درجة "),
         ]
     ],
-    "zh": [
+    "zh-cn": [
         # Chinese
         (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
         for x in [
@@ -519,7 +519,7 @@ def _expand_number(m, lang="en"):
 
 
 def expand_numbers_multilingual(text, lang="en"):
-    if lang == "zh":
+    if lang in ["zh", "zh-cn"]:
         text = zh_num2words()(text)
     else:
         if lang in ["en", "ru"]:
@@ -602,6 +602,7 @@ class VoiceBpeTokenizer:
             "pt": 203,
             "pl": 224,
             "zh": 82,
+            "zh-cn": 82,
             "ar": 166,
             "cs": 186,
             "ru": 182,
@@ -627,9 +628,9 @@ class VoiceBpeTokenizer:
             )
 
     def preprocess_text(self, txt, lang):
-        if lang in {"ar", "cs", "de", "en", "es", "fr", "hu", "it", "nl", "pl", "pt", "ru", "tr", "zh", "ko"}:
+        if lang in {"ar", "cs", "de", "en", "es", "fr", "hu", "it", "nl", "pl", "pt", "ru", "tr", "zh", "zh-cn", "ko"}:
             txt = multilingual_cleaners(txt, lang)
-            if lang == "zh":
+            if lang == "zh" or lang == "zh-cn":
                 txt = chinese_transliterate(txt)
             if lang == "ko":
                 txt = korean_transliterate(txt)
