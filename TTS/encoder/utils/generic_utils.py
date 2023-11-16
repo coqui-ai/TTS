@@ -2,7 +2,6 @@ import datetime
 import glob
 import os
 import random
-import re
 
 import numpy as np
 from scipy import signal
@@ -116,11 +115,6 @@ class AugmentWAV(object):
             return self.reverberate(audio)
 
         return self.additive_noise(noise_type, audio)
-
-
-def to_camel(text):
-    text = text.capitalize()
-    return re.sub(r"(?!^)_([a-zA-Z])", lambda m: m.group(1).upper(), text)
 
 
 def setup_encoder_model(config: "Coqpit"):
