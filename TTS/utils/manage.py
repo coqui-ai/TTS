@@ -352,8 +352,7 @@ class ModelManager(object):
                 remote_url = url
                 break
 
-        with fsspec.open(remote_url, "r", encoding="utf-8") as f:
-            config_remote = json.load(f)
+        config_remote = requests.get(remote_url, timeout=2).json()
 
         if not config_local == config_remote:
             print(f" > {model_name} is already downloaded however it has been changed. Redownloading it...")
