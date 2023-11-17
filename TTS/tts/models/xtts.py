@@ -513,13 +513,13 @@ class Xtts(BaseTTS):
         enable_text_splitting=False,
         **hf_generate_kwargs,
     ):
-        language = language.split("-")[0] # remove the country code
+        language = language.split("-")[0]  # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
         if enable_text_splitting:
             text = split_sentence(text, language, self.tokenizer.char_limits[language])
         else:
             text = [text]
-        
+
         wavs = []
         gpt_latents_list = []
         for sent in text:
@@ -563,9 +563,7 @@ class Xtts(BaseTTS):
 
                 if length_scale != 1.0:
                     gpt_latents = F.interpolate(
-                        gpt_latents.transpose(1, 2),
-                        scale_factor=length_scale,
-                        mode="linear"
+                        gpt_latents.transpose(1, 2), scale_factor=length_scale, mode="linear"
                     ).transpose(1, 2)
 
                 gpt_latents_list.append(gpt_latents.cpu())
@@ -623,7 +621,7 @@ class Xtts(BaseTTS):
         enable_text_splitting=False,
         **hf_generate_kwargs,
     ):
-        language = language.split("-")[0] # remove the country code
+        language = language.split("-")[0]  # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
         if enable_text_splitting:
             text = split_sentence(text, language, self.tokenizer.char_limits[language])
@@ -675,9 +673,7 @@ class Xtts(BaseTTS):
                     gpt_latents = torch.cat(all_latents, dim=0)[None, :]
                     if length_scale != 1.0:
                         gpt_latents = F.interpolate(
-                            gpt_latents.transpose(1, 2),
-                            scale_factor=length_scale,
-                            mode="linear"
+                            gpt_latents.transpose(1, 2), scale_factor=length_scale, mode="linear"
                         ).transpose(1, 2)
                     wav_gen = self.hifigan_decoder(gpt_latents, g=speaker_embedding.to(self.device))
                     wav_chunk, wav_gen_prev, wav_overlap = self.handle_chunks(

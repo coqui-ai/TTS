@@ -186,7 +186,7 @@ def test_xtts_v2_streaming():
         "en",
         gpt_cond_latent,
         speaker_embedding,
-        speed=1.5
+        speed=1.5,
     )
     wav_chuncks = []
     for i, chunk in enumerate(chunks):
@@ -198,7 +198,7 @@ def test_xtts_v2_streaming():
         "en",
         gpt_cond_latent,
         speaker_embedding,
-        speed=0.66
+        speed=0.66,
     )
     wav_chuncks = []
     for i, chunk in enumerate(chunks):

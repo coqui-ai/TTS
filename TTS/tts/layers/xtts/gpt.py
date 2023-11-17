@@ -441,7 +441,9 @@ class GPT(nn.Module):
         audio_codes = F.pad(audio_codes[:, :max_mel_len], (0, 1), value=self.stop_audio_token)
 
         # Pad mel codes with stop_audio_token
-        audio_codes = self.set_mel_padding(audio_codes, code_lengths - 3) # -3 to get the real code lengths without consider start and stop tokens that was not added yet
+        audio_codes = self.set_mel_padding(
+            audio_codes, code_lengths - 3
+        )  # -3 to get the real code lengths without consider start and stop tokens that was not added yet
 
         # Build input and target tensors
         # Prepend start token to inputs and append stop token to targets
