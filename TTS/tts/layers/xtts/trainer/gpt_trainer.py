@@ -318,9 +318,10 @@ class GPTTrainer(BaseTTS):
         batch["cond_idxs"] = None
         return self.train_step(batch, criterion)
 
-    def on_epoch_start(self, trainer):  # pylint: disable=W0613
-        # guarante that dvae will be in eval mode after .train() on evaluation end
-        self.dvae = self.dvae.eval()
+    def on_train_epoch_start(self, trainer):
+        trainer.model.eval() # the whole model to eval
+        # put gpt model in training mode
+        trainer.model.xtts.gpt.train()
 
     def on_init_end(self, trainer):  # pylint: disable=W0613
         # ignore similarities.pth on clearml save/upload
