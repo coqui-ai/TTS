@@ -46,7 +46,6 @@ bangla
 bnnumerizer
 bnunicodenormalizer
 #deps for tortoise
-k_diffusion
 einops>=0.6.0
 transformers>=4.33.0
 #deps for bark
