@@ -1,22 +1,21 @@
 import os
 import re
-import torch
-import pypinyin
 import textwrap
-
 from functools import cached_property
+
+import pypinyin
+import torch
 from hangul_romanize import Transliter
 from hangul_romanize.rule import academic
 from num2words import num2words
+from spacy.lang.ar import Arabic
+from spacy.lang.en import English
+from spacy.lang.es import Spanish
+from spacy.lang.ja import Japanese
+from spacy.lang.zh import Chinese
 from tokenizers import Tokenizer
 
 from TTS.tts.layers.xtts.zh_num2words import TextNorm as zh_num2words
-
-from spacy.lang.en import English
-from spacy.lang.zh import Chinese
-from spacy.lang.ja import Japanese
-from spacy.lang.ar import Arabic
-from spacy.lang.es import Spanish
 
 
 def get_spacy_lang(lang):
@@ -31,6 +30,7 @@ def get_spacy_lang(lang):
     else:
         # For most languages, Enlish does the job
         return English()
+
 
 def split_sentence(text, lang, text_split_length=250):
     """Preprocess the input text"""
@@ -66,6 +66,7 @@ def split_sentence(text, lang, text_split_length=250):
         text_splits = [text.lstrip()]
 
     return text_splits
+
 
 _whitespace_re = re.compile(r"\s+")
 
@@ -619,7 +620,7 @@ class VoiceBpeTokenizer:
         return cutlet.Cutlet()
 
     def check_input_length(self, txt, lang):
-        lang = lang.split("-")[0] # remove the region
+        lang = lang.split("-")[0]  # remove the region
         limit = self.char_limits.get(lang, 250)
         if len(txt) > limit:
             print(
@@ -640,7 +641,7 @@ class VoiceBpeTokenizer:
         return txt
 
     def encode(self, txt, lang):
-        lang = lang.split("-")[0] # remove the region
+        lang = lang.split("-")[0]  # remove the region
         self.check_input_length(txt, lang)
         txt = self.preprocess_text(txt, lang)
         lang = "zh-cn" if lang == "zh" else lang
