@@ -8,11 +8,12 @@ RUN pip3 install llvmlite --ignore-installed
 # Install Dependencies:
 RUN pip3 install torch torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
 RUN rm -rf /root/.cache/pip
-RUN make install
 
 # Copy TTS repository contents:
 WORKDIR /root
 COPY . /root
+
+RUN make install
 
 ENTRYPOINT ["tts"]
 CMD ["--help"]
