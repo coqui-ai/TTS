@@ -72,7 +72,8 @@ class TTS(nn.Module):
         self.csapi = None
         self.cs_api_model = cs_api_model
         self.model_name = ""
-
+        if model_path is not None and not model_name:
+            self.model_name = Path(model_path).name
         if gpu:
             warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
 
