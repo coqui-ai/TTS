@@ -97,7 +97,7 @@ or for all wav files in a directory you can use:
 If you want to be able to run with `use_deepspeed=True` and enjoy the speedup, you need to install deepspeed first.
 
 ```console
-pip install deepspeed==0.8.3
+pip install deepspeed==0.10.3
 ```
 
 ```python
