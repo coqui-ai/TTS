@@ -3,14 +3,14 @@
         "multilingual": {
             "multi-dataset": {
                 "xtts_v2": {
-                    "description": "XTTS-v2 by Coqui with 16 languages.",
+                    "description": "XTTS-v2.0.2 by Coqui with 16 languages.",
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/config.json",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5"
                     ],
-                    "model_hash": "6a09d1ad43896f06041ed8195956c9698f13b6189dc80f1c74bdc2b8e8d15324",
+                    "model_hash": "5ce0502bfe3bc88dc8d9312b12a7558c",
                     "default_vocoder": null,
                     "commit": "480a6cdf7",
                     "license": "CPML",

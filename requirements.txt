@@ -1,33 +1,33 @@
 # core deps
 numpy==1.22.0;python_version<="3.10"
-numpy==1.24.3;python_version>"3.10"
-cython==0.29.30
+numpy>=1.24.3;python_version>"3.10"
+cython>=0.29.30
 scipy>=1.11.2
 torch>=2.1
 torchaudio
-soundfile==0.12.*
-librosa==0.10.*
-scikit-learn==1.3.0
+soundfile>=0.12.0
+librosa>=0.10.0
+scikit-learn>=1.3.0
 numba==0.55.1;python_version<"3.9"
-numba==0.57.0;python_version>="3.9"
-inflect==5.6.*
-tqdm==4.64.*
-anyascii==0.3.*
-pyyaml==6.*
-fsspec==2023.6.0 # <= 2023.9.1 makes aux tests fail
-aiohttp==3.8.*
-packaging==23.1
+numba>=0.57.0;python_version>="3.9"
+inflect>=5.6.0
+tqdm>=4.64.1
+anyascii>=0.3.0
+pyyaml>=6.0
+fsspec>=2023.6.0 # <= 2023.9.1 makes aux tests fail
+aiohttp>=3.8.1
+packaging>=23.1
 # deps for examples
-flask==2.*
+flask>=2.0.1
 # deps for inference
-pysbd==0.3.4
+pysbd>=0.3.4
 # deps for notebooks
-umap-learn==0.5.*
+umap-learn>=0.5.1
 pandas>=1.4,<2.0
 # deps for training
-matplotlib==3.7.*
+matplotlib>=3.7.0
 # coqui stack
-trainer
+trainer>=0.0.32
 # config management
 coqpit>=0.0.16
 # chinese g2p deps
@@ -46,11 +46,11 @@ bangla
 bnnumerizer
 bnunicodenormalizer
 #deps for tortoise
-k_diffusion
-einops==0.6.*
-transformers==4.33.*
+einops>=0.6.0
+transformers>=4.33.0
 #deps for bark
-encodec==0.1.*
+encodec>=0.1.1
 # deps for XTTS
-unidecode==1.3.*
+unidecode>=1.3.2
 num2words
+spacy[ja]>=3

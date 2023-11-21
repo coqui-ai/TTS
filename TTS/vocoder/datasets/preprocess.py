@@ -7,6 +7,7 @@ from coqpit import Coqpit
 from tqdm import tqdm
 
 from TTS.utils.audio import AudioProcessor
+from TTS.utils.audio.numpy_transforms import mulaw_encode, quantize
 
 
 def preprocess_wav_files(out_path: str, config: Coqpit, ap: AudioProcessor):
@@ -29,7 +30,11 @@ def preprocess_wav_files(out_path: str, config: Coqpit, ap: AudioProcessor):
         mel = ap.melspectrogram(y)
         np.save(mel_path, mel)
         if isinstance(config.mode, int):
-            quant = ap.mulaw_encode(y, qc=config.mode) if config.model_args.mulaw else ap.quantize(y, bits=config.mode)
+            quant = (
+                mulaw_encode(wav=y, mulaw_qc=config.mode)
+                if config.model_args.mulaw
+                else quantize(x=y, quantize_bits=config.mode)
+            )
             np.save(quant_path, quant)
 
 
