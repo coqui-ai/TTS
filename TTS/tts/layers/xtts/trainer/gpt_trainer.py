@@ -225,11 +225,11 @@ class GPTTrainer(BaseTTS):
 
     @torch.no_grad()
     def test_run(self, assets) -> Tuple[Dict, Dict]:  # pylint: disable=W0613
+        test_audios = {}
         if self.config.test_sentences:
             # init gpt for inference mode
             self.xtts.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache, use_deepspeed=False)
             self.xtts.gpt.eval()
-            test_audios = {}
             print(" | > Synthesizing test sentences.")
             for idx, s_info in enumerate(self.config.test_sentences):
                 wav = self.xtts.synthesize(
