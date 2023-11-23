@@ -10,7 +10,7 @@ from TTS.cs_api import CS_API
 from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
-
+from TTS.config import load_config
 
 class TTS(nn.Module):
     """TODO: Add voice conversion and Capacitron support."""
@@ -66,14 +66,12 @@ class TTS(nn.Module):
         """
         super().__init__()
         self.manager = ModelManager(models_file=self.get_models_file_path(), progress_bar=progress_bar, verbose=False)
-
+        self.config = load_config(config_path) if config_path else None
         self.synthesizer = None
         self.voice_converter = None
         self.csapi = None
         self.cs_api_model = cs_api_model
         self.model_name = ""
-        if model_path is not None and not model_name:
-            self.model_name = Path(model_path).name
         if gpu:
             warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
 
@@ -107,7 +105,8 @@ class TTS(nn.Module):
     @property
     def is_multi_lingual(self):
         # Not sure what sets this to None, but applied a fix to prevent crashing.
-        if isinstance(self.model_name, str) and "xtts" in self.model_name:
+        if (isinstance(self.model_name, str) and "xtts" in self.model_name or
+                self.config and ("xtts" in self.config.model or len(self.config.languages) > 1)):
             return True
         if hasattr(self.synthesizer.tts_model, "language_manager") and self.synthesizer.tts_model.language_manager:
             return self.synthesizer.tts_model.language_manager.num_languages > 1
