@@ -419,6 +419,13 @@ def main():
             print(" > Saving output to ", args.out_path)
             return
 
+        if args.language_idx is None and args.language is not None:
+            msg = (
+                "--language is only supported for Coqui Studio models. "
+                "Use --language_idx to specify the target language for multilingual models."
+            )
+            raise ValueError(msg)
+
         # CASE4: load pre-trained model paths
         if args.model_name is not None and not args.model_path:
             model_path, config_path, model_item = manager.download_model(args.model_name)
