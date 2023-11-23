@@ -95,123 +95,46 @@ def read_logs():
 
 
 with gr.Blocks() as demo:
-    with gr.Tab("XTTS"):
-        state_vars = gr.State(
+    state_vars = gr.State()
+    with gr.Tab("Data processing"):    
+        upload_file = gr.Audio(
+            sources="upload",
+            label="Select here the audio files that you want to use for XTTS trainining !",
+            type="filepath",
         )
-        with gr.Row():
-            with gr.Column() as col1:       
-                upload_file = gr.Audio(
-                    sources="upload",
-                    label="Select here the audio files that you want to use for XTTS trainining !",
-                    type="filepath",
-                )
-                lang = gr.Dropdown(
-                    label="Dataset Language",
-                    value="en",
-                    choices=[
-                        "en",
-                        "es",
-                        "fr",
-                        "de",
-                        "it",
-                        "pt",
-                        "pl",
-                        "tr",
-                        "ru",
-                        "nl",
-                        "cs",
-                        "ar",
-                        "zh",
-                        "hu",
-                        "ko",
-                        "ja"
-                    ],
-                )
-                progress_data = gr.Label(
-                    label="Progress:"
-                )
-                logs = gr.Textbox(
-                    label="Logs:",
-                    interactive=False,
-                )
-                demo.load(read_logs, None, logs, every=1)
+        lang = gr.Dropdown(
+            label="Dataset Language",
+            value="en",
+            choices=[
+                "en",
+                "es",
+                "fr",
+                "de",
+                "it",
+                "pt",
+                "pl",
+                "tr",
+                "ru",
+                "nl",
+                "cs",
+                "ar",
+                "zh",
+                "hu",
+                "ko",
+                "ja"
+            ],
+        )
+        progress_data = gr.Label(
+            label="Progress:"
+        )
+        logs = gr.Textbox(
+            label="Logs:",
+            interactive=False,
+        )
+        demo.load(read_logs, None, logs, every=1)
 
-                prompt_compute_btn = gr.Button(value="Step 1 - Create dataset.")
-
-            with gr.Column() as col2:
-                num_epochs =  gr.Slider(
-                    label="num_epochs",
-                    minimum=1,
-                    maximum=100,
-                    step=1,
-                    value=2,# 15
-                )
-                batch_size = gr.Slider(
-                    label="batch_size",
-                    minimum=2,
-                    maximum=512,
-                    step=1,
-                    value=15,
-                )
-                progress_train = gr.Label(
-                    label="Progress:"
-                )
-                logs_tts_train = gr.Textbox(
-                    label="Logs:",
-                    interactive=False,
-                )
-                demo.load(read_logs, None, logs_tts_train, every=1)
-                train_btn = gr.Button(value="Step 2 - Run the training")
-            
-            with gr.Column() as col3:
-                xtts_checkpoint = gr.Textbox(
-                    label="XTTS checkpoint path:",
-                    value="",
-                )
-                xtts_config = gr.Textbox(
-                    label="XTTS config path:",
-                    value="",
-                )
-                xtts_vocab = gr.Textbox(
-                    label="XTTS config path:",
-                    value="",
-                )
-                speaker_reference_audio = gr.Textbox(
-                    label="Speaker reference audio:",
-                    value="",
-                )
-                tts_language = gr.Dropdown(
-                    label="Language",
-                    value="en",
-                    choices=[
-                        "en",
-                        "es",
-                        "fr",
-                        "de",
-                        "it",
-                        "pt",
-                        "pl",
-                        "tr",
-                        "ru",
-                        "nl",
-                        "cs",
-                        "ar",
-                        "zh",
-                        "hu",
-                        "ko",
-                        "ja",
-                    ]
-                )
-                tts_text = gr.Textbox(
-                    label="Input Text.",
-                    value="This model sounds really good and above all, it's reasonably fast.",
-                )
-                tts_btn = gr.Button(value="Step 3 - Inference XTTS model")
-
-                tts_output_audio = gr.Audio(label="Generated Audio.")
-                reference_audio = gr.Audio(label="Reference audio used.")
-
-
+        prompt_compute_btn = gr.Button(value="Step 1 - Create dataset.")
+    
         def preprocess_dataset(audio_path, language, state_vars, progress=gr.Progress(track_tqdm=True)):
             # create a temp directory to save the dataset
             out_path = tempfile.TemporaryDirectory().name
@@ -240,6 +163,32 @@ with gr.Blocks() as demo:
             ],
         )
         
+
+    with gr.Tab("Fine-tuning XTTS"):
+        num_epochs =  gr.Slider(
+            label="num_epochs",
+            minimum=1,
+            maximum=100,
+            step=1,
+            value=2,# 15
+        )
+        batch_size = gr.Slider(
+            label="batch_size",
+            minimum=2,
+            maximum=512,
+            step=1,
+            value=15,
+        )
+        progress_train = gr.Label(
+            label="Progress:"
+        )
+        logs_tts_train = gr.Textbox(
+            label="Logs:",
+            interactive=False,
+        )
+        demo.load(read_logs, None, logs_tts_train, every=1)
+        train_btn = gr.Button(value="Step 2 - Run the training")
+
         def train_model(language, num_epochs, batch_size, state_vars, output_path="./", progress=gr.Progress(track_tqdm=True)):
             # state_vars = {'train_csv': '/tmp/tmprh4k_vou/metadata_train.csv', 'eval_csv': '/tmp/tmprh4k_vou/metadata_eval.csv'}
 
@@ -257,6 +206,55 @@ with gr.Blocks() as demo:
             return "Model training done!", state_vars, config_path, vocab_file, ft_xtts_checkpoint, speaker_wav
 
 
+    with gr.Tab("Inference"):
+        xtts_checkpoint = gr.Textbox(
+            label="XTTS checkpoint path:",
+            value="",
+        )
+        xtts_config = gr.Textbox(
+            label="XTTS config path:",
+            value="",
+        )
+        xtts_vocab = gr.Textbox(
+            label="XTTS config path:",
+            value="",
+        )
+        speaker_reference_audio = gr.Textbox(
+            label="Speaker reference audio:",
+            value="",
+        )
+        tts_language = gr.Dropdown(
+            label="Language",
+            value="en",
+            choices=[
+                "en",
+                "es",
+                "fr",
+                "de",
+                "it",
+                "pt",
+                "pl",
+                "tr",
+                "ru",
+                "nl",
+                "cs",
+                "ar",
+                "zh",
+                "hu",
+                "ko",
+                "ja",
+            ]
+        )
+        tts_text = gr.Textbox(
+            label="Input Text.",
+            value="This model sounds really good and above all, it's reasonably fast.",
+        )
+        tts_btn = gr.Button(value="Step 3 - Inference XTTS model")
+
+        tts_output_audio = gr.Audio(label="Generated Audio.")
+        reference_audio = gr.Audio(label="Reference audio used.")
+
+
         train_btn.click(
             fn=train_model,
             inputs=[
@@ -268,6 +266,7 @@ with gr.Blocks() as demo:
             outputs=[progress_train, state_vars, xtts_config, xtts_vocab, xtts_checkpoint, speaker_reference_audio],
         )
         
+
         tts_btn.click(
             fn=run_tts,
             inputs=[
