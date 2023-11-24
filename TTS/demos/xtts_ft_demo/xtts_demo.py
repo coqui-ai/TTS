@@ -9,17 +9,23 @@ import numpy as np
 import os
 import torch
 import torchaudio
-from TTS.demos.xtts_ft_demo.utils.formatter import format_audio_list, list_audios
+from TTS.demos.xtts_ft_demo.utils.formatter import format_audio_list
 from TTS.demos.xtts_ft_demo.utils.gpt_train import train_gpt
 
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 
 
+def clear_gpu_cache():
+    # clear the GPU cache
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
 PORT = 5003
 
 XTTS_MODEL = None
 def load_model(xtts_checkpoint, xtts_config, xtts_vocab):
+    clear_gpu_cache()
     global XTTS_MODEL
     config = XttsConfig()
     config.load_json(xtts_config)
@@ -144,13 +150,23 @@ with gr.Blocks() as demo:
         prompt_compute_btn = gr.Button(value="Step 1 - Create dataset.")
     
         def preprocess_dataset(audio_path, language, out_path, progress=gr.Progress(track_tqdm=True)):
+            clear_gpu_cache()
             out_path = os.path.join(out_path, "dataset")
             os.makedirs(out_path, exist_ok=True)
             if audio_path is None:
                 # ToDo: raise an error
                 pass
             else:
-                train_meta, eval_meta = format_audio_list(audio_path, target_language=language, out_path=out_path, gradio_progress=progress)
+                train_meta, eval_meta, audio_total_size = format_audio_list(audio_path, target_language=language, out_path=out_path, gradio_progress=progress)
+
+            clear_gpu_cache()
+
+            # if audio total len is less than 2 minutes raise an error
+            if audio_total_size < 120:
+                message = "The sum of the duration of the audios that you provided should be at least 2 minutes!"
+                print(message)
+                return message, " ", " "
+
             print("Dataset Processed!")
             return "Dataset Processed!", train_meta, eval_meta
 
@@ -173,7 +189,7 @@ with gr.Blocks() as demo:
             minimum=2,
             maximum=512,
             step=1,
-            value=15,
+            value=16,
         )
         progress_train = gr.Label(
             label="Progress:"
@@ -186,8 +202,7 @@ with gr.Blocks() as demo:
         train_btn = gr.Button(value="Step 2 - Run the training")
 
         def train_model(language, train_csv, eval_csv, num_epochs, batch_size, output_path, progress=gr.Progress(track_tqdm=True)):
-            # train_csv = '/tmp/tmprh4k_vou/metadata_train.csv'
-            # eval_csv = '/tmp/tmprh4k_vou/metadata_eval.csv'
+            clear_gpu_cache()
 
             config_path, original_xtts_checkpoint, vocab_file, exp_path, speaker_wav = train_gpt(language, num_epochs, batch_size, train_csv, eval_csv, output_path=output_path)
             # copy original files to avoid parameters changes issues
@@ -196,6 +211,7 @@ with gr.Blocks() as demo:
 
             ft_xtts_checkpoint = os.path.join(exp_path, "best_model.pth")
             print("Model training done!")
+            clear_gpu_cache()
             return "Model training done!", config_path, vocab_file, ft_xtts_checkpoint, speaker_wav
 
 

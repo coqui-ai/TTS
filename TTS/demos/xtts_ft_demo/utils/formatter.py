@@ -44,6 +44,7 @@ def list_files(basePath, validExts=None, contains=None):
                 yield audioPath
 
 def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0.2, eval_percentage=0.15, speaker_name="coqui", gradio_progress=None):
+    audio_total_size = 0
     # make sure that ooutput file exists
     os.makedirs(out_path, exist_ok=True)
 
@@ -67,7 +68,9 @@ def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0
             wav = torch.mean(wav, dim=0, keepdim=True)
 
         wav = wav.squeeze()
-        segments, info = asr_model.transcribe(audio_path, word_timestamps=True, language=target_language)
+        audio_total_size += (wav.size(-1) / sr)
+
+        segments, _ = asr_model.transcribe(audio_path, word_timestamps=True, language=target_language)
         segments = list(segments)
         i = 0
         sentence = ""
@@ -101,9 +104,9 @@ def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0
                 sentence = sentence[1:]
                 # Expand number and abbreviations plus normalization
                 sentence = multilingual_cleaners(sentence, target_language)
-                audio_file_name, ext = os.path.splitext(os.path.basename(audio_path))
+                audio_file_name, _ = os.path.splitext(os.path.basename(audio_path))
 
-                audio_file = f"wavs/{audio_file_name}_{str(i).zfill(8)}{ext}"
+                audio_file = f"wavs/{audio_file_name}_{str(i).zfill(8)}.wav"
 
                 # Check for the next word's existence
                 if word_idx + 1 < len(words_list):
@@ -125,8 +128,7 @@ def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0
                 if audio.size(-1) >= sr/3:
                     torchaudio.save(absoulte_path,
                         audio,
-                        sr,
-                        backend="sox",
+                        sr
                     )
                 else:
                     continue
@@ -150,4 +152,7 @@ def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0
     df_eval = df_eval.sort_values('audio_file')
     df_eval.to_csv(eval_metadata_path, sep="|", index=False)
 
-    return train_metadata_path, eval_metadata_path
+    # deallocate VRAM
+    del asr_model
+
+    return train_metadata_path, eval_metadata_path, audio_total_size

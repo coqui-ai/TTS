@@ -164,4 +164,7 @@ def train_gpt(language, num_epochs, batch_size, train_csv, eval_csv, output_path
     longest_text_idx =  samples_len.index(max(samples_len))
     speaker_ref = train_samples[longest_text_idx]["audio_file"]
 
+    # deallocate VRAM
+    del model, trainer
+
     return XTTS_CONFIG_FILE, XTTS_CHECKPOINT, TOKENIZER_FILE, trainer.output_path, speaker_ref
