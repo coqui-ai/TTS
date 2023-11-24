@@ -62,6 +62,10 @@ def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0
 
     for audio_path in tqdm_object:
         wav, sr = torchaudio.load(audio_path)
+        # stereo to mono if needed
+        if wav.size(0) != 1:
+            wav = torch.mean(wav, dim=0, keepdim=True)
+
         wav = wav.squeeze()
         segments, info = asr_model.transcribe(audio_path, word_timestamps=True, language=target_language)
         segments = list(segments)
