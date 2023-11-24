@@ -8,8 +8,6 @@ from tqdm import tqdm
 
 import torch
 import torchaudio
-from torchaudio.backend.sox_io_backend import load as torchaudio_sox_load
-from torchaudio.backend.soundfile_backend import load as torchaudio_soundfile_load
 # torch.set_num_threads(1)
 
 from TTS.tts.layers.xtts.tokenizer import multilingual_cleaners
@@ -45,7 +43,7 @@ def list_files(basePath, validExts=None, contains=None):
                 audioPath = os.path.join(rootDir, filename)
                 yield audioPath
 
-def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0.5, eval_percentage=0.15, speaker_name="coqui", gradio_progress=None):
+def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0.2, eval_percentage=0.15, speaker_name="coqui", gradio_progress=None):
     # make sure that ooutput file exists
     os.makedirs(out_path, exist_ok=True)
 
@@ -121,10 +119,10 @@ def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0
                 audio = wav[int(sr*sentence_start):int(sr*word_end)].unsqueeze(0)
                 # if the audio is too short ignore it (i.e < 0.33 seconds)
                 if audio.size(-1) >= sr/3:
-                    torchaudio.backend.sox_io_backend.save(
-                        absoulte_path,
+                    torchaudio.save(absoulte_path,
                         audio,
-                        sr
+                        sr,
+                        backend="sox",
                     )
                 else:
                     continue
