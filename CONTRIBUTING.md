@@ -128,6 +128,32 @@ The following steps are tested on an Ubuntu system.
 
 14. Once things look perfect, We merge it to the ```dev``` branch and make it ready for the next version.
 
+## Development in Docker container
+
+If you prefer working within a Docker container as your development environment, you can do the following:
+
+1. Fork 🐸TTS[https://github.com/coqui-ai/TTS] by clicking the fork button at the top right corner of the project page.
+
+2. Clone 🐸TTS and add the main repo as a new remote named ```upsteam```.
+
+    ```bash
+    $ git clone git@github.com:<your Github name>/TTS.git
+    $ cd TTS
+    $ git remote add upstream https://github.com/coqui-ai/TTS.git
+    ```
+
+3. Build the Docker Image as your development environment (it installs all of the dependencies for you):
+
+    ```
+    docker build --tag=tts-dev:latest -f .\dockerfiles\Dockerfile.dev .
+    ```
+
+4. Run the container with GPU support:
+
+    ```
+    docker run -it --gpus all tts-dev:latest /bin/bash
+    ```
+
 Feel free to ping us at any step you need help using our communication channels.
 
 If you are new to Github or open-source contribution, These are good resources.
