@@ -227,7 +227,7 @@ def main():
     parser.add_argument(
         "--cs_model",
         type=str,
-        help="Name of the 🐸Coqui Studio model. Available models are `XTTS`, `XTTS-multilingual`, `V1`.",
+        help="Name of the 🐸Coqui Studio model. Available models are `XTTS`, `V1`.",
     )
     parser.add_argument(
         "--emotion",
@@ -238,7 +238,7 @@ def main():
     parser.add_argument(
         "--language",
         type=str,
-        help="Language to condition the model with. Only available for 🐸Coqui Studio `XTTS-multilingual` model.",
+        help="Language to condition the model with. Only available for 🐸Coqui Studio `XTTS` model.",
         default=None,
     )
     parser.add_argument(
@@ -427,7 +427,9 @@ def main():
                 tts_path = model_path
                 tts_config_path = config_path
                 if "default_vocoder" in model_item:
-                    args.vocoder_name = model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
+                    args.vocoder_name = (
+                        model_item["default_vocoder"] if args.vocoder_name is None else args.vocoder_name
+                    )
 
             # voice conversion model
             if model_item["model_type"] == "voice_conversion_models":

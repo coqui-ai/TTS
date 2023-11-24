@@ -280,7 +280,7 @@ def css10(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             cols = line.split("|")
             wav_file = os.path.join(root_path, cols[0])
             text = cols[1]
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
 
 
@@ -294,7 +294,7 @@ def nancy(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             utt_id = line.split()[1]
             text = line[line.find('"') + 1 : line.rfind('"') - 1]
             wav_file = os.path.join(root_path, "wavn", utt_id + ".wav")
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
 
 

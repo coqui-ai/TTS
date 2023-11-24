@@ -201,7 +201,6 @@ def stft(
 def istft(
     *,
     y: np.ndarray = None,
-    fft_size: int = None,
     hop_length: int = None,
     win_length: int = None,
     window: str = "hann",
@@ -428,7 +427,7 @@ def load_wav(*, filename: str, sample_rate: int = None, resample: bool = False, 
     return x
 
 
-def save_wav(*, wav: np.ndarray, path: str, sample_rate: int = None, pipe_out = None, **kwargs) -> None:
+def save_wav(*, wav: np.ndarray, path: str, sample_rate: int = None, pipe_out=None, **kwargs) -> None:
     """Save float waveform to a file using Scipy.
 
     Args:

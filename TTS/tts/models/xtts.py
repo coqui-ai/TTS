@@ -1,21 +1,16 @@
 import os
-from contextlib import contextmanager
 from dataclasses import dataclass
 
+import librosa
 import torch
 import torch.nn.functional as F
 import torchaudio
-import librosa
 from coqpit import Coqpit
 
-from TTS.tts.layers.tortoise.audio_utils import denormalize_tacotron_mel, wav_to_univnet_mel
-from TTS.tts.layers.tortoise.diffusion_decoder import DiffusionTts
-from TTS.tts.layers.xtts.diffusion import SpacedDiffusion, get_named_beta_schedule, space_timesteps
 from TTS.tts.layers.xtts.gpt import GPT
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
-from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer
-from TTS.tts.layers.xtts.vocoder import UnivNetGenerator
+from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer, split_sentence
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.utils.io import load_fsspec
 
@@ -23,7 +18,19 @@ init_stream_support()
 
 
 def wav_to_mel_cloning(
-    wav, mel_norms_file="../experiments/clips_mel_norms.pth", mel_norms=None, device=torch.device("cpu")
+    wav,
+    mel_norms_file="../experiments/clips_mel_norms.pth",
+    mel_norms=None,
+    device=torch.device("cpu"),
+    n_fft=4096,
+    hop_length=1024,
+    win_length=4096,
+    power=2,
+    normalized=False,
+    sample_rate=22050,
+    f_min=0,
+    f_max=8000,
+    n_mels=80,
 ):
     """
     Convert waveform to mel-spectrogram with hard-coded parameters for cloning.
@@ -38,15 +45,15 @@ def wav_to_mel_cloning(
         torch.Tensor: Mel-spectrogram tensor.
     """
     mel_stft = torchaudio.transforms.MelSpectrogram(
-        n_fft=4096,
-        hop_length=1024,
-        win_length=4096,
-        power=2,
-        normalized=False,
-        sample_rate=22050,
-        f_min=0,
-        f_max=8000,
-        n_mels=80,
+        n_fft=n_fft,
+        hop_length=hop_length,
+        win_length=win_length,
+        power=power,
+        normalized=normalized,
+        sample_rate=sample_rate,
+        f_min=f_min,
+        f_max=f_max,
+        n_mels=n_mels,
         norm="slaney",
     ).to(device)
     wav = wav.to(device)
@@ -56,6 +63,28 @@ def wav_to_mel_cloning(
         mel_norms = torch.load(mel_norms_file, map_location=device)
     mel = mel / mel_norms.unsqueeze(0).unsqueeze(-1)
     return mel
+
+
+def load_audio(audiopath, sampling_rate):
+    # better load setting following: https://github.com/faroit/python_audio_loading_benchmark
+
+    # torchaudio should chose proper backend to load audio depending on platform
+    audio, lsr = torchaudio.load(audiopath)
+
+    # stereo to mono if needed
+    if audio.size(0) != 1:
+        audio = torch.mean(audio, dim=0, keepdim=True)
+
+    if lsr != sampling_rate:
+        audio = torchaudio.functional.resample(audio, lsr, sampling_rate)
+
+    # Check some assumptions about audio range. This should be automatically fixed in load_wav_to_torch, but might not be in some edge cases, where we should squawk.
+    # '10' is arbitrarily chosen since it seems like audio will often "overdrive" the [-1,1] bounds.
+    if torch.any(audio > 10) or not torch.any(audio < 0):
+        print(f"Error with {audiopath}. Max={audio.max()} min={audio.min()}")
+    # clip audio invalid values
+    audio.clip_(-1, 1)
+    return audio
 
 
 def pad_or_truncate(t, length):
@@ -77,78 +106,6 @@ def pad_or_truncate(t, length):
     return tp
 
 
-def load_discrete_vocoder_diffuser(
-    trained_diffusion_steps=4000,
-    desired_diffusion_steps=200,
-    cond_free=True,
-    cond_free_k=1,
-    sampler="ddim",
-):
-    """
-    Load a GaussianDiffusion instance configured for use as a decoder.
-
-    Args:
-        trained_diffusion_steps (int): The number of diffusion steps used during training.
-        desired_diffusion_steps (int): The number of diffusion steps to use during inference.
-        cond_free (bool): Whether to use a conditioning-free model.
-        cond_free_k (int): The number of samples to use for conditioning-free models.
-        sampler (str): The name of the sampler to use.
-
-    Returns:
-        A SpacedDiffusion instance configured with the given parameters.
-    """
-    return SpacedDiffusion(
-        use_timesteps=space_timesteps(trained_diffusion_steps, [desired_diffusion_steps]),
-        model_mean_type="epsilon",
-        model_var_type="learned_range",
-        loss_type="mse",
-        betas=get_named_beta_schedule("linear", trained_diffusion_steps),
-        conditioning_free=cond_free,
-        conditioning_free_k=cond_free_k,
-        sampler=sampler,
-    )
-
-
-def do_spectrogram_diffusion(
-    diffusion_model,
-    diffuser,
-    latents,
-    conditioning_latents,
-    temperature=1,
-):
-    """
-    Generate a mel-spectrogram using a diffusion model and a diffuser.
-
-    Args:
-        diffusion_model (nn.Module): A diffusion model that converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
-        diffuser (Diffuser): A diffuser that generates a mel-spectrogram from noise.
-        latents (torch.Tensor): A tensor of shape (batch_size, seq_len, code_size) containing the input spectrogram codes.
-        conditioning_latents (torch.Tensor): A tensor of shape (batch_size, code_size) containing the conditioning codes.
-        temperature (float, optional): The temperature of the noise used by the diffuser. Defaults to 1.
-
-    Returns:
-        torch.Tensor: A tensor of shape (batch_size, mel_channels, mel_seq_len) containing the generated mel-spectrogram.
-    """
-    with torch.no_grad():
-        output_seq_len = (
-            latents.shape[1] * 4 * 24000 // 22050
-        )  # This diffusion model converts from 22kHz spectrogram codes to a 24kHz spectrogram signal.
-        output_shape = (latents.shape[0], 100, output_seq_len)
-        precomputed_embeddings = diffusion_model.timestep_independent(
-            latents, conditioning_latents, output_seq_len, False
-        )
-
-        noise = torch.randn(output_shape, device=latents.device) * temperature
-        mel = diffuser.sample_loop(
-            diffusion_model,
-            output_shape,
-            noise=noise,
-            model_kwargs={"precomputed_aligned_embeddings": precomputed_embeddings},
-            progress=False,
-        )
-        return denormalize_tacotron_mel(mel)[:, :, :output_seq_len]
-
-
 @dataclass
 class XttsAudioConfig(Coqpit):
     """
@@ -156,12 +113,10 @@ class XttsAudioConfig(Coqpit):
 
     Args:
         sample_rate (int): The sample rate in which the GPT operates.
-        diffusion_sample_rate (int): The sample rate of the diffusion audio waveform.
         output_sample_rate (int): The sample rate of the output audio waveform.
     """
 
     sample_rate: int = 22050
-    diffusion_sample_rate: int = 24000
     output_sample_rate: int = 24000
 
 
@@ -177,32 +132,21 @@ class XttsArgs(Coqpit):
         clvp_checkpoint (str, optional): The checkpoint for the ConditionalLatentVariablePerseq model. Defaults to None.
         decoder_checkpoint (str, optional): The checkpoint for the DiffTTS model. Defaults to None.
         num_chars (int, optional): The maximum number of characters to generate. Defaults to 255.
-        use_hifigan (bool, optional): Whether to use hifigan or diffusion + univnet as a decoder. Defaults to True.
 
         For GPT model:
-        ar_max_audio_tokens (int, optional): The maximum mel tokens for the autoregressive model. Defaults to 604.
-        ar_max_text_tokens (int, optional): The maximum text tokens for the autoregressive model. Defaults to 402.
-        ar_max_prompt_tokens (int, optional): The maximum prompt tokens or the autoregressive model. Defaults to 70.
-        ar_layers (int, optional): The number of layers for the autoregressive model. Defaults to 30.
-        ar_n_model_channels (int, optional): The model dimension for the autoregressive model. Defaults to 1024.
-        ar_n_heads (int, optional): The number of heads for the autoregressive model. Defaults to 16.
-        ar_number_text_tokens (int, optional): The number of text tokens for the autoregressive model. Defaults to 255.
-        ar_start_text_token (int, optional): The start text token for the autoregressive model. Defaults to 255.
+        gpt_max_audio_tokens (int, optional): The maximum mel tokens for the autoregressive model. Defaults to 604.
+        gpt_max_text_tokens (int, optional): The maximum text tokens for the autoregressive model. Defaults to 402.
+        gpt_max_prompt_tokens (int, optional): The maximum prompt tokens or the autoregressive model. Defaults to 70.
+        gpt_layers (int, optional): The number of layers for the autoregressive model. Defaults to 30.
+        gpt_n_model_channels (int, optional): The model dimension for the autoregressive model. Defaults to 1024.
+        gpt_n_heads (int, optional): The number of heads for the autoregressive model. Defaults to 16.
+        gpt_number_text_tokens (int, optional): The number of text tokens for the autoregressive model. Defaults to 255.
+        gpt_start_text_token (int, optional): The start text token for the autoregressive model. Defaults to 255.
         gpt_checkpointing (bool, optional): Whether to use checkpointing for the autoregressive model. Defaults to False.
-        ar_train_solo_embeddings (bool, optional): Whether to train embeddings for the autoregressive model. Defaults to False.
-
-        For DiffTTS model:
-        diff_model_channels (int, optional): The number of channels for the DiffTTS model. Defaults to 1024.
-        diff_num_layers (int, optional): The number of layers for the DiffTTS model. Defaults to 10.
-        diff_in_channels (int, optional): The input channels for the DiffTTS model. Defaults to 100.
-        diff_out_channels (int, optional): The output channels for the DiffTTS model. Defaults to 200.
-        diff_in_latent_channels (int, optional): The input latent channels for the DiffTTS model. Defaults to 1024.
-        diff_in_tokens (int, optional): The input tokens for the DiffTTS model. Defaults to 8193.
-        diff_dropout (int, optional): The dropout percentage for the DiffTTS model. Defaults to 0.
-        diff_use_fp16 (bool, optional): Whether to use fp16 for the DiffTTS model. Defaults to False.
-        diff_num_heads (int, optional): The number of heads for the DiffTTS model. Defaults to 16.
-        diff_layer_drop (int, optional): The layer dropout percentage for the DiffTTS model. Defaults to 0.
-        diff_unconditioned_percentage (int, optional): The percentage of unconditioned inputs for the DiffTTS model. Defaults to 0.
+        gpt_train_solo_embeddings (bool, optional): Whether to train embeddings for the autoregressive model. Defaults to False.
+        gpt_code_stride_len (int, optional): The hop_size of dvae and consequently of the gpt output. Defaults to 1024.
+        gpt_use_masking_gt_prompt_approach (bool, optional):  If True, it will use ground truth as prompt and it will mask the loss to avoid repetition. Defaults to True.
+        gpt_use_perceiver_resampler (bool, optional):  If True, it will use perceiver resampler from flamingo paper - https://arxiv.org/abs/2204.14198. Defaults to False.
     """
 
     gpt_batch_size: int = 1
@@ -212,8 +156,6 @@ class XttsArgs(Coqpit):
     clvp_checkpoint: str = None
     decoder_checkpoint: str = None
     num_chars: int = 255
-    use_hifigan: bool = True
-    use_ne_hifigan: bool = False
 
     # XTTS GPT Encoder params
     tokenizer_file: str = ""
@@ -229,25 +171,14 @@ class XttsArgs(Coqpit):
     gpt_num_audio_tokens: int = 8194
     gpt_start_audio_token: int = 8192
     gpt_stop_audio_token: int = 8193
-
-    # Diffusion Decoder params
-    diff_model_channels: int = 1024
-    diff_num_layers: int = 10
-    diff_in_channels: int = 100
-    diff_out_channels: int = 200
-    diff_in_latent_channels: int = 1024
-    diff_in_tokens: int = 8193
-    diff_dropout: int = 0
-    diff_use_fp16: bool = False
-    diff_num_heads: int = 16
-    diff_layer_drop: int = 0
-    diff_unconditioned_percentage: int = 0
+    gpt_code_stride_len: int = 1024
+    gpt_use_masking_gt_prompt_approach: bool = True
+    gpt_use_perceiver_resampler: bool = False
 
     # HifiGAN Decoder params
     input_sample_rate: int = 22050
     output_sample_rate: int = 24000
     output_hop_length: int = 256
-    ar_mel_length_compression: int = 1024
     decoder_input_dim: int = 1024
     d_vector_dim: int = 512
     cond_d_vector_in_each_upsampling_layer: bool = True
@@ -304,119 +235,143 @@ class Xtts(BaseTTS):
                 num_audio_tokens=self.args.gpt_num_audio_tokens,
                 start_audio_token=self.args.gpt_start_audio_token,
                 stop_audio_token=self.args.gpt_stop_audio_token,
+                use_perceiver_resampler=self.args.gpt_use_perceiver_resampler,
+                code_stride_len=self.args.gpt_code_stride_len,
             )
 
-        if self.args.use_hifigan:
-            self.hifigan_decoder = HifiDecoder(
-                input_sample_rate=self.args.input_sample_rate,
-                output_sample_rate=self.args.output_sample_rate,
-                output_hop_length=self.args.output_hop_length,
-                ar_mel_length_compression=self.args.ar_mel_length_compression,
-                decoder_input_dim=self.args.decoder_input_dim,
-                d_vector_dim=self.args.d_vector_dim,
-                cond_d_vector_in_each_upsampling_layer=self.args.cond_d_vector_in_each_upsampling_layer,
-            )
-
-        if self.args.use_ne_hifigan:
-            self.ne_hifigan_decoder = HifiDecoder(
-                input_sample_rate=self.args.input_sample_rate,
-                output_sample_rate=self.args.output_sample_rate,
-                output_hop_length=self.args.output_hop_length,
-                ar_mel_length_compression=self.args.ar_mel_length_compression,
-                decoder_input_dim=self.args.decoder_input_dim,
-                d_vector_dim=self.args.d_vector_dim,
-                cond_d_vector_in_each_upsampling_layer=self.args.cond_d_vector_in_each_upsampling_layer,
-            )
-
-        if not (self.args.use_hifigan or self.args.use_ne_hifigan):
-            self.diffusion_decoder = DiffusionTts(
-                model_channels=self.args.diff_model_channels,
-                num_layers=self.args.diff_num_layers,
-                in_channels=self.args.diff_in_channels,
-                out_channels=self.args.diff_out_channels,
-                in_latent_channels=self.args.diff_in_latent_channels,
-                in_tokens=self.args.diff_in_tokens,
-                dropout=self.args.diff_dropout,
-                use_fp16=self.args.diff_use_fp16,
-                num_heads=self.args.diff_num_heads,
-                layer_drop=self.args.diff_layer_drop,
-                unconditioned_percentage=self.args.diff_unconditioned_percentage,
-            )
-            self.vocoder = UnivNetGenerator()
+        self.hifigan_decoder = HifiDecoder(
+            input_sample_rate=self.args.input_sample_rate,
+            output_sample_rate=self.args.output_sample_rate,
+            output_hop_length=self.args.output_hop_length,
+            ar_mel_length_compression=self.args.gpt_code_stride_len,
+            decoder_input_dim=self.args.decoder_input_dim,
+            d_vector_dim=self.args.d_vector_dim,
+            cond_d_vector_in_each_upsampling_layer=self.args.cond_d_vector_in_each_upsampling_layer,
+        )
 
     @property
     def device(self):
         return next(self.parameters()).device
 
     @torch.inference_mode()
-    def get_gpt_cond_latents(self, audio, sr, length: int = 3):
+    def get_gpt_cond_latents(self, audio, sr, length: int = 30, chunk_length: int = 6):
         """Compute the conditioning latents for the GPT model from the given audio.
 
         Args:
-            audio_path (str): Path to the audio file.
-            length (int): Length of the audio in seconds. Defaults to 3.
+            audio (tensor): audio tensor.
+            sr (int): Sample rate of the audio.
+            length (int): Length of the audio in seconds. If < 0, use the whole audio. Defaults to 30.
+            chunk_length (int): Length of the audio chunks in seconds. When `length == chunk_length`, the whole audio
+                is being used without chunking. It must be < `length`. Defaults to 6.
         """
+        if sr != 22050:
+            audio = torchaudio.functional.resample(audio, sr, 22050)
+        if length > 0:
+            audio = audio[:, : 22050 * length]
+        if self.args.gpt_use_perceiver_resampler:
+            style_embs = []
+            for i in range(0, audio.shape[1], 22050 * chunk_length):
+                audio_chunk = audio[:, i : i + 22050 * chunk_length]
+                mel_chunk = wav_to_mel_cloning(
+                    audio_chunk,
+                    mel_norms=self.mel_stats.cpu(),
+                    n_fft=2048,
+                    hop_length=256,
+                    win_length=1024,
+                    power=2,
+                    normalized=False,
+                    sample_rate=22050,
+                    f_min=0,
+                    f_max=8000,
+                    n_mels=80,
+                )
+                style_emb = self.gpt.get_style_emb(mel_chunk.to(self.device), None)
+                style_embs.append(style_emb)
 
-        audio_22k = torchaudio.functional.resample(audio, sr, 22050)
-        audio_22k = audio_22k[:, : 22050 * length]
-        mel = wav_to_mel_cloning(audio_22k, mel_norms=self.mel_stats.cpu())
-        cond_latent = self.gpt.get_style_emb(mel.to(self.device))
-        return cond_latent.transpose(1, 2)
-
-    @torch.inference_mode()
-    def get_diffusion_cond_latents(self, audio, sr):
-        from math import ceil
-
-        diffusion_conds = []
-        CHUNK_SIZE = 102400
-        audio_24k = torchaudio.functional.resample(audio, sr, 24000)
-        for chunk in range(ceil(audio_24k.shape[1] / CHUNK_SIZE)):
-            current_sample = audio_24k[:, chunk * CHUNK_SIZE : (chunk + 1) * CHUNK_SIZE]
-            current_sample = pad_or_truncate(current_sample, CHUNK_SIZE)
-            cond_mel = wav_to_univnet_mel(
-                current_sample.to(self.device),
-                do_normalization=False,
-                device=self.device,
+            # mean style embedding
+            cond_latent = torch.stack(style_embs).mean(dim=0)
+        else:
+            mel = wav_to_mel_cloning(
+                audio,
+                mel_norms=self.mel_stats.cpu(),
+                n_fft=4096,
+                hop_length=1024,
+                win_length=4096,
+                power=2,
+                normalized=False,
+                sample_rate=22050,
+                f_min=0,
+                f_max=8000,
+                n_mels=80,
             )
-            diffusion_conds.append(cond_mel)
-        diffusion_conds = torch.stack(diffusion_conds, dim=1)
-        diffusion_latent = self.diffusion_decoder.get_conditioning(diffusion_conds)
-        return diffusion_latent
+            cond_latent = self.gpt.get_style_emb(mel.to(self.device))
+        return cond_latent.transpose(1, 2)
 
     @torch.inference_mode()
     def get_speaker_embedding(self, audio, sr):
         audio_16k = torchaudio.functional.resample(audio, sr, 16000)
-        return self.hifigan_decoder.speaker_encoder.forward(
-            audio_16k.to(self.device), l2_norm=True
-        ).unsqueeze(-1).to(self.device)
-    
+        return (
+            self.hifigan_decoder.speaker_encoder.forward(audio_16k.to(self.device), l2_norm=True)
+            .unsqueeze(-1)
+            .to(self.device)
+        )
+
     @torch.inference_mode()
     def get_conditioning_latents(
         self,
         audio_path,
+        max_ref_length=30,
         gpt_cond_len=6,
-        max_ref_length=10,
+        gpt_cond_chunk_len=6,
         librosa_trim_db=None,
         sound_norm_refs=False,
-    ):  
-        speaker_embedding = None
-        diffusion_cond_latents = None
+        load_sr=22050,
+    ):
+        """Get the conditioning latents for the GPT model from the given audio.
 
-        audio, sr = torchaudio.load(audio_path)
-        audio = audio[:, : sr * max_ref_length].to(self.device)
-        if audio.shape[0] > 1:
-            audio = audio.mean(0, keepdim=True)
-        if sound_norm_refs:
-            audio = (audio / torch.abs(audio).max()) * 0.75
-        if librosa_trim_db is not None:
-            audio = librosa.effects.trim(audio, top_db=librosa_trim_db)[0]
-
-        if self.args.use_hifigan or self.args.use_ne_hifigan:
-            speaker_embedding = self.get_speaker_embedding(audio, sr)
+        Args:
+            audio_path (str or List[str]): Path to reference audio file(s).
+            max_ref_length (int): Maximum length of each reference audio in seconds. Defaults to 30.
+            gpt_cond_len (int): Length of the audio used for gpt latents. Defaults to 6.
+            gpt_cond_chunk_len (int): Chunk length used for gpt latents. It must be <= gpt_conf_len. Defaults to 6.
+            librosa_trim_db (int, optional): Trim the audio using this value. If None, not trimming. Defaults to None.
+            sound_norm_refs (bool, optional): Whether to normalize the audio. Defaults to False.
+            load_sr (int, optional): Sample rate to load the audio. Defaults to 24000.
+        """
+        # deal with multiples references
+        if not isinstance(audio_path, list):
+            audio_paths = [audio_path]
         else:
-            diffusion_cond_latents = self.get_diffusion_cond_latents(audio, sr)
-        gpt_cond_latents = self.get_gpt_cond_latents(audio, sr, length=gpt_cond_len)  # [1, 1024, T]
-        return gpt_cond_latents, diffusion_cond_latents, speaker_embedding
+            audio_paths = audio_path
+
+        speaker_embeddings = []
+        audios = []
+        speaker_embedding = None
+        for file_path in audio_paths:
+            audio = load_audio(file_path, load_sr)
+            audio = audio[:, : load_sr * max_ref_length].to(self.device)
+            if sound_norm_refs:
+                audio = (audio / torch.abs(audio).max()) * 0.75
+            if librosa_trim_db is not None:
+                audio = librosa.effects.trim(audio, top_db=librosa_trim_db)[0]
+
+            # compute latents for the decoder
+            speaker_embedding = self.get_speaker_embedding(audio, load_sr)
+            speaker_embeddings.append(speaker_embedding)
+
+            audios.append(audio)
+
+        # merge all the audios and compute the latents for the gpt
+        full_audio = torch.cat(audios, dim=-1)
+        gpt_cond_latents = self.get_gpt_cond_latents(
+            full_audio, load_sr, length=gpt_cond_len, chunk_length=gpt_cond_chunk_len
+        )  # [1, 1024, T]
+
+        if speaker_embeddings:
+            speaker_embedding = torch.stack(speaker_embeddings)
+            speaker_embedding = speaker_embedding.mean(dim=0)
+
+        return gpt_cond_latents, speaker_embedding
 
     def synthesize(self, text, config, speaker_wav, language, **kwargs):
         """Synthesize speech with the given input text.
@@ -424,7 +379,7 @@ class Xtts(BaseTTS):
         Args:
             text (str): Input text.
             config (XttsConfig): Config with inference parameters.
-            speaker_wav (str): Path to the speaker audio file for cloning.
+            speaker_wav (list): List of paths to the speaker audio files to be used for cloning.
             language (str): Language ID of the speaker.
             **kwargs: Inference settings. See `inference()`.
 
@@ -434,11 +389,6 @@ class Xtts(BaseTTS):
             as latents used at inference.
 
         """
-
-        # Make the synthesizer happy 🥳
-        if isinstance(speaker_wav, list):
-            speaker_wav = speaker_wav[0]
-
         return self.inference_with_config(text, config, ref_audio_path=speaker_wav, language=language, **kwargs)
 
     def inference_with_config(self, text, config, ref_audio_path, language, **kwargs):
@@ -446,7 +396,7 @@ class Xtts(BaseTTS):
         inference with config
         """
         assert (
-            language in self.config.languages
+            "zh-cn" if language == "zh" else language in self.config.languages
         ), f" ❗ Language {language} is not supported. Supported languages are {self.config.languages}"
         # Use generally found best tuning knobs for generation.
         settings = {
@@ -455,10 +405,10 @@ class Xtts(BaseTTS):
             "repetition_penalty": config.repetition_penalty,
             "top_k": config.top_k,
             "top_p": config.top_p,
-            "cond_free_k": config.cond_free_k,
-            "diffusion_temperature": config.diffusion_temperature,
-            "decoder_iterations": config.decoder_iterations,
-            "decoder_sampler": config.decoder_sampler,
+            "gpt_cond_len": config.gpt_cond_len,
+            "gpt_cond_chunk_len": config.gpt_cond_chunk_len,
+            "max_ref_len": config.max_ref_len,
+            "sound_norm_refs": config.sound_norm_refs,
         }
         settings.update(kwargs)  # allow overriding of preset settings with kwargs
         return self.full_inference(text, ref_audio_path, language, **settings)
@@ -470,20 +420,17 @@ class Xtts(BaseTTS):
         ref_audio_path,
         language,
         # GPT inference
-        temperature=0.65,
-        length_penalty=1,
-        repetition_penalty=2.0,
+        temperature=0.75,
+        length_penalty=1.0,
+        repetition_penalty=10.0,
         top_k=50,
         top_p=0.85,
-        gpt_cond_len=6,
         do_sample=True,
-        # Decoder inference
-        decoder_iterations=100,
-        cond_free=True,
-        cond_free_k=2,
-        diffusion_temperature=1.0,
-        decoder_sampler="ddim",
-        decoder="hifigan",
+        # Cloning
+        gpt_cond_len=30,
+        gpt_cond_chunk_len=6,
+        max_ref_len=10,
+        sound_norm_refs=False,
         **hf_generate_kwargs,
     ):
         """
@@ -512,28 +459,10 @@ class Xtts(BaseTTS):
                 (aka boring) outputs. Defaults to 0.8.
 
             gpt_cond_len: (int) Length of the audio used for cloning. If audio is shorter, then audio length is used
-                else the first `gpt_cond_len` secs is used. Defaults to 6 seconds.
+                else the first `gpt_cond_len` secs is used. Defaults to 30 seconds.
 
-            decoder_iterations: (int) Number of diffusion steps to perform. [0,4000]. More steps means the network has
-                more chances to iteratively refine the output, which should theoretically mean a higher quality output.
-                Generally a value above 250 is not noticeably better, however. Defaults to 100.
-
-            cond_free: (bool) Whether or not to perform conditioning-free diffusion. Conditioning-free diffusion
-                performs two forward passes for each diffusion step: one with the outputs of the autoregressive model
-                and one with no conditioning priors. The output of the two is blended according to the cond_free_k
-                value below. Conditioning-free diffusion is the real deal, and dramatically improves realism.
-                Defaults to True.
-
-            cond_free_k: (float) Knob that determines how to balance the conditioning free signal with the
-                conditioning-present signal. [0,inf]. As cond_free_k increases, the output becomes dominated by the
-                conditioning-free signal. Defaults to 2.0.
-
-            diffusion_temperature: (float) Controls the variance of the noise fed into the diffusion model. [0,1].
-                Values at 0 re the "mean" prediction of the diffusion network and will sound bland and smeared.
-                Defaults to 1.0.
-
-            decoder: (str) Selects the decoder to use between ("hifigan", "ne_hifigan" and "diffusion")
-                Defaults to hifigan
+            gpt_cond_chunk_len: (int) Chunk length used for cloning. It must be <= `gpt_cond_len`.
+                If gpt_cond_len == gpt_cond_chunk_len, no chunking. Defaults to 6 seconds.
 
             hf_generate_kwargs: (**kwargs) The huggingface Transformers generate API is used for the autoregressive
                 transformer. Extra keyword args fed to this function get forwarded directly to that API. Documentation
@@ -543,27 +472,25 @@ class Xtts(BaseTTS):
             Generated audio clip(s) as a torch tensor. Shape 1,S if k=1 else, (k,1,S) where S is the sample length.
             Sample rate is 24kHz.
         """
-        (gpt_cond_latent, diffusion_conditioning, speaker_embedding) = self.get_conditioning_latents(
-            audio_path=ref_audio_path, gpt_cond_len=gpt_cond_len
+        (gpt_cond_latent, speaker_embedding) = self.get_conditioning_latents(
+            audio_path=ref_audio_path,
+            gpt_cond_len=gpt_cond_len,
+            gpt_cond_chunk_len=gpt_cond_chunk_len,
+            max_ref_length=max_ref_len,
+            sound_norm_refs=sound_norm_refs,
         )
+
         return self.inference(
             text,
             language,
             gpt_cond_latent,
             speaker_embedding,
-            diffusion_conditioning,
             temperature=temperature,
             length_penalty=length_penalty,
             repetition_penalty=repetition_penalty,
             top_k=top_k,
             top_p=top_p,
             do_sample=do_sample,
-            decoder_iterations=decoder_iterations,
-            cond_free=cond_free,
-            cond_free_k=cond_free_k,
-            diffusion_temperature=diffusion_temperature,
-            decoder_sampler=decoder_sampler,
-            decoder=decoder,
             **hf_generate_kwargs,
         )
 
@@ -574,96 +501,79 @@ class Xtts(BaseTTS):
         language,
         gpt_cond_latent,
         speaker_embedding,
-        diffusion_conditioning,
         # GPT inference
-        temperature=0.65,
-        length_penalty=1,
-        repetition_penalty=2.0,
+        temperature=0.75,
+        length_penalty=1.0,
+        repetition_penalty=10.0,
         top_k=50,
         top_p=0.85,
         do_sample=True,
-        # Decoder inference
-        decoder_iterations=100,
-        cond_free=True,
-        cond_free_k=2,
-        diffusion_temperature=1.0,
-        decoder_sampler="ddim",
-        decoder="hifigan",
+        num_beams=1,
+        speed=1.0,
+        enable_text_splitting=False,
         **hf_generate_kwargs,
     ):
-        text = text.strip().lower()
-        text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
+        language = language.split("-")[0]  # remove the country code
+        length_scale = 1.0 / max(speed, 0.05)
+        if enable_text_splitting:
+            text = split_sentence(text, language, self.tokenizer.char_limits[language])
+        else:
+            text = [text]
 
-        assert (
-            text_tokens.shape[-1] < self.args.gpt_max_text_tokens
-        ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
+        wavs = []
+        gpt_latents_list = []
+        for sent in text:
+            sent = sent.strip().lower()
+            text_tokens = torch.IntTensor(self.tokenizer.encode(sent, lang=language)).unsqueeze(0).to(self.device)
 
-        if not self.args.use_hifigan:
-            diffuser = load_discrete_vocoder_diffuser(
-                desired_diffusion_steps=decoder_iterations,
-                cond_free=cond_free,
-                cond_free_k=cond_free_k,
-                sampler=decoder_sampler,
-            )
+            assert (
+                text_tokens.shape[-1] < self.args.gpt_max_text_tokens
+            ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
 
-        with torch.no_grad():
-            gpt_codes = self.gpt.generate(
-                cond_latents=gpt_cond_latent,
-                text_inputs=text_tokens,
-                input_tokens=None,
-                do_sample=do_sample,
-                top_p=top_p,
-                top_k=top_k,
-                temperature=temperature,
-                num_return_sequences=self.gpt_batch_size,
-                length_penalty=length_penalty,
-                repetition_penalty=repetition_penalty,
-                output_attentions=False,
-                **hf_generate_kwargs,
-            )
-            expected_output_len = torch.tensor(
-                [gpt_codes.shape[-1] * self.gpt.code_stride_len], device=text_tokens.device
-            )
-
-            text_len = torch.tensor([text_tokens.shape[-1]], device=self.device)
-            gpt_latents = self.gpt(
-                text_tokens,
-                text_len,
-                gpt_codes,
-                expected_output_len,
-                cond_latents=gpt_cond_latent,
-                return_attentions=False,
-                return_latent=True,
-            )
-            silence_token = 83
-            ctokens = 0
-            for k in range(gpt_codes.shape[-1]):
-                if gpt_codes[0, k] == silence_token:
-                    ctokens += 1
-                else:
-                    ctokens = 0
-                if ctokens > 8:
-                    gpt_latents = gpt_latents[:, :k]
-                    break
-
-            if decoder == "hifigan":
-                assert hasattr(self, "hifigan_decoder"), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
-                wav = self.hifigan_decoder(gpt_latents, g=speaker_embedding)
-            elif decoder == "ne_hifigan":
-                assert hasattr(self, "ne_hifigan_decoder"), "You must enable ne_hifigan decoder to use it by setting config `use_ne_hifigan: true`"
-                wav = self.ne_hifigan_decoder(gpt_latents, g=speaker_embedding)
-            else:
-                assert hasattr(self, "diffusion_decoder"), "You must disable hifigan decoders to use difffusion by setting config `use_ne_hifigan: false` and `use_hifigan: false`"
-                mel = do_spectrogram_diffusion(
-                    self.diffusion_decoder,
-                    diffuser,
-                    gpt_latents,
-                    diffusion_conditioning,
-                    temperature=diffusion_temperature,
+            with torch.no_grad():
+                gpt_codes = self.gpt.generate(
+                    cond_latents=gpt_cond_latent,
+                    text_inputs=text_tokens,
+                    input_tokens=None,
+                    do_sample=do_sample,
+                    top_p=top_p,
+                    top_k=top_k,
+                    temperature=temperature,
+                    num_return_sequences=self.gpt_batch_size,
+                    num_beams=num_beams,
+                    length_penalty=length_penalty,
+                    repetition_penalty=repetition_penalty,
+                    output_attentions=False,
+                    **hf_generate_kwargs,
                 )
-                wav = self.vocoder.inference(mel)
+                expected_output_len = torch.tensor(
+                    [gpt_codes.shape[-1] * self.gpt.code_stride_len], device=text_tokens.device
+                )
 
-        return {"wav": wav.cpu().numpy().squeeze()}
+                text_len = torch.tensor([text_tokens.shape[-1]], device=self.device)
+                gpt_latents = self.gpt(
+                    text_tokens,
+                    text_len,
+                    gpt_codes,
+                    expected_output_len,
+                    cond_latents=gpt_cond_latent,
+                    return_attentions=False,
+                    return_latent=True,
+                )
+
+                if length_scale != 1.0:
+                    gpt_latents = F.interpolate(
+                        gpt_latents.transpose(1, 2), scale_factor=length_scale, mode="linear"
+                    ).transpose(1, 2)
+
+                gpt_latents_list.append(gpt_latents.cpu())
+                wavs.append(self.hifigan_decoder(gpt_latents, g=speaker_embedding).cpu().squeeze())
+
+        return {
+            "wav": torch.cat(wavs, dim=0).numpy(),
+            "gpt_latents": torch.cat(gpt_latents_list, dim=1).numpy(),
+            "speaker_embedding": speaker_embedding,
+        }
 
     def handle_chunks(self, wav_gen, wav_gen_prev, wav_overlap, overlap_len):
         """Handle chunk formatting in streaming mode"""
@@ -671,10 +581,21 @@ class Xtts(BaseTTS):
         if wav_gen_prev is not None:
             wav_chunk = wav_gen[(wav_gen_prev.shape[0] - overlap_len) : -overlap_len]
         if wav_overlap is not None:
-            crossfade_wav = wav_chunk[:overlap_len]
-            crossfade_wav = crossfade_wav * torch.linspace(0.0, 1.0, overlap_len).to(crossfade_wav.device)
-            wav_chunk[:overlap_len] = wav_overlap * torch.linspace(1.0, 0.0, overlap_len).to(wav_overlap.device)
-            wav_chunk[:overlap_len] += crossfade_wav
+            # cross fade the overlap section
+            if overlap_len > len(wav_chunk):
+                # wav_chunk is smaller than overlap_len, pass on last wav_gen
+                if wav_gen_prev is not None:
+                    wav_chunk = wav_gen[(wav_gen_prev.shape[0] - overlap_len) :]
+                else:
+                    # not expecting will hit here as problem happens on last chunk
+                    wav_chunk = wav_gen[-overlap_len:]
+                return wav_chunk, wav_gen, None
+            else:
+                crossfade_wav = wav_chunk[:overlap_len]
+                crossfade_wav = crossfade_wav * torch.linspace(0.0, 1.0, overlap_len).to(crossfade_wav.device)
+                wav_chunk[:overlap_len] = wav_overlap * torch.linspace(1.0, 0.0, overlap_len).to(wav_overlap.device)
+                wav_chunk[:overlap_len] += crossfade_wav
+
         wav_overlap = wav_gen[-overlap_len:]
         wav_gen_prev = wav_gen
         return wav_chunk, wav_gen_prev, wav_overlap
@@ -690,76 +611,86 @@ class Xtts(BaseTTS):
         stream_chunk_size=20,
         overlap_wav_len=1024,
         # GPT inference
-        temperature=0.65,
-        length_penalty=1,
-        repetition_penalty=2.0,
+        temperature=0.75,
+        length_penalty=1.0,
+        repetition_penalty=10.0,
         top_k=50,
         top_p=0.85,
         do_sample=True,
-        # Decoder inference
-        decoder="hifigan",
+        speed=1.0,
+        enable_text_splitting=False,
         **hf_generate_kwargs,
     ):
-        assert hasattr(
-            self, "hifigan_decoder"
-        ), "`inference_stream` requires use_hifigan to be set to true in the config.model_args, diffusion is too slow to stream."
-        text = text.strip().lower()
-        text_tokens = torch.IntTensor(self.tokenizer.encode(text, lang=language)).unsqueeze(0).to(self.device)
+        language = language.split("-")[0]  # remove the country code
+        length_scale = 1.0 / max(speed, 0.05)
+        if enable_text_splitting:
+            text = split_sentence(text, language, self.tokenizer.char_limits[language])
+        else:
+            text = [text]
 
-        fake_inputs = self.gpt.compute_embeddings(
-            gpt_cond_latent.to(self.device),
-            text_tokens,
-        )
-        gpt_generator = self.gpt.get_generator(
-            fake_inputs=fake_inputs,
-            top_k=top_k,
-            top_p=top_p,
-            temperature=temperature,
-            do_sample=do_sample,
-            num_beams=1,
-            num_return_sequences=1,
-            length_penalty=float(length_penalty),
-            repetition_penalty=float(repetition_penalty),
-            output_attentions=False,
-            output_hidden_states=True,
-            **hf_generate_kwargs,
-        )
+        for sent in text:
+            sent = sent.strip().lower()
+            text_tokens = torch.IntTensor(self.tokenizer.encode(sent, lang=language)).unsqueeze(0).to(self.device)
 
-        last_tokens = []
-        all_latents = []
-        wav_gen_prev = None
-        wav_overlap = None
-        is_end = False
+            assert (
+                text_tokens.shape[-1] < self.args.gpt_max_text_tokens
+            ), " ❗ XTTS can only generate text with a maximum of 400 tokens."
 
-        while not is_end:
-            try:
-                x, latent = next(gpt_generator)
-                last_tokens += [x]
-                all_latents += [latent]
-            except StopIteration:
-                is_end = True
+            fake_inputs = self.gpt.compute_embeddings(
+                gpt_cond_latent.to(self.device),
+                text_tokens,
+            )
+            gpt_generator = self.gpt.get_generator(
+                fake_inputs=fake_inputs,
+                top_k=top_k,
+                top_p=top_p,
+                temperature=temperature,
+                do_sample=do_sample,
+                num_beams=1,
+                num_return_sequences=1,
+                length_penalty=float(length_penalty),
+                repetition_penalty=float(repetition_penalty),
+                output_attentions=False,
+                output_hidden_states=True,
+                **hf_generate_kwargs,
+            )
 
-            if is_end or (stream_chunk_size > 0 and len(last_tokens) >= stream_chunk_size):
-                gpt_latents = torch.cat(all_latents, dim=0)[None, :]
-                if decoder == "hifigan":
-                    assert hasattr(self, "hifigan_decoder"), "You must enable hifigan decoder to use it by setting config `use_hifigan: true`"
+            last_tokens = []
+            all_latents = []
+            wav_gen_prev = None
+            wav_overlap = None
+            is_end = False
+
+            while not is_end:
+                try:
+                    x, latent = next(gpt_generator)
+                    last_tokens += [x]
+                    all_latents += [latent]
+                except StopIteration:
+                    is_end = True
+
+                if is_end or (stream_chunk_size > 0 and len(last_tokens) >= stream_chunk_size):
+                    gpt_latents = torch.cat(all_latents, dim=0)[None, :]
+                    if length_scale != 1.0:
+                        gpt_latents = F.interpolate(
+                            gpt_latents.transpose(1, 2), scale_factor=length_scale, mode="linear"
+                        ).transpose(1, 2)
                     wav_gen = self.hifigan_decoder(gpt_latents, g=speaker_embedding.to(self.device))
-                elif decoder == "ne_hifigan":
-                    assert hasattr(self, "ne_hifigan_decoder"), "You must enable ne_hifigan decoder to use it by setting config `use_ne_hifigan: true`"
-                    wav_gen = self.ne_hifigan_decoder(gpt_latents, g=speaker_embedding.to(self.device))
-                else:
-                    raise NotImplementedError("Diffusion for streaming inference not implemented.")
-                wav_chunk, wav_gen_prev, wav_overlap = self.handle_chunks(
-                    wav_gen.squeeze(), wav_gen_prev, wav_overlap, overlap_wav_len
-                )
-                last_tokens = []
-                yield wav_chunk
+                    wav_chunk, wav_gen_prev, wav_overlap = self.handle_chunks(
+                        wav_gen.squeeze(), wav_gen_prev, wav_overlap, overlap_wav_len
+                    )
+                    last_tokens = []
+                    yield wav_chunk
 
     def forward(self):
-        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
+        raise NotImplementedError(
+            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
+        )
 
     def eval_step(self):
-        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
+        raise NotImplementedError(
+            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
+        )
 
     @staticmethod
     def init_from_config(config: "XttsConfig", **kwargs):  # pylint: disable=unused-argument
@@ -772,11 +703,8 @@ class Xtts(BaseTTS):
 
     def get_compatible_checkpoint_state_dict(self, model_path):
         checkpoint = load_fsspec(model_path, map_location=torch.device("cpu"))["model"]
-        ignore_keys = ["diffusion_decoder", "vocoder"] if self.args.use_hifigan or self.args.use_ne_hifigan else []
-        ignore_keys += [] if self.args.use_hifigan else ["hifigan_decoder"]
-        ignore_keys += [] if self.args.use_ne_hifigan else ["ne_hifigan_decoder"]
         # remove xtts gpt trainer extra keys
-        ignore_keys += ["torch_mel_spectrogram_style_encoder", "torch_mel_spectrogram_dvae", "dvae"]
+        ignore_keys = ["torch_mel_spectrogram_style_encoder", "torch_mel_spectrogram_dvae", "dvae"]
         for key in list(checkpoint.keys()):
             # check if it is from the coqui Trainer if so convert it
             if key.startswith("xtts."):
@@ -835,12 +763,11 @@ class Xtts(BaseTTS):
             self.load_state_dict(checkpoint, strict=strict)
 
         if eval:
-            if hasattr(self, "hifigan_decoder"): self.hifigan_decoder.eval()
-            if hasattr(self, "ne_hifigan_decoder"): self.hifigan_decoder.eval()
-            if hasattr(self, "diffusion_decoder"): self.diffusion_decoder.eval()
-            if hasattr(self, "vocoder"): self.vocoder.eval()
+            self.hifigan_decoder.eval()
             self.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache, use_deepspeed=use_deepspeed)
             self.gpt.eval()
 
     def train_step(self):
-        raise NotImplementedError("XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training")
+        raise NotImplementedError(
+            "XTTS has a dedicated trainer, please check the XTTS docs: https://tts.readthedocs.io/en/dev/models/xtts.html#training"
+        )

@@ -1,5 +1,8 @@
 
 ## 🐸Coqui.ai News
+- 📣 ⓍTTSv2 is here with 16 languages and better performance across the board.
+- 📣 ⓍTTS fine-tuning code is out. Check the [example recipes](https://github.com/coqui-ai/TTS/tree/dev/recipes/ljspeech).
+- 📣 ⓍTTS can now stream with <200ms latency.
 - 📣 ⓍTTS, our production TTS model that can speak 13 languages, is released [Blog Post](https://coqui.ai/blog/tts/open_xtts), [Demo](https://huggingface.co/spaces/coqui/xtts), [Docs](https://tts.readthedocs.io/en/dev/models/xtts.html)
 - 📣 [🐶Bark](https://github.com/suno-ai/bark) is now available for inference with unconstrained voice cloning. [Docs](https://tts.readthedocs.io/en/dev/models/bark.html)
 - 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
@@ -25,7 +28,7 @@
 📚 Utilities for dataset analysis and curation.
 ______________________________________________________________________
 
-[![Dicord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
+[![Discord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
 [![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
 [![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
 [![Covenant](https://camo.githubusercontent.com/7d620efaa3eac1c5b060ece5d6aacfcc8b81a74a04d05cd0398689c01c4463bb/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f436f6e7472696275746f72253230436f76656e616e742d76322e3025323061646f707465642d6666363962342e737667)](https://github.com/coqui-ai/TTS/blob/master/CODE_OF_CONDUCT.md)
@@ -202,7 +205,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 print(TTS().list_models())
 
 # Init TTS
-tts = TTS("tts_models/multilingual/multi-dataset/xtts_v1").to(device)
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
 
 # Run TTS
 # ❗ Since this model is multi-lingual voice cloning model, we must set the target speaker_wav and language
@@ -264,19 +267,13 @@ models = TTS(cs_api_model="XTTS").list_models()
 # Init TTS with the target studio speaker
 tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False)
 # Run TTS
-tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
+tts.tts_to_file(text="This is a test.", language="en", file_path=OUTPUT_PATH)
 
 # V1 model
 models = TTS(cs_api_model="V1").list_models()
 # Run TTS with emotion and speed control
 # Emotion control only works with V1 model
 tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
-
-# XTTS-multilingual
-models = TTS(cs_api_model="XTTS-multilingual").list_models()
-# Run TTS with emotion and speed control
-# Emotion control only works with V1 model
-tts.tts_to_file(text="Das ist ein Test.", file_path=OUTPUT_PATH, language="de", speed=1.0)
 ```
 
 #### Example text to speech using **Fairseq models in ~1100 languages** 🤯.

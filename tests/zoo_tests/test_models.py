@@ -14,8 +14,8 @@ from TTS.utils.manage import ModelManager
 MODELS_WITH_SEP_TESTS = [
     "tts_models/multilingual/multi-dataset/bark",
     "tts_models/en/multi-dataset/tortoise-v2",
-    "tts_models/multilingual/multi-dataset/xtts_v1",
     "tts_models/multilingual/multi-dataset/xtts_v1.1",
+    "tts_models/multilingual/multi-dataset/xtts_v2",
 ]
 
 
@@ -82,14 +82,14 @@ def test_xtts():
     if use_gpu:
         run_cli(
             "yes | "
-            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1.1 "
             f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
             f'--speaker_wav "{speaker_wav}" --language_idx "en"'
         )
     else:
         run_cli(
             "yes | "
-            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1 "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v1.1 "
             f'--text "This is an example." --out_path "{output_path}" --progress_bar False '
             f'--speaker_wav "{speaker_wav}" --language_idx "en"'
         )
@@ -100,8 +100,10 @@ def test_xtts_streaming():
     from TTS.tts.configs.xtts_config import XttsConfig
     from TTS.tts.models.xtts import Xtts
 
-    speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
-    model_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v1")
+    speaker_wav = [os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")]
+    speaker_wav_2 = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0002.wav")
+    speaker_wav.append(speaker_wav_2)
+    model_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v1.1")
     config = XttsConfig()
     config.load_json(os.path.join(model_path, "config.json"))
     model = Xtts.init_from_config(config)
@@ -109,7 +111,7 @@ def test_xtts_streaming():
     model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 
     print("Computing speaker latents...")
-    gpt_cond_latent, _, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
 
     print("Inference...")
     chunks = model.inference_stream(
@@ -124,6 +126,87 @@ def test_xtts_streaming():
             assert chunk.shape[-1] > 5000
         wav_chuncks.append(chunk)
     assert len(wav_chuncks) > 1
+
+
+def test_xtts_v2():
+    """XTTS is too big to run on github actions. We need to test it locally"""
+    output_path = os.path.join(get_tests_output_path(), "output.wav")
+    speaker_wav = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")
+    speaker_wav_2 = os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0002.wav")
+    use_gpu = torch.cuda.is_available()
+    if use_gpu:
+        run_cli(
+            "yes | "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v2 "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False --use_cuda True '
+            f'--speaker_wav "{speaker_wav}" "{speaker_wav_2}"  --language_idx "en"'
+        )
+    else:
+        run_cli(
+            "yes | "
+            f"tts --model_name  tts_models/multilingual/multi-dataset/xtts_v2 "
+            f'--text "This is an example." --out_path "{output_path}" --progress_bar False '
+            f'--speaker_wav "{speaker_wav}" "{speaker_wav_2}" --language_idx "en"'
+        )
+
+
+def test_xtts_v2_streaming():
+    """Testing the new inference_stream method"""
+    from TTS.tts.configs.xtts_config import XttsConfig
+    from TTS.tts.models.xtts import Xtts
+
+    speaker_wav = [os.path.join(get_tests_data_path(), "ljspeech", "wavs", "LJ001-0001.wav")]
+    model_path = os.path.join(get_user_data_dir("tts"), "tts_models--multilingual--multi-dataset--xtts_v2")
+    config = XttsConfig()
+    config.load_json(os.path.join(model_path, "config.json"))
+    model = Xtts.init_from_config(config)
+    model.load_checkpoint(config, checkpoint_dir=model_path)
+    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+
+    print("Computing speaker latents...")
+    gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=speaker_wav)
+
+    print("Inference...")
+    chunks = model.inference_stream(
+        "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+        "en",
+        gpt_cond_latent,
+        speaker_embedding,
+    )
+    wav_chuncks = []
+    for i, chunk in enumerate(chunks):
+        if i == 0:
+            assert chunk.shape[-1] > 5000
+        wav_chuncks.append(chunk)
+    assert len(wav_chuncks) > 1
+    normal_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    chunks = model.inference_stream(
+        "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+        "en",
+        gpt_cond_latent,
+        speaker_embedding,
+        speed=1.5,
+    )
+    wav_chuncks = []
+    for i, chunk in enumerate(chunks):
+        wav_chuncks.append(chunk)
+    fast_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    chunks = model.inference_stream(
+        "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
+        "en",
+        gpt_cond_latent,
+        speaker_embedding,
+        speed=0.66,
+    )
+    wav_chuncks = []
+    for i, chunk in enumerate(chunks):
+        wav_chuncks.append(chunk)
+    slow_len = sum([len(chunk) for chunk in wav_chuncks])
+
+    assert slow_len > normal_len
+    assert normal_len > fast_len
 
 
 def test_tortoise():

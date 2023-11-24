@@ -8,17 +8,17 @@ import traceback
 
 import torch
 from torch.utils.data import DataLoader
+from trainer.io import copy_model_files, save_best_model, save_checkpoint
 from trainer.torch import NoamLR
 from trainer.trainer_utils import get_optimizer
 
 from TTS.encoder.dataset import EncoderDataset
-from TTS.encoder.utils.generic_utils import save_best_model, save_checkpoint, setup_encoder_model
+from TTS.encoder.utils.generic_utils import setup_encoder_model
 from TTS.encoder.utils.training import init_training
 from TTS.encoder.utils.visual import plot_embeddings
 from TTS.tts.datasets import load_tts_samples
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.generic_utils import count_parameters, remove_experiment_folder
-from TTS.utils.io import copy_model_files
 from TTS.utils.samplers import PerfectBatchSampler
 from TTS.utils.training import check_update
 
@@ -222,7 +222,9 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
 
             if global_step % c.save_step == 0:
                 # save model
-                save_checkpoint(model, optimizer, criterion, loss.item(), OUT_PATH, global_step, epoch)
+                save_checkpoint(
+                    c, model, optimizer, None, global_step, epoch, OUT_PATH, criterion=criterion.state_dict()
+                )
 
             end_time = time.time()
 
@@ -245,7 +247,18 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
                 flush=True,
             )
             # save the best checkpoint
-            best_loss = save_best_model(model, optimizer, criterion, eval_loss, best_loss, OUT_PATH, global_step, epoch)
+            best_loss = save_best_model(
+                eval_loss,
+                best_loss,
+                c,
+                model,
+                optimizer,
+                None,
+                global_step,
+                epoch,
+                OUT_PATH,
+                criterion=criterion.state_dict(),
+            )
             model.train()
 
     return best_loss, global_step
@@ -276,7 +289,7 @@ def main(args):  # pylint: disable=redefined-outer-name
 
     if c.loss == "softmaxproto" and c.model != "speaker_encoder":
         c.map_classid_to_classname = map_classid_to_classname
-        copy_model_files(c, OUT_PATH)
+        copy_model_files(c, OUT_PATH, new_fields={})
 
     if args.restore_path:
         criterion, args.restore_step = model.load_checkpoint(

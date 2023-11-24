@@ -1,4 +1,5 @@
 from torch import nn
+from torch.nn.utils.parametrize import remove_parametrizations
 
 
 # pylint: disable=dangerous-default-value
@@ -10,14 +11,16 @@ class ResStack(nn.Module):
             resstack += [
                 nn.LeakyReLU(0.2),
                 nn.ReflectionPad1d(dilation),
-                nn.utils.weight_norm(nn.Conv1d(channel, channel, kernel_size=kernel, dilation=dilation)),
+                nn.utils.parametrizations.weight_norm(
+                    nn.Conv1d(channel, channel, kernel_size=kernel, dilation=dilation)
+                ),
                 nn.LeakyReLU(0.2),
                 nn.ReflectionPad1d(padding),
-                nn.utils.weight_norm(nn.Conv1d(channel, channel, kernel_size=1)),
+                nn.utils.parametrizations.weight_norm(nn.Conv1d(channel, channel, kernel_size=1)),
             ]
         self.resstack = nn.Sequential(*resstack)
 
-        self.shortcut = nn.utils.weight_norm(nn.Conv1d(channel, channel, kernel_size=1))
+        self.shortcut = nn.utils.parametrizations.weight_norm(nn.Conv1d(channel, channel, kernel_size=1))
 
     def forward(self, x):
         x1 = self.shortcut(x)
@@ -25,13 +28,13 @@ class ResStack(nn.Module):
         return x1 + x2
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.shortcut)
-        nn.utils.remove_weight_norm(self.resstack[2])
-        nn.utils.remove_weight_norm(self.resstack[5])
-        nn.utils.remove_weight_norm(self.resstack[8])
-        nn.utils.remove_weight_norm(self.resstack[11])
-        nn.utils.remove_weight_norm(self.resstack[14])
-        nn.utils.remove_weight_norm(self.resstack[17])
+        remove_parametrizations(self.shortcut, "weight")
+        remove_parametrizations(self.resstack[2], "weight")
+        remove_parametrizations(self.resstack[5], "weight")
+        remove_parametrizations(self.resstack[8], "weight")
+        remove_parametrizations(self.resstack[11], "weight")
+        remove_parametrizations(self.resstack[14], "weight")
+        remove_parametrizations(self.resstack[17], "weight")
 
 
 class MRF(nn.Module):

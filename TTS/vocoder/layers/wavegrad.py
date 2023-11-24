@@ -1,7 +1,8 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torch.nn.utils import weight_norm
+from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 
 
 class Conv1d(nn.Conv1d):
@@ -56,8 +57,8 @@ class FiLM(nn.Module):
         return shift, scale
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.input_conv)
-        nn.utils.remove_weight_norm(self.output_conv)
+        remove_parametrizations(self.input_conv, "weight")
+        remove_parametrizations(self.output_conv, "weight")
 
     def apply_weight_norm(self):
         self.input_conv = weight_norm(self.input_conv)
@@ -111,13 +112,13 @@ class UBlock(nn.Module):
         return o
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.res_block)
+        remove_parametrizations(self.res_block, "weight")
         for _, layer in enumerate(self.main_block):
             if len(layer.state_dict()) != 0:
-                nn.utils.remove_weight_norm(layer)
+                remove_parametrizations(layer, "weight")
         for _, layer in enumerate(self.out_block):
             if len(layer.state_dict()) != 0:
-                nn.utils.remove_weight_norm(layer)
+                remove_parametrizations(layer, "weight")
 
     def apply_weight_norm(self):
         self.res_block = weight_norm(self.res_block)
@@ -153,10 +154,10 @@ class DBlock(nn.Module):
         return o + res
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.res_block)
+        remove_parametrizations(self.res_block, "weight")
         for _, layer in enumerate(self.main_block):
             if len(layer.state_dict()) != 0:
-                nn.utils.remove_weight_norm(layer)
+                remove_parametrizations(layer, "weight")
 
     def apply_weight_norm(self):
         self.res_block = weight_norm(self.res_block)

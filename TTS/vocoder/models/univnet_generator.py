@@ -3,6 +3,7 @@ from typing import List
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.nn.utils import parametrize
 
 from TTS.vocoder.layers.lvc_block import LVCBlock
 
@@ -113,7 +114,7 @@ class UnivnetGenerator(torch.nn.Module):
         def _remove_weight_norm(m):
             try:
                 # print(f"Weight norm is removed from {m}.")
-                torch.nn.utils.remove_weight_norm(m)
+                parametrize.remove_parametrizations(m, "weight")
             except ValueError:  # this module didn't have weight norm
                 return
 
@@ -124,7 +125,7 @@ class UnivnetGenerator(torch.nn.Module):
 
         def _apply_weight_norm(m):
             if isinstance(m, (torch.nn.Conv1d, torch.nn.Conv2d)):
-                torch.nn.utils.weight_norm(m)
+                torch.nn.utils.parametrizations.weight_norm(m)
                 # print(f"Weight norm is applied to {m}.")
 
         self.apply(_apply_weight_norm)

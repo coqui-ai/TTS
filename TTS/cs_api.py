@@ -43,7 +43,7 @@ class CS_API:
     Args:
         api_token (str): 🐸Coqui Studio API token. If not provided, it will be read from the environment variable
             `COQUI_STUDIO_TOKEN`.
-        model (str): 🐸Coqui Studio model. It can be either `V1`, `XTTS`, or `XTTS-multilang`. Default is `XTTS`.
+        model (str): 🐸Coqui Studio model. It can be either `V1`, `XTTS`. Default is `XTTS`.
 
 
     Example listing all available speakers:
@@ -65,7 +65,7 @@ class CS_API:
 
     Example with multi-language model:
         >>> from TTS.api import CS_API
-        >>> tts = CS_API(model="XTTS-multilang")
+        >>> tts = CS_API(model="XTTS")
         >>> wav, sr = api.tts("Hello world", speaker_name=tts.speakers[0].name, language="en")
     """
 
@@ -78,16 +78,11 @@ class CS_API:
         "XTTS": {
             "list_speakers": "https://app.coqui.ai/api/v2/speakers",
             "synthesize": "https://app.coqui.ai/api/v2/samples/xtts/render/",
-            "list_voices": "https://app.coqui.ai/api/v2/voices/xtts/",
-        },
-        "XTTS-multilang": {
-            "list_speakers": "https://app.coqui.ai/api/v2/speakers",
-            "synthesize": "https://app.coqui.ai/api/v2/samples/multilingual/render/",
-            "list_voices": "https://app.coqui.ai/api/v2/voices/xtts/",
+            "list_voices": "https://app.coqui.ai/api/v2/voices/xtts",
         },
     }
 
-    SUPPORTED_LANGUAGES = ["en", "es", "de", "fr", "it", "pt", "pl"]
+    SUPPORTED_LANGUAGES = ["en", "es", "de", "fr", "it", "pt", "pl", "tr", "ru", "nl", "cs", "ar", "zh-cn", "ja"]
 
     def __init__(self, api_token=None, model="XTTS"):
         self.api_token = api_token
@@ -139,7 +134,7 @@ class CS_API:
         self._check_token()
         conn = http.client.HTTPSConnection("app.coqui.ai")
         url = self.MODEL_ENDPOINTS[self.model]["list_speakers"]
-        conn.request("GET", f"{url}?per_page=100", headers=self.headers)
+        conn.request("GET", f"{url}?page=1&per_page=100", headers=self.headers)
         res = conn.getresponse()
         data = res.read()
         return [Speaker(s) for s in json.loads(data)["result"]]
@@ -148,7 +143,7 @@ class CS_API:
         """List custom voices created by the user."""
         conn = http.client.HTTPSConnection("app.coqui.ai")
         url = self.MODEL_ENDPOINTS[self.model]["list_voices"]
-        conn.request("GET", f"{url}", headers=self.headers)
+        conn.request("GET", f"{url}?page=1&per_page=100", headers=self.headers)
         res = conn.getresponse()
         data = res.read()
         return [Speaker(s, True) for s in json.loads(data)["result"]]
@@ -202,14 +197,6 @@ class CS_API:
                     "name": speaker.name,
                     "text": text,
                     "speed": speed,
-                }
-            )
-        elif model == "XTTS-multilang":
-            payload.update(
-                {
-                    "name": speaker.name,
-                    "text": text,
-                    "speed": speed,
                     "language": language,
                 }
             )
@@ -226,13 +213,10 @@ class CS_API:
             assert language is None, "❗ language is not supported for V1 model."
         elif self.model == "XTTS":
             assert emotion is None, f"❗ Emotions are not supported for XTTS model. Use V1 model."
-            assert language is None, "❗ Language is not supported for XTTS model. Use XTTS-multilang model."
-        elif self.model == "XTTS-multilang":
-            assert emotion is None, f"❗ Emotions are not supported for XTTS-multilang model. Use V1 model."
-            assert language is not None, "❗ Language is required for XTTS-multilang model."
+            assert language is not None, "❗ Language is required for XTTS model."
             assert (
                 language in self.SUPPORTED_LANGUAGES
-            ), f"❗ Language {language} is not yet supported. Use one of: en, es, de, fr, it, pt, pl"
+            ), f"❗ Language {language} is not yet supported. Check https://docs.coqui.ai/reference/samples_xtts_create."
         return text, speaker_name, speaker_id, emotion, speed, language
 
     def tts(
@@ -255,7 +239,7 @@ class CS_API:
                 supported by `V1` model. Defaults to None.
             speed (float): Speed of the speech. 1.0 is normal speed.
             language (str): Language of the text. If None, the default language of the speaker is used. Language is only
-                supported by `XTTS-multilang` model. Currently supports en, de, es, fr, it, pt, pl. Defaults to "en".
+                supported by `XTTS` model. See https://docs.coqui.ai/reference/samples_xtts_create for supported languages.
         """
         self._check_token()
         self.ping_api()
@@ -305,7 +289,7 @@ class CS_API:
             speed (float): Speed of the speech. 1.0 is normal speed.
             pipe_out (BytesIO, optional): Flag to stdout the generated TTS wav file for shell pipe.
             language (str): Language of the text. If None, the default language of the speaker is used. Language is only
-                supported by `XTTS-multilang` model. Currently supports en, de, es, fr, it, pt, pl. Defaults to "en".
+                supported by `XTTS` model. Currently supports en, de, es, fr, it, pt, pl. Defaults to "en".
             file_path (str): Path to save the file. If None, a temporary file is created.
         """
         if file_path is None:
@@ -323,20 +307,11 @@ if __name__ == "__main__":
     print(api.list_speakers_as_tts_models())
 
     ts = time.time()
-    wav, sr = api.tts("It took me quite a long time to develop a voice.", speaker_name=api.speakers[0].name)
-    print(f" [i] XTTS took {time.time() - ts:.2f}s")
-
-    filepath = api.tts_to_file(text="Hello world!", speaker_name=api.speakers[0].name, file_path="output.wav")
-
-    api = CS_API(model="XTTS-multilang")
-    print(api.speakers)
-
-    ts = time.time()
     wav, sr = api.tts(
-        "It took me quite a long time to develop a voice.", speaker_name=api.speakers[0].name, language="en"
+        "It took me quite a long time to develop a voice.", language="en", speaker_name=api.speakers[0].name
     )
     print(f" [i] XTTS took {time.time() - ts:.2f}s")
 
     filepath = api.tts_to_file(
-        text="Hello world!", speaker_name=api.speakers[0].name, file_path="output.wav", language="en"
+        text="Hello world!", speaker_name=api.speakers[0].name, language="en", file_path="output.wav"
     )
