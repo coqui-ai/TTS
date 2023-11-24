@@ -189,7 +189,7 @@ with gr.Blocks() as demo:
             minimum=2,
             maximum=512,
             step=1,
-            value=16,
+            value=4,
         )
         progress_train = gr.Label(
             label="Progress:"
