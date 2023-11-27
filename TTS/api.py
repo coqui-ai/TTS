@@ -10,7 +10,7 @@ from TTS.cs_api import CS_API
 from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
-
+from TTS.config import load_config
 
 class TTS(nn.Module):
     """TODO: Add voice conversion and Capacitron support."""
@@ -66,13 +66,12 @@ class TTS(nn.Module):
         """
         super().__init__()
         self.manager = ModelManager(models_file=self.get_models_file_path(), progress_bar=progress_bar, verbose=False)
-
+        self.config = load_config(config_path) if config_path else None
         self.synthesizer = None
         self.voice_converter = None
         self.csapi = None
         self.cs_api_model = cs_api_model
         self.model_name = ""
-
         if gpu:
             warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
 
@@ -106,7 +105,8 @@ class TTS(nn.Module):
     @property
     def is_multi_lingual(self):
         # Not sure what sets this to None, but applied a fix to prevent crashing.
-        if isinstance(self.model_name, str) and "xtts" in self.model_name:
+        if (isinstance(self.model_name, str) and "xtts" in self.model_name or
+                self.config and ("xtts" in self.config.model or len(self.config.languages) > 1)):
             return True
         if hasattr(self.synthesizer.tts_model, "language_manager") and self.synthesizer.tts_model.language_manager:
             return self.synthesizer.tts_model.language_manager.num_languages > 1
@@ -440,7 +440,7 @@ class TTS(nn.Module):
         save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)
         return file_path
 
-    def tts_with_vc(self, text: str, language: str = None, speaker_wav: str = None):
+    def tts_with_vc(self, text: str, language: str = None, speaker_wav: str = None, speaker: str = None):
         """Convert text to speech with voice conversion.
 
         It combines tts with voice conversion to fake voice cloning.
@@ -457,17 +457,25 @@ class TTS(nn.Module):
             speaker_wav (str, optional):
                 Path to a reference wav file to use for voice cloning with supporting models like YourTTS.
                 Defaults to None.
+            speaker (str, optional):
+                Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
+                `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
         """
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fp:
             # Lazy code... save it to a temp file to resample it while reading it for VC
-            self.tts_to_file(text=text, speaker=None, language=language, file_path=fp.name, speaker_wav=speaker_wav)
+            self.tts_to_file(text=text, speaker=speaker, language=language, file_path=fp.name)
         if self.voice_converter is None:
             self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
         wav = self.voice_converter.voice_conversion(source_wav=fp.name, target_wav=speaker_wav)
         return wav
 
     def tts_with_vc_to_file(
-        self, text: str, language: str = None, speaker_wav: str = None, file_path: str = "output.wav"
+        self,
+        text: str,
+        language: str = None,
+        speaker_wav: str = None,
+        file_path: str = "output.wav",
+        speaker: str = None,
     ):
         """Convert text to speech with voice conversion and save to file.
 
@@ -484,6 +492,9 @@ class TTS(nn.Module):
                 Defaults to None.
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
+            speaker (str, optional):
+                Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
+                `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
         """
-        wav = self.tts_with_vc(text=text, language=language, speaker_wav=speaker_wav)
+        wav = self.tts_with_vc(text=text, language=language, speaker_wav=speaker_wav, speaker=speaker)
         save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)

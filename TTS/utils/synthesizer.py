@@ -358,7 +358,11 @@ class Synthesizer(nn.Module):
                 )
 
         # compute a new d_vector from the given clip.
-        if speaker_wav is not None and self.tts_model.speaker_manager is not None:
+        if (
+            speaker_wav is not None
+            and self.tts_model.speaker_manager is not None
+            and self.tts_model.speaker_manager.encoder_ap is not None
+        ):
             speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)
 
         vocoder_device = "cpu"
