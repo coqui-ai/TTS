@@ -8,9 +8,9 @@ from TTS.tts.layers.xtts.trainer.gpt_trainer import GPTArgs, GPTTrainer, GPTTrai
 from TTS.utils.manage import ModelManager
 
 
-def train_gpt(language, num_epochs, batch_size, train_csv, eval_csv, output_path):
+def train_gpt(language, num_epochs, batch_size, grad_acumm, train_csv, eval_csv, output_path):
     #  Logging parameters
-    RUN_NAME = "GPT_XTTSv2.1_FT"
+    RUN_NAME = "GPT_XTTS_FT"
     PROJECT_NAME = "XTTS_trainer"
     DASHBOARD_LOGGER = "tensorboard"
     LOGGER_URI = None
@@ -18,13 +18,11 @@ def train_gpt(language, num_epochs, batch_size, train_csv, eval_csv, output_path
     # Set here the path that the checkpoints will be saved. Default: ./run/training/
     OUT_PATH = os.path.join(output_path, "run", "training")
 
-
     # Training Parameters
     OPTIMIZER_WD_ONLY_ON_WEIGHTS = True  # for multi-gpu training please make it False
-    START_WITH_EVAL = True  # if True it will star with evaluation
+    START_WITH_EVAL = False  # if True it will star with evaluation
     BATCH_SIZE = batch_size  # set here the batch size
-    GRAD_ACUMM_STEPS = 1  # set here the grad accumulation steps
-    # Note: we recommend that BATCH_SIZE * GRAD_ACUMM_STEPS need to be at least 252 for more efficient training. You can increase/decrease BATCH_SIZE but then set GRAD_ACUMM_STEPS accordingly.
+    GRAD_ACUMM_STEPS = grad_acumm  # set here the grad accumulation steps
 
 
     # Define here the dataset that you want to use for the fine-tuning on.
