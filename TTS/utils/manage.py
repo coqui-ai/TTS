@@ -27,7 +27,6 @@ LICENSE_URLS = {
 }
 
 
-
 class ModelManager(object):
     tqdm_progress = None
     """Manage TTS models defined in .models.json.
@@ -315,7 +314,7 @@ class ModelManager(object):
                     f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/model.pth",
                     f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/config.json",
                     f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/vocab.json",
-                    f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/hash.md5"
+                    f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/hash.md5",
                 ],
             }
             print(model_item)

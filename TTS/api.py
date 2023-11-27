@@ -12,6 +12,7 @@ from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
 from TTS.config import load_config
 
+
 class TTS(nn.Module):
     """TODO: Add voice conversion and Capacitron support."""
 
@@ -107,8 +108,12 @@ class TTS(nn.Module):
     @property
     def is_multi_lingual(self):
         # Not sure what sets this to None, but applied a fix to prevent crashing.
-        if (isinstance(self.model_name, str) and "xtts" in self.model_name or
-                self.config and ("xtts" in self.config.model or len(self.config.languages) > 1)):
+        if (
+            isinstance(self.model_name, str)
+            and "xtts" in self.model_name
+            or self.config
+            and ("xtts" in self.config.model or len(self.config.languages) > 1)
+        ):
             return True
         if hasattr(self.synthesizer.tts_model, "language_manager") and self.synthesizer.tts_model.language_manager:
             return self.synthesizer.tts_model.language_manager.num_languages > 1
