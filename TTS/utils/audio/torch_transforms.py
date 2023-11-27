@@ -129,7 +129,7 @@ class TorchSTFT(nn.Module):  # pylint: disable=abstract-method
             pad_mode="reflect",  # compatible with audio.py
             normalized=self.normalized,
             onesided=True,
-            return_complex=False,
+            return_complex=True,
         )
         M = o[:, :, :, 0]
         P = o[:, :, :, 1]
