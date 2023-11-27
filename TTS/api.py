@@ -80,6 +80,8 @@ class TTS(nn.Module):
                 self.load_tts_model_by_name(model_name, gpu)
             elif "voice_conversion_models" in model_name:
                 self.load_vc_model_by_name(model_name, gpu)
+            else:
+                self.load_model_by_name(model_name, gpu)
 
         if model_path:
             self.load_tts_model_by_path(
@@ -148,6 +150,15 @@ class TTS(nn.Module):
             return model_path, config_path, None, None, None
         vocoder_path, vocoder_config_path, _ = self.manager.download_model(model_item["default_vocoder"])
         return model_path, config_path, vocoder_path, vocoder_config_path, None
+
+    def load_model_by_name(self, model_name: str, gpu: bool = False):
+        """Load one of the 🐸TTS models by name.
+
+        Args:
+            model_name (str): Model name to load. You can list models by ```tts.models```.
+            gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
+        """
+        self.load_tts_model_by_name(model_name, gpu)
 
     def load_vc_model_by_name(self, model_name: str, gpu: bool = False):
         """Load one of the voice conversion models by name.
