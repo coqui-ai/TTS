@@ -150,7 +150,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with gr.Blocks() as demo:
-        with gr.Tab("Data processing"):
+        with gr.Tab("1 - Data processing"):
             out_path = gr.Textbox(
                 label="Output path (where data and checkpoints will be saved):",
                 value=args.out_path,
@@ -222,7 +222,7 @@ if __name__ == "__main__":
                 print("Dataset Processed!")
                 return "Dataset Processed!", train_meta, eval_meta
 
-        with gr.Tab("Fine-tuning XTTS Encoder"):
+        with gr.Tab("2 - Fine-tuning XTTS Encoder"):
             train_csv = gr.Textbox(
                 label="Train CSV:",
             )
@@ -281,7 +281,7 @@ if __name__ == "__main__":
                 return "Model training done!", config_path, vocab_file, ft_xtts_checkpoint, speaker_wav
 
 
-        with gr.Tab("Inference"):
+        with gr.Tab("3 - Inference"):
             with gr.Row():
                 with gr.Column() as col1:
                     xtts_checkpoint = gr.Textbox(
