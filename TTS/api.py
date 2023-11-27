@@ -326,6 +326,7 @@ class TTS(nn.Module):
         speaker_wav: str = None,
         emotion: str = None,
         speed: float = None,
+        split_sentences: bool = True,
         **kwargs,
     ):
         """Convert text to speech.
@@ -346,6 +347,12 @@ class TTS(nn.Module):
             speed (float, optional):
                 Speed factor to use for 🐸Coqui Studio models, between 0 and 2.0. If None, Studio models use 1.0.
                 Defaults to None.
+            split_sentences (bool, optional):
+                Split text into sentences, synthesize them separately and concatenate the file audio.
+                Setting it False uses more VRAM and possibly hit model specific text length or VRAM limits. Only
+                applicable to the 🐸TTS models. Defaults to True.
+            kwargs (dict, optional):
+                Additional arguments for the model.
         """
         self._check_arguments(
             speaker=speaker, language=language, speaker_wav=speaker_wav, emotion=emotion, speed=speed, **kwargs
@@ -363,6 +370,7 @@ class TTS(nn.Module):
             style_wav=None,
             style_text=None,
             reference_speaker_name=None,
+            split_sentences=split_sentences,
             **kwargs,
         )
         return wav
@@ -377,6 +385,7 @@ class TTS(nn.Module):
         speed: float = 1.0,
         pipe_out=None,
         file_path: str = "output.wav",
+        split_sentences: bool = True,
         **kwargs,
     ):
         """Convert text to speech.
@@ -401,6 +410,10 @@ class TTS(nn.Module):
                 Flag to stdout the generated TTS wav file for shell pipe.
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
+            split_sentences (bool, optional):
+                Split text into sentences, synthesize them separately and concatenate the file audio.
+                Setting it False uses more VRAM and possibly hit model specific text length or VRAM limits. Only
+                applicable to the 🐸TTS models. Defaults to True.
             kwargs (dict, optional):
                 Additional arguments for the model.
         """
@@ -416,7 +429,14 @@ class TTS(nn.Module):
                 file_path=file_path,
                 pipe_out=pipe_out,
             )
-        wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
+        wav = self.tts(
+            text=text,
+            speaker=speaker,
+            language=language,
+            speaker_wav=speaker_wav,
+            split_sentences=split_sentences,
+            **kwargs,
+        )
         self.synthesizer.save_wav(wav=wav, path=file_path, pipe_out=pipe_out)
         return file_path
 
@@ -456,7 +476,14 @@ class TTS(nn.Module):
         save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)
         return file_path
 
-    def tts_with_vc(self, text: str, language: str = None, speaker_wav: str = None, speaker: str = None):
+    def tts_with_vc(
+        self,
+        text: str,
+        language: str = None,
+        speaker_wav: str = None,
+        speaker: str = None,
+        split_sentences: bool = True,
+    ):
         """Convert text to speech with voice conversion.
 
         It combines tts with voice conversion to fake voice cloning.
@@ -476,10 +503,16 @@ class TTS(nn.Module):
             speaker (str, optional):
                 Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
                 `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
+            split_sentences (bool, optional):
+                Split text into sentences, synthesize them separately and concatenate the file audio.
+                Setting it False uses more VRAM and possibly hit model specific text length or VRAM limits. Only
+                applicable to the 🐸TTS models. Defaults to True.
         """
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fp:
             # Lazy code... save it to a temp file to resample it while reading it for VC
-            self.tts_to_file(text=text, speaker=speaker, language=language, file_path=fp.name)
+            self.tts_to_file(
+                text=text, speaker=speaker, language=language, file_path=fp.name, split_sentences=split_sentences
+            )
         if self.voice_converter is None:
             self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
         wav = self.voice_converter.voice_conversion(source_wav=fp.name, target_wav=speaker_wav)
@@ -492,6 +525,7 @@ class TTS(nn.Module):
         speaker_wav: str = None,
         file_path: str = "output.wav",
         speaker: str = None,
+        split_sentences: bool = True,
     ):
         """Convert text to speech with voice conversion and save to file.
 
@@ -511,6 +545,12 @@ class TTS(nn.Module):
             speaker (str, optional):
                 Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
                 `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
+            split_sentences (bool, optional):
+                Split text into sentences, synthesize them separately and concatenate the file audio.
+                Setting it False uses more VRAM and possibly hit model specific text length or VRAM limits. Only
+                applicable to the 🐸TTS models. Defaults to True.
         """
-        wav = self.tts_with_vc(text=text, language=language, speaker_wav=speaker_wav, speaker=speaker)
+        wav = self.tts_with_vc(
+            text=text, language=language, speaker_wav=speaker_wav, speaker=speaker, split_sentences=split_sentences
+        )
         save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)

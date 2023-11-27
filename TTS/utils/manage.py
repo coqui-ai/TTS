@@ -317,7 +317,6 @@ class ModelManager(object):
                     f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/hash.md5",
                 ],
             }
-            print(model_item)
         else:
             # get model from models.json
             model_type, lang, dataset, model = model_name.split("/")
