@@ -204,7 +204,12 @@ if __name__ == "__main__":
                 if audio_path is None:
                     return "You should provide one or multiple audio files! If you provided it, probably the upload of the files is not finished yet!", "", ""
                 else:
-                    train_meta, eval_meta, audio_total_size = format_audio_list(audio_path, target_language=language, out_path=out_path, gradio_progress=progress)
+                    try:
+                        train_meta, eval_meta, audio_total_size = format_audio_list(audio_path, target_language=language, out_path=out_path, gradio_progress=progress)
+                    except:
+                        traceback.print_exc()
+                        error = traceback.format_exc()
+                        return f"The data processing was interrupted due an error !! Please check the console to verify the full error message! \n Error summary: {error}", "", ""
 
                 clear_gpu_cache()
 
@@ -261,9 +266,10 @@ if __name__ == "__main__":
                     return "You need to run the data processing step or manually set `Train CSV` and `Eval CSV` fields !", "", "", "", ""
                 try:
                     config_path, original_xtts_checkpoint, vocab_file, exp_path, speaker_wav = train_gpt(language, num_epochs, batch_size, grad_acumm, train_csv, eval_csv, output_path=output_path)
-                except Exception as e:
+                except:
                     traceback.print_exc()
-                    return f"The training was interrupted due an error !! Please check the console to check the error message! Error summary: {e}", "", "", "", ""
+                    error = traceback.format_exc()
+                    return f"The training was interrupted due an error !! Please check the console to check the full error message! \n Error summary: {error}", "", "", "", ""
 
                 # copy original files to avoid parameters changes issues
                 os.system(f"cp {config_path} {exp_path}")
