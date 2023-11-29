@@ -1,5 +1,6 @@
 from torch import nn
-from torch.nn.utils import weight_norm
+from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 
 
 class ResidualStack(nn.Module):
@@ -27,7 +28,7 @@ class ResidualStack(nn.Module):
             ]
 
         self.shortcuts = nn.ModuleList(
-            [weight_norm(nn.Conv1d(channels, channels, kernel_size=1, bias=True)) for i in range(num_res_blocks)]
+            [weight_norm(nn.Conv1d(channels, channels, kernel_size=1, bias=True)) for _ in range(num_res_blocks)]
         )
 
     def forward(self, x):
@@ -37,6 +38,6 @@ class ResidualStack(nn.Module):
 
     def remove_weight_norm(self):
         for block, shortcut in zip(self.blocks, self.shortcuts):
-            nn.utils.remove_weight_norm(block[2])
-            nn.utils.remove_weight_norm(block[4])
-            nn.utils.remove_weight_norm(shortcut)
+            remove_parametrizations(block[2], "weight")
+            remove_parametrizations(block[4], "weight")
+            remove_parametrizations(shortcut, "weight")

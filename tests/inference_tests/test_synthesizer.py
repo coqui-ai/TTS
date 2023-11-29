@@ -1,10 +1,11 @@
 import os
 import unittest
 
+from trainer.io import save_checkpoint
+
 from tests import get_tests_input_path
 from TTS.config import load_config
 from TTS.tts.models import setup_model
-from TTS.utils.io import save_checkpoint
 from TTS.utils.synthesizer import Synthesizer
 
 

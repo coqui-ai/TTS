@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.nn.utils import weight_norm
+from torch.nn.utils.parametrizations import weight_norm
 
 from TTS.utils.io import load_fsspec
 from TTS.vocoder.layers.melgan import ResidualStack
@@ -80,7 +80,7 @@ class MelganGenerator(nn.Module):
         for _, layer in enumerate(self.layers):
             if len(layer.state_dict()) != 0:
                 try:
-                    nn.utils.remove_weight_norm(layer)
+                    nn.utils.parametrize.remove_parametrizations(layer, "weight")
                 except ValueError:
                     layer.remove_weight_norm()
 

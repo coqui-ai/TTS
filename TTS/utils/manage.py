@@ -6,6 +6,7 @@ from pathlib import Path
 from shutil import copyfile, rmtree
 from typing import Dict, List, Tuple
 
+import fsspec
 import requests
 from tqdm import tqdm
 
@@ -21,10 +22,13 @@ LICENSE_URLS = {
     "apache 2.0": "https://choosealicense.com/licenses/apache-2.0/",
     "apache2": "https://choosealicense.com/licenses/apache-2.0/",
     "cc-by-sa 4.0": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "cpml": "https://coqui.ai/cpml.txt",
 }
 
 
+
 class ModelManager(object):
+    tqdm_progress = None
     """Manage TTS models defined in .models.json.
     It provides an interface to list and download
     models defines in '.model.json'
@@ -88,7 +92,7 @@ class ModelManager(object):
 
     def _list_models(self, model_type, model_count=0):
         if self.verbose:
-            print(" Name format: type/language/dataset/model")
+            print("\n Name format: type/language/dataset/model")
         model_list = []
         for lang in self.models_dict[model_type]:
             for dataset in self.models_dict[model_type][lang]:
@@ -107,7 +111,6 @@ class ModelManager(object):
     def _list_for_model_type(self, model_type):
         models_name_list = []
         model_count = 1
-        model_type = "tts_models"
         models_name_list.extend(self._list_models(model_type, model_count))
         return models_name_list
 
@@ -292,8 +295,71 @@ class ModelManager(object):
             # get model from models.json
             model_item = self.models_dict[model_type][lang][dataset][model]
             model_item["model_type"] = model_type
+        md5hash = model_item["model_hash"] if "model_hash" in model_item else None
         model_item = self.set_model_url(model_item)
-        return model_item, model_full_name, model
+        return model_item, model_full_name, model, md5hash
+
+    @staticmethod
+    def ask_tos(model_full_path):
+        """Ask the user to agree to the terms of service"""
+        tos_path = os.path.join(model_full_path, "tos_agreed.txt")
+        print(" > You must agree to the terms of service to use this model.")
+        print(" | > Please see the terms of service at https://coqui.ai/cpml.txt")
+        print(' | > "I have read, understood and agreed to the Terms and Conditions." - [y/n]')
+        answer = input(" | | > ")
+        if answer.lower() == "y":
+            with open(tos_path, "w", encoding="utf-8") as f:
+                f.write("I have read, understood and agreed to the Terms and Conditions.")
+            return True
+        return False
+
+    @staticmethod
+    def tos_agreed(model_item, model_full_path):
+        """Check if the user has agreed to the terms of service"""
+        if "tos_required" in model_item and model_item["tos_required"]:
+            tos_path = os.path.join(model_full_path, "tos_agreed.txt")
+            if os.path.exists(tos_path) or os.environ.get("COQUI_TOS_AGREED") == "1":
+                return True
+            return False
+        return True
+
+    def create_dir_and_download_model(self, model_name, model_item, output_path):
+        os.makedirs(output_path, exist_ok=True)
+        # handle TOS
+        if not self.tos_agreed(model_item, output_path):
+            if not self.ask_tos(output_path):
+                os.rmdir(output_path)
+                raise Exception(" [!] You must agree to the terms of service to use this model.")
+        print(f" > Downloading model to {output_path}")
+        try:
+            if "fairseq" in model_name:
+                self.download_fairseq_model(model_name, output_path)
+            elif "github_rls_url" in model_item:
+                self._download_github_model(model_item, output_path)
+            elif "hf_url" in model_item:
+                self._download_hf_model(model_item, output_path)
+
+        except requests.RequestException as e:
+            print(f" > Failed to download the model file to {output_path}")
+            rmtree(output_path)
+            raise e
+        self.print_model_license(model_item=model_item)
+
+    def check_if_configs_are_equal(self, model_name, model_item, output_path):
+        with fsspec.open(self._find_files(output_path)[1], "r", encoding="utf-8") as f:
+            config_local = json.load(f)
+        remote_url = None
+        for url in model_item["hf_url"]:
+            if "config.json" in url:
+                remote_url = url
+                break
+
+        with fsspec.open(remote_url, "r", encoding="utf-8") as f:
+            config_remote = json.load(f)
+
+        if not config_local == config_remote:
+            print(f" > {model_name} is already downloaded however it has been changed. Redownloading it...")
+            self.create_dir_and_download_model(model_name, model_item, output_path)
 
     def download_model(self, model_name):
         """Download model files given the full model name.
@@ -309,27 +375,39 @@ class ModelManager(object):
         Args:
             model_name (str): model name as explained above.
         """
-        model_item, model_full_name, model = self._set_model_item(model_name)
+        model_item, model_full_name, model, md5sum = self._set_model_item(model_name)
         # set the model specific output path
         output_path = os.path.join(self.output_prefix, model_full_name)
         if os.path.exists(output_path):
-            print(f" > {model_name} is already downloaded.")
+            if md5sum is not None:
+                md5sum_file = os.path.join(output_path, "hash.md5")
+                if os.path.isfile(md5sum_file):
+                    with open(md5sum_file, mode="r") as f:
+                        if not f.read() == md5sum:
+                            print(f" > {model_name} has been updated, clearing model cache...")
+                            self.create_dir_and_download_model(model_name, model_item, output_path)
+                        else:
+                            print(f" > {model_name} is already downloaded.")
+                else:
+                    print(f" > {model_name} has been updated, clearing model cache...")
+                    self.create_dir_and_download_model(model_name, model_item, output_path)
+            # if the configs are different, redownload it
+            # ToDo: we need a better way to handle it
+            if "xtts" in model_name:
+                try:
+                    self.check_if_configs_are_equal(model_name, model_item, output_path)
+                except:
+                    pass
+            else:
+                print(f" > {model_name} is already downloaded.")
         else:
-            os.makedirs(output_path, exist_ok=True)
-            print(f" > Downloading model to {output_path}")
-            if "fairseq" in model_name:
-                self.download_fairseq_model(model_name, output_path)
-            elif "github_rls_url" in model_item:
-                self._download_github_model(model_item, output_path)
-            elif "hf_url" in model_item:
-                self._download_hf_model(model_item, output_path)
+            self.create_dir_and_download_model(model_name, model_item, output_path)
 
-        self.print_model_license(model_item=model_item)
         # find downloaded files
         output_model_path = output_path
         output_config_path = None
         if (
-            model not in ["tortoise-v2", "bark"] and "fairseq" not in model_name
+            model not in ["tortoise-v2", "bark"] and "fairseq" not in model_name and "xtts" not in model_name
         ):  # TODO:This is stupid but don't care for now.
             output_model_path, output_config_path = self._find_files(output_path)
         # update paths in the config.json
@@ -449,12 +527,12 @@ class ModelManager(object):
             total_size_in_bytes = int(r.headers.get("content-length", 0))
             block_size = 1024  # 1 Kibibyte
             if progress_bar:
-                progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+                ModelManager.tqdm_progress = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
             temp_zip_name = os.path.join(output_folder, file_url.split("/")[-1])
             with open(temp_zip_name, "wb") as file:
                 for data in r.iter_content(block_size):
                     if progress_bar:
-                        progress_bar.update(len(data))
+                        ModelManager.tqdm_progress.update(len(data))
                     file.write(data)
             with zipfile.ZipFile(temp_zip_name) as z:
                 z.extractall(output_folder)
@@ -463,13 +541,16 @@ class ModelManager(object):
             print(f" > Error: Bad zip file - {file_url}")
             raise zipfile.BadZipFile  # pylint: disable=raise-missing-from
         # move the files to the outer path
-        for file_path in z.namelist()[1:]:
+        for file_path in z.namelist():
             src_path = os.path.join(output_folder, file_path)
-            dst_path = os.path.join(output_folder, os.path.basename(file_path))
-            if src_path != dst_path:
-                copyfile(src_path, dst_path)
-        # remove the extracted folder
-        rmtree(os.path.join(output_folder, z.namelist()[0]))
+            if os.path.isfile(src_path):
+                dst_path = os.path.join(output_folder, os.path.basename(file_path))
+                if src_path != dst_path:
+                    copyfile(src_path, dst_path)
+        # remove redundant (hidden or not) folders
+        for file_path in z.namelist():
+            if os.path.isdir(os.path.join(output_folder, file_path)):
+                rmtree(os.path.join(output_folder, file_path))
 
     @staticmethod
     def _download_tar_file(file_url, output_folder, progress_bar):
@@ -481,12 +562,12 @@ class ModelManager(object):
             total_size_in_bytes = int(r.headers.get("content-length", 0))
             block_size = 1024  # 1 Kibibyte
             if progress_bar:
-                progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+                ModelManager.tqdm_progress = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
             temp_tar_name = os.path.join(output_folder, file_url.split("/")[-1])
             with open(temp_tar_name, "wb") as file:
                 for data in r.iter_content(block_size):
                     if progress_bar:
-                        progress_bar.update(len(data))
+                        ModelManager.tqdm_progress.update(len(data))
                     file.write(data)
             with tarfile.open(temp_tar_name) as t:
                 t.extractall(output_folder)
@@ -517,10 +598,10 @@ class ModelManager(object):
             block_size = 1024  # 1 Kibibyte
             with open(temp_zip_name, "wb") as file:
                 if progress_bar:
-                    progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+                    ModelManager.tqdm_progress = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
                 for data in r.iter_content(block_size):
                     if progress_bar:
-                        progress_bar.update(len(data))
+                        ModelManager.tqdm_progress.update(len(data))
                     file.write(data)
 
     @staticmethod

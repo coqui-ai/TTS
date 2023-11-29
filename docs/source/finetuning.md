@@ -2,7 +2,7 @@
 
 ## Fine-tuning
 
-Fine-tuning takes a pre-trained model, and retrains it to improve the model performance on a different task or dataset.
+Fine-tuning takes a pre-trained model and retrains it to improve the model performance on a different task or dataset.
 In 🐸TTS we provide different pre-trained models in different languages and different pros and cons. You can take one of
 them and fine-tune it for your own dataset. This will help you in two main ways:
 

@@ -1,245 +1,29 @@
-import http.client
-import json
-import os
 import tempfile
-import urllib.request
+import warnings
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
-import requests
-from scipy.io import wavfile
+from torch import nn
 
+from TTS.cs_api import CS_API
 from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
+from TTS.config import load_config
 
-
-class Speaker(object):
-    """Convert dict to object."""
-
-    def __init__(self, d, is_voice=False):
-        self.is_voice = is_voice
-        for k, v in d.items():
-            if isinstance(k, (list, tuple)):
-                setattr(self, k, [Speaker(x) if isinstance(x, dict) else x for x in v])
-            else:
-                setattr(self, k, Speaker(v) if isinstance(v, dict) else v)
-
-    def __repr__(self):
-        return str(self.__dict__)
-
-
-class CS_API:
-    """🐸Coqui Studio API Wrapper.
-
-    🐸Coqui Studio is the most advanced voice generation platform. You can generate new voices by voice cloning, voice
-    interpolation, or our unique prompt to voice technology. It also provides a set of built-in voices with different
-    characteristics. You can use these voices to generate new audio files or use them in your applications.
-    You can use all the built-in and your own 🐸Coqui Studio speakers with this API with an API token.
-    You can signup to 🐸Coqui Studio from https://app.coqui.ai/auth/signup and get an API token from
-    https://app.coqui.ai/account. We can either enter the token as an environment variable as
-    `export COQUI_STUDIO_TOKEN=<token>` or pass it as `CS_API(api_token=<toke>)`.
-    Visit https://app.coqui.ai/api for more information.
-
-    Example listing all available speakers:
-        >>> from TTS.api import CS_API
-        >>> tts = CS_API()
-        >>> tts.speakers
-
-    Example listing all emotions:
-        >>> from TTS.api import CS_API
-        >>> tts = CS_API()
-        >>> tts.emotions
-
-    Example with a built-in 🐸 speaker:
-        >>> from TTS.api import CS_API
-        >>> tts = CS_API()
-        >>> wav, sr = api.tts("Hello world", speaker_name="Claribel Dervla")
-        >>> filepath = tts.tts_to_file(text="Hello world!", speaker_name=tts.speakers[0].name, file_path="output.wav")
-    """
-
-    def __init__(self, api_token=None):
-        self.api_token = api_token
-        self.api_prefix = "/api/v2"
-        self.headers = None
-        self._speakers = None
-        self._check_token()
-
-    @staticmethod
-    def ping_api():
-        URL = "https://coqui.gateway.scarf.sh/tts/api"
-        _ = requests.get(URL)
-
-    @property
-    def speakers(self):
-        if self._speakers is None:
-            self._speakers = self.list_all_speakers()
-        return self._speakers
-
-    @property
-    def emotions(self):
-        """Return a list of available emotions.
-
-        TODO: Get this from the API endpoint.
-        """
-        return ["Neutral", "Happy", "Sad", "Angry", "Dull"]
-
-    def _check_token(self):
-        if self.api_token is None:
-            self.api_token = os.environ.get("COQUI_STUDIO_TOKEN")
-            self.headers = {"Content-Type": "application/json", "Authorization": f"Bearer {self.api_token}"}
-        if not self.api_token:
-            raise ValueError(
-                "No API token found for 🐸Coqui Studio voices - https://coqui.ai \n"
-                "Visit 🔗https://app.coqui.ai/account to get one.\n"
-                "Set it as an environment variable `export COQUI_STUDIO_TOKEN=<token>`\n"
-                ""
-            )
-
-    def list_all_speakers(self):
-        """Return both built-in Coqui Studio speakers and custom voices created by the user."""
-        return self.list_speakers() + self.list_voices()
-
-    def list_speakers(self):
-        """List built-in Coqui Studio speakers."""
-        self._check_token()
-        conn = http.client.HTTPSConnection("app.coqui.ai")
-        conn.request("GET", f"{self.api_prefix}/speakers?per_page=100", headers=self.headers)
-        res = conn.getresponse()
-        data = res.read()
-        return [Speaker(s) for s in json.loads(data)["result"]]
-
-    def list_voices(self):
-        """List custom voices created by the user."""
-        conn = http.client.HTTPSConnection("app.coqui.ai")
-        conn.request("GET", f"{self.api_prefix}/voices", headers=self.headers)
-        res = conn.getresponse()
-        data = res.read()
-        return [Speaker(s, True) for s in json.loads(data)["result"]]
-
-    def list_speakers_as_tts_models(self):
-        """List speakers in ModelManager format."""
-        models = []
-        for speaker in self.speakers:
-            model = f"coqui_studio/en/{speaker.name}/coqui_studio"
-            models.append(model)
-        return models
-
-    def name_to_speaker(self, name):
-        for speaker in self.speakers:
-            if speaker.name == name:
-                return speaker
-        raise ValueError(f"Speaker {name} not found in {self.speakers}")
-
-    def id_to_speaker(self, speaker_id):
-        for speaker in self.speakers:
-            if speaker.id == speaker_id:
-                return speaker
-        raise ValueError(f"Speaker {speaker_id} not found.")
-
-    @staticmethod
-    def url_to_np(url):
-        tmp_file, _ = urllib.request.urlretrieve(url)
-        rate, data = wavfile.read(tmp_file)
-        return data, rate
-
-    @staticmethod
-    def _create_payload(text, speaker, emotion, speed):
-        payload = {}
-        if speaker.is_voice:
-            payload["voice_id"] = speaker.id
-        else:
-            payload["speaker_id"] = speaker.id
-        payload.update(
-            {
-                "emotion": emotion,
-                "name": speaker.name,
-                "text": text,
-                "speed": speed,
-            }
-        )
-        return payload
-
-    def tts(
-        self,
-        text: str,
-        speaker_name: str = None,
-        speaker_id=None,
-        emotion="Neutral",
-        speed=1.0,
-        language=None,  # pylint: disable=unused-argument
-    ) -> Tuple[np.ndarray, int]:
-        """Synthesize speech from text.
-
-        Args:
-            text (str): Text to synthesize.
-            speaker_name (str): Name of the speaker. You can get the list of speakers with `list_speakers()` and
-                voices (user generated speakers) with `list_voices()`.
-            speaker_id (str): Speaker ID. If None, the speaker name is used.
-            emotion (str): Emotion of the speaker. One of "Neutral", "Happy", "Sad", "Angry", "Dull".
-            speed (float): Speed of the speech. 1.0 is normal speed.
-            language (str): Language of the text. If None, the default language of the speaker is used.
-        """
-        self._check_token()
-        self.ping_api()
-        if speaker_name is None and speaker_id is None:
-            raise ValueError(" [!] Please provide either a `speaker_name` or a `speaker_id`.")
-        if speaker_id is None:
-            speaker = self.name_to_speaker(speaker_name)
-        else:
-            speaker = self.id_to_speaker(speaker_id)
-        conn = http.client.HTTPSConnection("app.coqui.ai")
-        payload = self._create_payload(text, speaker, emotion, speed)
-        conn.request("POST", "/api/v2/samples", json.dumps(payload), self.headers)
-        res = conn.getresponse()
-        data = res.read()
-        try:
-            wav, sr = self.url_to_np(json.loads(data)["audio_url"])
-        except KeyError as e:
-            raise ValueError(f" [!] 🐸 API returned error: {data}") from e
-        return wav, sr
-
-    def tts_to_file(
-        self,
-        text: str,
-        speaker_name: str,
-        speaker_id=None,
-        emotion="Neutral",
-        speed=1.0,
-        language=None,
-        file_path: str = None,
-    ) -> str:
-        """Synthesize speech from text and save it to a file.
-
-        Args:
-            text (str): Text to synthesize.
-            speaker_name (str): Name of the speaker. You can get the list of speakers with `list_speakers()` and
-                voices (user generated speakers) with `list_voices()`.
-            speaker_id (str): Speaker ID. If None, the speaker name is used.
-            emotion (str): Emotion of the speaker. One of "Neutral", "Happy", "Sad", "Angry", "Dull".
-            speed (float): Speed of the speech. 1.0 is normal speed.
-            language (str): Language of the text. If None, the default language of the speaker is used.
-            file_path (str): Path to save the file. If None, a temporary file is created.
-        """
-        if file_path is None:
-            file_path = tempfile.mktemp(".wav")
-        wav, sr = self.tts(text, speaker_name, speaker_id, emotion, speed, language)
-        wavfile.write(file_path, sr, wav)
-        return file_path
-
-
-class TTS:
+class TTS(nn.Module):
     """TODO: Add voice conversion and Capacitron support."""
 
     def __init__(
         self,
-        model_name: str = None,
+        model_name: str = "",
         model_path: str = None,
         config_path: str = None,
         vocoder_path: str = None,
         vocoder_config_path: str = None,
         progress_bar: bool = True,
+        cs_api_model: str = "XTTS",
         gpu=False,
     ):
         """🐸TTS python interface that allows to load and use the released models.
@@ -275,14 +59,21 @@ class TTS:
             vocoder_path (str, optional): Path to the vocoder checkpoint. Defaults to None.
             vocoder_config_path (str, optional): Path to the vocoder config. Defaults to None.
             progress_bar (bool, optional): Whether to pring a progress bar while downloading a model. Defaults to True.
+            cs_api_model (str, optional): Name of the model to use for the Coqui Studio API. Available models are
+                "XTTS", "V1". You can also use `TTS.cs_api.CS_API" for more control.
+                Defaults to "XTTS".
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
+        super().__init__()
         self.manager = ModelManager(models_file=self.get_models_file_path(), progress_bar=progress_bar, verbose=False)
-
+        self.config = load_config(config_path) if config_path else None
         self.synthesizer = None
         self.voice_converter = None
         self.csapi = None
-        self.model_name = None
+        self.cs_api_model = cs_api_model
+        self.model_name = ""
+        if gpu:
+            warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
 
         if model_name is not None:
             if "tts_models" in model_name or "coqui_studio" in model_name:
@@ -313,6 +104,10 @@ class TTS:
 
     @property
     def is_multi_lingual(self):
+        # Not sure what sets this to None, but applied a fix to prevent crashing.
+        if (isinstance(self.model_name, str) and "xtts" in self.model_name or
+                self.config and ("xtts" in self.config.model or len(self.config.languages) > 1)):
+            return True
         if hasattr(self.synthesizer.tts_model, "language_manager") and self.synthesizer.tts_model.language_manager:
             return self.synthesizer.tts_model.language_manager.num_languages > 1
         return False
@@ -333,10 +128,9 @@ class TTS:
     def get_models_file_path():
         return Path(__file__).parent / ".models.json"
 
-    @staticmethod
-    def list_models():
+    def list_models(self):
         try:
-            csapi = CS_API()
+            csapi = CS_API(model=self.cs_api_model)
             models = csapi.list_speakers_as_tts_models()
         except ValueError as e:
             print(e)
@@ -468,8 +262,9 @@ class TTS:
         text: str,
         speaker_name: str = None,
         language: str = None,
-        emotion: str = "Neutral",
+        emotion: str = None,
         speed: float = 1.0,
+        pipe_out=None,
         file_path: str = None,
     ) -> Union[np.ndarray, str]:
         """Convert text to speech using Coqui Studio models. Use `CS_API` class if you are only interested in the API.
@@ -479,12 +274,15 @@ class TTS:
                 Input text to synthesize.
             speaker_name (str, optional):
                 Speaker name from Coqui Studio. Defaults to None.
-            language (str, optional):
-                Language code. Coqui Studio currently supports only English. Defaults to None.
+            language (str): Language of the text. If None, the default language of the speaker is used. Language is only
+                supported by `XTTS` model.
             emotion (str, optional):
-                Emotion of the speaker. One of "Neutral", "Happy", "Sad", "Angry", "Dull". Defaults to "Neutral".
+                Emotion of the speaker. One of "Neutral", "Happy", "Sad", "Angry", "Dull". Emotions are only available
+                with "V1" model. Defaults to None.
             speed (float, optional):
                 Speed of the speech. Defaults to 1.0.
+            pipe_out (BytesIO, optional):
+                Flag to stdout the generated TTS wav file for shell pipe.
             file_path (str, optional):
                 Path to save the output file. When None it returns the `np.ndarray` of waveform. Defaults to None.
 
@@ -498,6 +296,7 @@ class TTS:
                 speaker_name=speaker_name,
                 language=language,
                 speed=speed,
+                pipe_out=pipe_out,
                 emotion=emotion,
                 file_path=file_path,
             )[0]
@@ -521,9 +320,8 @@ class TTS:
             speaker (str, optional):
                 Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
                 `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
-            language (str, optional):
-                Language code for multi-lingual models. You can check whether loaded model is multi-lingual
-                `tts.is_multi_lingual` and list available languages by `tts.languages`. Defaults to None.
+            language (str): Language of the text. If None, the default language of the speaker is used. Language is only
+                supported by `XTTS` model.
             speaker_wav (str, optional):
                 Path to a reference wav file to use for voice cloning with supporting models like YourTTS.
                 Defaults to None.
@@ -559,8 +357,9 @@ class TTS:
         speaker: str = None,
         language: str = None,
         speaker_wav: str = None,
-        emotion: str = "Neutral",
+        emotion: str = None,
         speed: float = 1.0,
+        pipe_out=None,
         file_path: str = "output.wav",
         **kwargs,
     ):
@@ -582,6 +381,8 @@ class TTS:
                 Emotion to use for 🐸Coqui Studio models. Defaults to "Neutral".
             speed (float, optional):
                 Speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0. Defaults to None.
+            pipe_out (BytesIO, optional):
+                Flag to stdout the generated TTS wav file for shell pipe.
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
             kwargs (dict, optional):
@@ -591,10 +392,16 @@ class TTS:
 
         if self.csapi is not None:
             return self.tts_coqui_studio(
-                text=text, speaker_name=speaker, language=language, emotion=emotion, speed=speed, file_path=file_path
+                text=text,
+                speaker_name=speaker,
+                language=language,
+                emotion=emotion,
+                speed=speed,
+                file_path=file_path,
+                pipe_out=pipe_out,
             )
         wav = self.tts(text=text, speaker=speaker, language=language, speaker_wav=speaker_wav, **kwargs)
-        self.synthesizer.save_wav(wav=wav, path=file_path)
+        self.synthesizer.save_wav(wav=wav, path=file_path, pipe_out=pipe_out)
         return file_path
 
     def voice_conversion(
@@ -633,7 +440,7 @@ class TTS:
         save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)
         return file_path
 
-    def tts_with_vc(self, text: str, language: str = None, speaker_wav: str = None):
+    def tts_with_vc(self, text: str, language: str = None, speaker_wav: str = None, speaker: str = None):
         """Convert text to speech with voice conversion.
 
         It combines tts with voice conversion to fake voice cloning.
@@ -650,17 +457,25 @@ class TTS:
             speaker_wav (str, optional):
                 Path to a reference wav file to use for voice cloning with supporting models like YourTTS.
                 Defaults to None.
+            speaker (str, optional):
+                Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
+                `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
         """
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fp:
             # Lazy code... save it to a temp file to resample it while reading it for VC
-            self.tts_to_file(text=text, speaker=None, language=language, file_path=fp.name)
+            self.tts_to_file(text=text, speaker=speaker, language=language, file_path=fp.name)
         if self.voice_converter is None:
             self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
         wav = self.voice_converter.voice_conversion(source_wav=fp.name, target_wav=speaker_wav)
         return wav
 
     def tts_with_vc_to_file(
-        self, text: str, language: str = None, speaker_wav: str = None, file_path: str = "output.wav"
+        self,
+        text: str,
+        language: str = None,
+        speaker_wav: str = None,
+        file_path: str = "output.wav",
+        speaker: str = None,
     ):
         """Convert text to speech with voice conversion and save to file.
 
@@ -677,6 +492,9 @@ class TTS:
                 Defaults to None.
             file_path (str, optional):
                 Output file path. Defaults to "output.wav".
+            speaker (str, optional):
+                Speaker name for multi-speaker. You can check whether loaded model is multi-speaker by
+                `tts.is_multi_speaker` and list speakers by `tts.speakers`. Defaults to None.
         """
-        wav = self.tts_with_vc(text=text, language=language, speaker_wav=speaker_wav)
+        wav = self.tts_with_vc(text=text, language=language, speaker_wav=speaker_wav, speaker=speaker)
         save_wav(wav=wav, path=file_path, sample_rate=self.voice_converter.vc_config.audio.output_sample_rate)

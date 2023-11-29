@@ -206,7 +206,7 @@ class Bark(BaseTTS):
             speaker_wav (str): Path to the speaker audio file for cloning a new voice. It is cloned and saved in
                 `voice_dirs` with the name `speaker_id`. Defaults to None.
             voice_dirs (List[str]): List of paths that host reference audio files for speakers. Defaults to None.
-            **kwargs: Inference settings. See `inference()`.
+            **kwargs: Model specific inference settings used by `generate_audio()` and `TTS.tts.layers.bark.inference_funcs.generate_text_semantic().
 
         Returns:
             A dictionary of the output values with `wav` as output waveform, `deterministic_seed` as seed used at inference,
@@ -214,6 +214,7 @@ class Bark(BaseTTS):
             as latents used at inference.
 
         """
+        speaker_id = "random" if speaker_id is None else speaker_id
         voice_dirs = self._set_voice_dirs(voice_dirs)
         history_prompt = load_voice(self, speaker_id, voice_dirs)
         outputs = self.generate_audio(text, history_prompt=history_prompt, **kwargs)
@@ -245,6 +246,8 @@ class Bark(BaseTTS):
         text_model_path=None,
         coarse_model_path=None,
         fine_model_path=None,
+        hubert_model_path=None,
+        hubert_tokenizer_path=None,
         eval=False,
         strict=True,
         **kwargs,
@@ -266,10 +269,14 @@ class Bark(BaseTTS):
         text_model_path = text_model_path or os.path.join(checkpoint_dir, "text_2.pt")
         coarse_model_path = coarse_model_path or os.path.join(checkpoint_dir, "coarse_2.pt")
         fine_model_path = fine_model_path or os.path.join(checkpoint_dir, "fine_2.pt")
+        hubert_model_path = hubert_model_path or os.path.join(checkpoint_dir, "hubert.pt")
+        hubert_tokenizer_path = hubert_tokenizer_path or os.path.join(checkpoint_dir, "tokenizer.pth")
 
         self.config.LOCAL_MODEL_PATHS["text"] = text_model_path
         self.config.LOCAL_MODEL_PATHS["coarse"] = coarse_model_path
         self.config.LOCAL_MODEL_PATHS["fine"] = fine_model_path
+        self.config.LOCAL_MODEL_PATHS["hubert"] = hubert_model_path
+        self.config.LOCAL_MODEL_PATHS["hubert_tokenizer"] = hubert_tokenizer_path
 
         self.load_bark_models()
 

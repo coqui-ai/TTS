@@ -11,9 +11,12 @@ DEFAULT_VOCAB_FILE = os.path.join(
 
 
 class VoiceBpeTokenizer:
-    def __init__(self, vocab_file=DEFAULT_VOCAB_FILE):
+    def __init__(self, vocab_file=DEFAULT_VOCAB_FILE, vocab_str=None):
+        self.tokenizer = None
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
+        if vocab_str is not None:
+            self.tokenizer = Tokenizer.from_str(vocab_str)
 
     def preprocess_text(self, txt):
         txt = english_cleaners(txt)

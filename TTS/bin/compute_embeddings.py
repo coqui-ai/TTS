@@ -16,7 +16,8 @@ def compute_embeddings(
     model_path,
     config_path,
     output_path,
-    old_spakers_file=None,
+    old_speakers_file=None,
+    old_append=False,
     config_dataset_path=None,
     formatter_name=None,
     dataset_name=None,
@@ -50,20 +51,29 @@ def compute_embeddings(
     encoder_manager = SpeakerManager(
         encoder_model_path=model_path,
         encoder_config_path=config_path,
-        d_vectors_file_path=old_spakers_file,
+        d_vectors_file_path=old_speakers_file,
         use_cuda=use_cuda,
     )
 
     class_name_key = encoder_manager.encoder_config.class_name_key
 
     # compute speaker embeddings
-    speaker_mapping = {}
+    if old_speakers_file is not None and old_append:
+        speaker_mapping = encoder_manager.embeddings
+    else:
+        speaker_mapping = {}
+
     for fields in tqdm(samples):
         class_name = fields[class_name_key]
         audio_file = fields["audio_file"]
         embedding_key = fields["audio_unique_name"]
 
-        if old_spakers_file is not None and embedding_key in encoder_manager.clip_ids:
+        # Only update the speaker name when the embedding is already in the old file.
+        if embedding_key in speaker_mapping:
+            speaker_mapping[embedding_key]["name"] = class_name
+            continue
+
+        if old_speakers_file is not None and embedding_key in encoder_manager.clip_ids:
             # get the embedding from the old file
             embedd = encoder_manager.get_embedding_by_clip(embedding_key)
         else:
@@ -118,12 +128,26 @@ if __name__ == "__main__":
         help="Path to dataset config file. You either need to provide this or `formatter_name`, `dataset_name` and `dataset_path` arguments.",
         default=None,
     )
-    parser.add_argument("--output_path", type=str, help="Path for output `pth` or `json` file.", default="speakers.pth")
     parser.add_argument(
-        "--old_file", type=str, help="Previous embedding file to only compute new audios.", default=None
+        "--output_path",
+        type=str,
+        help="Path for output `pth` or `json` file.",
+        default="speakers.pth",
+    )
+    parser.add_argument(
+        "--old_file",
+        type=str,
+        help="The old existing embedding file, from which the embeddings will be directly loaded for already computed audio clips.",
+        default=None,
+    )
+    parser.add_argument(
+        "--old_append",
+        help="Append new audio clip embeddings to the old embedding file, generate a new non-duplicated merged embedding file. Default False",
+        default=False,
+        action="store_true",
     )
     parser.add_argument("--disable_cuda", type=bool, help="Flag to disable cuda.", default=False)
-    parser.add_argument("--no_eval", type=bool, help="Do not compute eval?. Default False", default=False)
+    parser.add_argument("--no_eval", help="Do not compute eval?. Default False", default=False, action="store_true")
     parser.add_argument(
         "--formatter_name",
         type=str,
@@ -160,7 +184,8 @@ if __name__ == "__main__":
         args.model_path,
         args.config_path,
         args.output_path,
-        old_spakers_file=args.old_file,
+        old_speakers_file=args.old_file,
+        old_append=args.old_append,
         config_dataset_path=args.config_dataset_path,
         formatter_name=args.formatter_name,
         dataset_name=args.dataset_name,

@@ -1,4 +1,4 @@
-# Bark 🐶
+# 🐶 Bark
 
 Bark is a multi-lingual TTS model created by [Suno-AI](https://www.suno.ai/). It can generate conversational speech as well as  music and sound effects.
 It is architecturally very similar to Google's [AudioLM](https://arxiv.org/abs/2209.03143). For more information, please refer to the [Suno-AI's repo](https://github.com/suno-ai/bark).
@@ -6,6 +6,7 @@ It is architecturally very similar to Google's [AudioLM](https://arxiv.org/abs/2
 
 ## Acknowledgements
 - 👑[Suno-AI](https://www.suno.ai/) for training and open-sourcing this model.
+- 👑[gitmylo](https://github.com/gitmylo) for finding [the solution](https://github.com/gitmylo/bark-voice-cloning-HuBERT-quantizer/) to the semantic token generation for voice clones and finetunes.
 - 👑[serp-ai](https://github.com/serp-ai/bark-with-voice-clone) for controlled voice cloning.
 
 
@@ -87,12 +88,6 @@ tts --model_name  tts_models/multilingual/multi-dataset/bark \
 ## BarkConfig
 ```{eval-rst}
 .. autoclass:: TTS.tts.configs.bark_config.BarkConfig
-    :members:
-```
-
-## BarkArgs
-```{eval-rst}
-.. autoclass:: TTS.tts.models.bark.BarkArgs
     :members:
 ```
 

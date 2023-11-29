@@ -17,19 +17,20 @@ Let's assume you created the audio clips and their transcription. You can collec
   ...
 ```
 
-You can either create separate transcription files for each clip or create a text file that maps each audio clip to its transcription. In this file, each line must be delimitered by a special character separating the audio file name from the transcription. And make sure that the delimiter is not used in the transcription text.
+You can either create separate transcription files for each clip or create a text file that maps each audio clip to its transcription. In this file, each column must be delimitered by a special character separating the audio file name, the transcription and the normalized transcription. And make sure that the delimiter is not used in the transcription text.
 
 We recommend the following format delimited by `|`. In the following example, `audio1`, `audio2` refer to files `audio1.wav`, `audio2.wav` etc.
 
 ```
 # metadata.txt
 
-audio1|This is my sentence.
-audio2|This is maybe my sentence.
-audio3|This is certainly my sentence.
-audio4|Let this be your sentence.
+audio1|This is my sentence.|This is my sentence.
+audio2|1469 and 1470|fourteen sixty-nine and fourteen seventy
+audio3|It'll be $16 sir.|It'll be sixteen dollars sir.
 ...
 ```
+*If you don't have normalized transcriptions, you can use the same transcription for both columns. If it's your case, we recommend to use normalization later in the pipeline, either in the text cleaner or in the phonemizer.*
+
 
 In the end, we have the following folder structure
 ```

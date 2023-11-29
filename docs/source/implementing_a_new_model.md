@@ -36,12 +36,12 @@
     There is also the `callback` interface by which you can manipulate both the model and the `Trainer` states. Callbacks give you
     an infinite flexibility to add custom behaviours for your model and training routines.
 
-    For more details, see {ref}`BaseTTS <Base TTS Model>` and :obj:`TTS.utils.callbacks`.
+    For more details, see {ref}`BaseTTS <Base tts Model>` and :obj:`TTS.utils.callbacks`.
 
 6. Optionally, define `MyModelArgs`.
 
     `MyModelArgs` is a 👨‍✈️Coqpit class that sets all the class arguments of the `MyModel`. `MyModelArgs` must have
-    all the fields neccessary to instantiate the `MyModel`. However, for training, you need to pass `MyModelConfig` to
+    all the fields necessary to instantiate the `MyModel`. However, for training, you need to pass `MyModelConfig` to
     the model.
 
 7. Test `MyModel`.
@@ -204,5 +204,3 @@ class MyModel(BaseTTS):
         pass
 
 ```
-
-

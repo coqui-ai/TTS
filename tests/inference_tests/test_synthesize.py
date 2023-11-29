@@ -18,10 +18,3 @@ def test_synthesize():
         "--vocoder_name vocoder_models/en/ljspeech/multiband-melgan "
         f'--text "This is an example." --out_path "{output_path}"'
     )
-
-    # 🐸 Coqui studio model
-    run_cli(
-        'tts --model_name "coqui_studio/en/Torcull Diarmuid/coqui_studio" '
-        '--text "This is it" '
-        f'--out_path "{output_path}"'
-    )
