@@ -15,7 +15,6 @@ class PuncPosition(Enum):
     BEGIN = 0
     END = 1
     MIDDLE = 2
-    ALONE = 3
 
 
 class Punctuation:
@@ -92,7 +91,7 @@ class Punctuation:
             return [text], []
         # the text is only punctuations
         if len(matches) == 1 and matches[0].group() == text:
-            return [], [_PUNC_IDX(text, PuncPosition.ALONE)]
+            return [], [_PUNC_IDX(text, PuncPosition.BEGIN)]
         # build a punctuation map to be used later to restore punctuations
         puncs = []
         for match in matches:
@@ -146,9 +145,6 @@ class Punctuation:
 
         if current.position == PuncPosition.END:
             return [text[0] + current.punc] + cls._restore(text[1:], puncs[1:], num + 1)
-
-        if current.position == PuncPosition.ALONE:
-            return [current.mark] + cls._restore(text, puncs[1:], num + 1)
 
         # POSITION == MIDDLE
         if len(text) == 1:  # pragma: nocover
