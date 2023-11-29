@@ -126,10 +126,10 @@ class Punctuation:
             ['This is', 'example'], ['.', '!'] -> "This is. example!"
 
         """
-        return cls._restore(text, puncs, 0)
+        return cls._restore(text, puncs)
 
     @classmethod
-    def _restore(cls, text, puncs, num):  # pylint: disable=too-many-return-statements
+    def _restore(cls, text, puncs):  # pylint: disable=too-many-return-statements
         """Auxiliary method for Punctuation.restore()"""
         if not puncs:
             return text
@@ -141,18 +141,18 @@ class Punctuation:
         current = puncs[0]
 
         if current.position == PuncPosition.BEGIN:
-            return cls._restore([current.punc + text[0]] + text[1:], puncs[1:], num)
+            return cls._restore([current.punc + text[0]] + text[1:], puncs[1:])
 
         if current.position == PuncPosition.END:
-            return [text[0] + current.punc] + cls._restore(text[1:], puncs[1:], num + 1)
+            return [text[0] + current.punc] + cls._restore(text[1:], puncs[1:])
 
         # POSITION == MIDDLE
         if len(text) == 1:  # pragma: nocover
             # a corner case where the final part of an intermediate
             # mark (I) has not been phonemized
-            return cls._restore([text[0] + current.punc], puncs[1:], num)
+            return cls._restore([text[0] + current.punc], puncs[1:])
 
-        return cls._restore([text[0] + current.punc + text[1]] + text[2:], puncs[1:], num)
+        return cls._restore([text[0] + current.punc + text[1]] + text[2:], puncs[1:])
 
 
 # if __name__ == "__main__":
