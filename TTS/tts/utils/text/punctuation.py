@@ -106,11 +106,14 @@ class Punctuation:
         for idx, punc in enumerate(puncs):
             split = text.split(punc.punc)
             prefix, suffix = split[0], punc.punc.join(split[1:])
+            text = suffix
+            if prefix == "":
+                # We don't want to insert an empty string in case of initial punctuation
+                continue
             splitted_text.append(prefix)
             # if the text does not end with a punctuation, add it to the last item
             if idx == len(puncs) - 1 and len(suffix) > 0:
                 splitted_text.append(suffix)
-            text = suffix
         return splitted_text, puncs
 
     @classmethod
