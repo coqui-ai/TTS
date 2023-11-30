@@ -319,7 +319,7 @@ class GPTTrainer(BaseTTS):
         return self.train_step(batch, criterion)
 
     def on_train_epoch_start(self, trainer):
-        trainer.model.eval() # the whole model to eval
+        trainer.model.eval()  # the whole model to eval
         # put gpt model in training mode
         trainer.model.xtts.gpt.train()
 
