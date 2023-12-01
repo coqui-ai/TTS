@@ -1,4 +1,5 @@
 import os
+import gc
 
 from trainer import Trainer, TrainerArgs
 
@@ -164,7 +165,8 @@ def train_gpt(language, num_epochs, batch_size, grad_acumm, train_csv, eval_csv,
 
     trainer_out_path = trainer.output_path
 
-    # deallocate VRAM
+    # deallocate VRAM and RAM
     del model, trainer, train_samples, eval_samples
+    gc.collect()
 
     return XTTS_CONFIG_FILE, XTTS_CHECKPOINT, TOKENIZER_FILE, trainer_out_path, speaker_ref
