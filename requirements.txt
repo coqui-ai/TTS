@@ -53,4 +53,5 @@ encodec>=0.1.1
 # deps for XTTS
 unidecode>=1.3.2
 num2words
+indic-numtowords
 spacy[ja]>=3
