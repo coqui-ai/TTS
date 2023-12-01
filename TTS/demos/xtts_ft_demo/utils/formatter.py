@@ -153,6 +153,6 @@ def format_audio_list(audio_files, target_language="en", out_path=None, buffer=0
     df_eval.to_csv(eval_metadata_path, sep="|", index=False)
 
     # deallocate VRAM
-    del asr_model
+    del asr_model, df_train, df_eval, df, metadata
 
     return train_metadata_path, eval_metadata_path, audio_total_size
