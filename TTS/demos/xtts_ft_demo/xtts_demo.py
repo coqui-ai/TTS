@@ -202,7 +202,7 @@ if __name__ == "__main__":
             )
             demo.load(read_logs, None, logs, every=1)
 
-            prompt_compute_btn = gr.Button(value="Step 1 - Create dataset.")
+            prompt_compute_btn = gr.Button(value="Step 1 - Create dataset")
         
             def preprocess_dataset(audio_path, language, out_path, progress=gr.Progress(track_tqdm=True)):
                 clear_gpu_cache()
@@ -315,7 +315,7 @@ if __name__ == "__main__":
                     progress_load = gr.Label(
                         label="Progress:"
                     )
-                    load_btn = gr.Button(value="Step 3 - Load Fine tuned XTTS model")
+                    load_btn = gr.Button(value="Step 3 - Load Fine-tuned XTTS model")
 
                 with gr.Column() as col2:
                     speaker_reference_audio = gr.Textbox(

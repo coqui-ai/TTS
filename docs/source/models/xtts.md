@@ -182,7 +182,7 @@ To make `XTTS_v2` GPT encoder training easier for beginner users we did a gradio
 - Train the XTTS GPT encoder with the processed data
 - Inference support using the fine-tuned model
 
-The user can run this gradio demos locally or remotely using a Colab Notebook.
+The user can run this gradio demo locally or remotely using a Colab Notebook.
 
 ##### Run demo on Colab
 To make the `XTTS_v2` fine-tuning more accessible for users that do not have good GPUs available we did a Google Colab Notebook.
@@ -191,6 +191,15 @@ The Colab Notebook is available [here](https://colab.research.google.com/drive/1
 
 To learn how to use this Colab Notebook please check the [XTTS fine-tuning video]().
 
+If you are not able to acess the video you need to follow the steps:
+
+1. Open the Colab notebook and start the demo by runining the first two cells (ignore pip install errors in the first one).
+2. Click on the link "Running on public URL:" on the second cell output.
+3. On the first Tab (1 - Data processing) you need to select the audio file or files, wait for upload, and then click on the button "Step 1 - Create dataset" and then wait until the dataset processing is done.
+4. Soon as the dataset processing is done you need to go to the second Tab (2 - Fine-tuning XTTS Encoder) and press the button "Step 2 - Run the training" and then wait until the training is finished. Note that it can take up to 40 minutes.
+5. Soon the training is done you can go to the third Tab (3 - Inference) and then click on the button "Step 3 - Load Fine-tuned XTTS model" and wait until the fine-tuned model is loaded. Then you can do the inference on the model by clicking on the button "Step 4 - Inference".
+
+
 ##### Run demo locally
 
 To run the demo locally you need to do the following steps:
@@ -198,6 +207,13 @@ To run the demo locally you need to do the following steps:
 2. Install the gradio demo requirements with the command `python3 -m pip install -r TTS/demos/xtts_ft_demo/requirements.txt`
 3. Run the gradio demo using the command `python3 TTS/demos/xtts_ft_demo/xtts_demo.py`
 4. Follow the steps presented on the [XTTS fine-tuning video]() to be able to fine-tune and use the fine-tuned model.
+
+
+If you are not able to acess the video you need to follow the steps:
+
+1. On the first Tab (1 - Data processing) you need to select the audio file or files, wait for upload, and then click on the button "Step 1 - Create dataset" and then wait until the dataset processing is done.
+2. Soon as the dataset processing is done you need to go to the second Tab (2 - Fine-tuning XTTS Encoder) and press the button "Step 2 - Run the training" and then wait until the training is finished. Note that it can take up to 40 minutes.
+3. Soon the training is done you can go to the third Tab (3 - Inference) and then click on the button "Step 3 - Load Fine-tuned XTTS model" and wait until the fine-tuned model is loaded. Then you can do the inference on the model by clicking on the button "Step 4 - Inference".
 
 #### Advanced training
 
