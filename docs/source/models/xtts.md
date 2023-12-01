@@ -233,6 +233,50 @@ torchaudio.save("xtts_streaming.wav", wav.squeeze().unsqueeze(0).cpu(), 24000)
 
 ### Training
 
+#### Easy training
+To make `XTTS_v2` GPT encoder training easier for beginner users we did a gradio demo that implements the whole fine-tuning pipeline. The gradio demo enables the user to easily do the following steps:
+
+- Preprocessing of the uploaded audio or audio files in 🐸 TTS coqui formatter
+- Train the XTTS GPT encoder with the processed data
+- Inference support using the fine-tuned model
+
+The user can run this gradio demo locally or remotely using a Colab Notebook.
+
+##### Run demo on Colab
+To make the `XTTS_v2` fine-tuning more accessible for users that do not have good GPUs available we did a Google Colab Notebook.
+
+The Colab Notebook is available [here](https://colab.research.google.com/drive/1GiI4_X724M8q2W-zZ-jXo7cWTV7RfaH-?usp=sharing).
+
+To learn how to use this Colab Notebook please check the [XTTS fine-tuning video]().
+
+If you are not able to acess the video you need to follow the steps:
+
+1. Open the Colab notebook and start the demo by runining the first two cells (ignore pip install errors in the first one).
+2. Click on the link "Running on public URL:" on the second cell output.
+3. On the first Tab (1 - Data processing) you need to select the audio file or files, wait for upload, and then click on the button "Step 1 - Create dataset" and then wait until the dataset processing is done.
+4. Soon as the dataset processing is done you need to go to the second Tab (2 - Fine-tuning XTTS Encoder) and press the button "Step 2 - Run the training" and then wait until the training is finished. Note that it can take up to 40 minutes.
+5. Soon the training is done you can go to the third Tab (3 - Inference) and then click on the button "Step 3 - Load Fine-tuned XTTS model" and wait until the fine-tuned model is loaded. Then you can do the inference on the model by clicking on the button "Step 4 - Inference".
+
+
+##### Run demo locally
+
+To run the demo locally you need to do the following steps:
+1. Install   🐸 TTS following the instructions available [here](https://tts.readthedocs.io/en/dev/installation.html#installation).
+2. Install the Gradio demo requirements with the command `python3 -m pip install -r TTS/demos/xtts_ft_demo/requirements.txt`
+3. Run the Gradio demo using the command `python3 TTS/demos/xtts_ft_demo/xtts_demo.py`
+4. Follow the steps presented in the [tutorial video](https://www.youtube.com/watch?v=8tpDiiouGxc&feature=youtu.be) to be able to fine-tune and test the fine-tuned model.
+
+
+If you are not able to access the video, here is what you need to do:
+
+1. On the first Tab (1 - Data processing) select the audio file or files, wait for upload
+2. Click on the button "Step 1 - Create dataset" and then wait until the dataset processing is done.
+3. Go to the second Tab (2 - Fine-tuning XTTS Encoder) and press the button "Step 2 - Run the training" and then wait until the training is finished. it will take some time.
+4. Go to the third Tab (3 - Inference) and then click on the button "Step 3 - Load Fine-tuned XTTS model" and wait until the fine-tuned model is loaded.
+5. Now you can run inference with the model by clicking on the button "Step 4 - Inference".
+
+#### Advanced training
+
 A recipe for `XTTS_v2` GPT encoder training using `LJSpeech` dataset is available at https://github.com/coqui-ai/TTS/tree/dev/recipes/ljspeech/xtts_v1/train_gpt_xtts.py
 
 You need to change the fields of the `BaseDatasetConfig` to match your dataset and then update `GPTArgs` and `GPTTrainerConfig` fields as you need. By default, it will use the same parameters that XTTS v1.1 model was trained with. To speed up the model convergence, as default, it will also download the XTTS v1.1 checkpoint and load it.
@@ -278,6 +322,7 @@ out = model.inference(
 )
 torchaudio.save(OUTPUT_WAV_PATH, torch.tensor(out["wav"]).unsqueeze(0), 24000)
 ```
+
 
 
 ## References and Acknowledgements
