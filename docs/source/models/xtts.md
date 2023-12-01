@@ -175,6 +175,32 @@ torchaudio.save("xtts_streaming.wav", wav.squeeze().unsqueeze(0).cpu(), 24000)
 
 ### Training
 
+#### Easy training
+To make `XTTS_v2` GPT encoder training easier for beginner users we did a gradio demo that implements the whole fine-tuning pipeline. The gradio demo enables the user to easily do the following steps:
+
+- Preprocessing of the uploaded audio or audio files in 🐸 TTS coqui formatter
+- Train the XTTS GPT encoder with the processed data
+- Inference support using the fine-tuned model
+
+The user can run this gradio demos locally or remotely using a Colab Notebook.
+
+##### Run demo on Colab
+To make the `XTTS_v2` fine-tuning more accessible for users that do not have good GPUs available we did a Google Colab Notebook.
+
+The Colab Notebook is available [here](https://colab.research.google.com/drive/1GiI4_X724M8q2W-zZ-jXo7cWTV7RfaH-?usp=sharing).
+
+To learn how to use this Colab Notebook please check the [XTTS fine-tuning video]().
+
+##### Run demo locally
+
+To run the demo locally you need to do the following steps:
+1. Install   🐸 TTS following the instructions available [here](https://tts.readthedocs.io/en/dev/installation.html#installation).
+2. Install the gradio demo requirements with the command `python3 -m pip install -r TTS/demos/xtts_ft_demo/requirements.txt`
+3. Run the gradio demo using the command `python3 TTS/demos/xtts_ft_demo/xtts_demo.py`
+4. Follow the steps presented on the [XTTS fine-tuning video]() to be able to fine-tune and use the fine-tuned model.
+
+#### Advanced training
+
 A recipe for `XTTS_v2` GPT encoder training using `LJSpeech` dataset is available at https://github.com/coqui-ai/TTS/tree/dev/recipes/ljspeech/xtts_v1/train_gpt_xtts.py
 
 You need to change the fields of the `BaseDatasetConfig` to match your dataset and then update `GPTArgs` and `GPTTrainerConfig` fields as you need. By default, it will use the same parameters that XTTS v1.1 model was trained with. To speed up the model convergence, as default, it will also download the XTTS v1.1 checkpoint and load it.
@@ -220,6 +246,7 @@ out = model.inference(
 )
 torchaudio.save(OUTPUT_WAV_PATH, torch.tensor(out["wav"]).unsqueeze(0), 24000)
 ```
+
 
 
 ## References and Acknowledgements
