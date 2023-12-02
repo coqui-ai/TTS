@@ -13,6 +13,45 @@ from tqdm import tqdm
 ########################
 
 
+def cml_tts(root_path, meta_file, ignored_speakers=None):
+    """Normalizes the CML-TTS meta data file to TTS format
+    https://github.com/freds0/CML-TTS-Dataset/"""
+    filepath = os.path.join(root_path, meta_file)
+    # ensure there are 4 columns for every line
+    with open(filepath, "r", encoding="utf8") as f:
+        lines = f.readlines()
+    num_cols = len(lines[0].split("|"))  # take the first row as reference
+    for idx, line in enumerate(lines[1:]):
+        if len(line.split("|")) != num_cols:
+            print(f" > Missing column in line {idx + 1} -> {line.strip()}")
+    # load metadata
+    metadata = pd.read_csv(os.path.join(root_path, meta_file), sep="|")
+    assert all(x in metadata.columns for x in ["wav_filename", "transcript"])
+    client_id = None if "client_id" in metadata.columns else "default"
+    emotion_name = None if "emotion_name" in metadata.columns else "neutral"
+    items = []
+    not_found_counter = 0
+    for row in metadata.itertuples():
+        if client_id is None and ignored_speakers is not None and row.client_id in ignored_speakers:
+            continue
+        audio_path = os.path.join(root_path, row.wav_filename)
+        if not os.path.exists(audio_path):
+            not_found_counter += 1
+            continue
+        items.append(
+            {
+                "text": row.transcript,
+                "audio_file": audio_path,
+                "speaker_name": client_id if client_id is not None else row.client_id,
+                "emotion_name": emotion_name if emotion_name is not None else row.emotion_name,
+                "root_path": root_path,
+            }
+        )
+    if not_found_counter > 0:
+        print(f" | > [!] {not_found_counter} files not found")
+    return items
+
+
 def coqui(root_path, meta_file, ignored_speakers=None):
     """Interal dataset formatter."""
     filepath = os.path.join(root_path, meta_file)
@@ -241,7 +280,7 @@ def css10(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             cols = line.split("|")
             wav_file = os.path.join(root_path, cols[0])
             text = cols[1]
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
 
 
@@ -255,7 +294,7 @@ def nancy(root_path, meta_file, **kwargs):  # pylint: disable=unused-argument
             utt_id = line.split()[1]
             text = line[line.find('"') + 1 : line.rfind('"') - 1]
             wav_file = os.path.join(root_path, "wavn", utt_id + ".wav")
-            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name})
+            items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
 
 

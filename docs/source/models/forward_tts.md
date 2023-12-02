@@ -12,7 +12,7 @@ Currently we provide the following pre-configured architectures:
 
 - **FastPitch:**
 
-    It uses the same FastSpeech architecture that is conditioned on fundemental frequency (f0) contours with the
+    It uses the same FastSpeech architecture that is conditioned on fundamental frequency (f0) contours with the
     promise of more expressive speech.
 
 - **SpeedySpeech:**

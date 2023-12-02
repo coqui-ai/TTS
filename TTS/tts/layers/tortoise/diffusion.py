@@ -13,12 +13,18 @@ import math
 import numpy as np
 import torch
 import torch as th
-from k_diffusion.sampling import sample_dpmpp_2m, sample_euler_ancestral
 from tqdm import tqdm
 
 from TTS.tts.layers.tortoise.dpm_solver import DPM_Solver, NoiseScheduleVP, model_wrapper
 
-K_DIFFUSION_SAMPLERS = {"k_euler_a": sample_euler_ancestral, "dpm++2m": sample_dpmpp_2m}
+try:
+    from k_diffusion.sampling import sample_dpmpp_2m, sample_euler_ancestral
+
+    K_DIFFUSION_SAMPLERS = {"k_euler_a": sample_euler_ancestral, "dpm++2m": sample_dpmpp_2m}
+except ImportError:
+    K_DIFFUSION_SAMPLERS = None
+
+
 SAMPLERS = ["dpm++2m", "p", "ddim"]
 
 
@@ -531,6 +537,8 @@ class GaussianDiffusion:
             if self.conditioning_free is not True:
                 raise RuntimeError("cond_free must be true")
             with tqdm(total=self.num_timesteps) as pbar:
+                if K_DIFFUSION_SAMPLERS is None:
+                    raise ModuleNotFoundError("Install k_diffusion for using k_diffusion samplers")
                 return self.k_diffusion_sample_loop(K_DIFFUSION_SAMPLERS[s], pbar, *args, **kwargs)
         else:
             raise RuntimeError("sampler not impl")
@@ -1083,31 +1091,6 @@ class GaussianDiffusion:
             "xstart_mse": xstart_mse,
             "mse": mse,
         }
-
-
-def get_named_beta_schedule(schedule_name, num_diffusion_timesteps):
-    """
-    Get a pre-defined beta schedule for the given name.
-
-    The beta schedule library consists of beta schedules which remain similar
-    in the limit of num_diffusion_timesteps.
-    Beta schedules may be added, but should not be removed or changed once
-    they are committed to maintain backwards compatibility.
-    """
-    if schedule_name == "linear":
-        # Linear schedule from Ho et al, extended to work for any number of
-        # diffusion steps.
-        scale = 1000 / num_diffusion_timesteps
-        beta_start = scale * 0.0001
-        beta_end = scale * 0.02
-        return np.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64)
-    elif schedule_name == "cosine":
-        return betas_for_alpha_bar(
-            num_diffusion_timesteps,
-            lambda t: math.cos((t + 0.008) / 1.008 * math.pi / 2) ** 2,
-        )
-    else:
-        raise NotImplementedError(f"unknown beta schedule: {schedule_name}")
 
 
 class SpacedDiffusion(GaussianDiffusion):

@@ -53,6 +53,7 @@
     models/overflow.md
     models/tortoise.md
     models/bark.md
+    models/xtts.md
 
 .. toctree::
     :maxdepth: 2

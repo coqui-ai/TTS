@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import importlib
+import logging
 import os
 import re
 import subprocess
@@ -126,7 +127,13 @@ def get_import_path(obj: object) -> str:
 
 
 def get_user_data_dir(appname):
-    if sys.platform == "win32":
+    TTS_HOME = os.environ.get("TTS_HOME")
+    XDG_DATA_HOME = os.environ.get("XDG_DATA_HOME")
+    if TTS_HOME is not None:
+        ans = Path(TTS_HOME).expanduser().resolve(strict=False)
+    elif XDG_DATA_HOME is not None:
+        ans = Path(XDG_DATA_HOME).expanduser().resolve(strict=False)
+    elif sys.platform == "win32":
         import winreg  # pylint: disable=import-outside-toplevel
 
         key = winreg.OpenKey(
@@ -213,3 +220,22 @@ class KeepAverage:
     def update_values(self, value_dict):
         for key, value in value_dict.items():
             self.update_value(key, value)
+
+
+def get_timestamp():
+    return datetime.now().strftime("%y%m%d-%H%M%S")
+
+
+def setup_logger(logger_name, root, phase, level=logging.INFO, screen=False, tofile=False):
+    lg = logging.getLogger(logger_name)
+    formatter = logging.Formatter("%(asctime)s.%(msecs)03d - %(levelname)s: %(message)s", datefmt="%y-%m-%d %H:%M:%S")
+    lg.setLevel(level)
+    if tofile:
+        log_file = os.path.join(root, phase + "_{}.log".format(get_timestamp()))
+        fh = logging.FileHandler(log_file, mode="w")
+        fh.setFormatter(formatter)
+        lg.addHandler(fh)
+    if screen:
+        sh = logging.StreamHandler()
+        sh.setFormatter(formatter)
+        lg.addHandler(sh)

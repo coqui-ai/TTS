@@ -11,7 +11,6 @@ from zipfile import ZipFile
 import numpy
 import torch
 from torch import nn, optim
-from torch.serialization import MAP_LOCATION
 
 
 class HubertTokenizer(nn.Module):
@@ -103,7 +102,7 @@ class HubertTokenizer(nn.Module):
             model_zip.close()
 
     @staticmethod
-    def load_from_checkpoint(path, map_location: MAP_LOCATION = None):
+    def load_from_checkpoint(path, map_location=None):
         old = True
         with ZipFile(path) as model_zip:
             filesMatch = [file for file in model_zip.namelist() if file.endswith("/.info")]

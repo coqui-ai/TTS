@@ -1,4 +1,3 @@
-import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional
@@ -6,6 +5,7 @@ from typing import Callable, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.nn.utils.parametrize as parametrize
 
 MAX_WAV_VALUE = 32768.0
 
@@ -44,7 +44,9 @@ class KernelPredictor(torch.nn.Module):
         kpnet_bias_channels = conv_out_channels * conv_layers  # l_b
 
         self.input_conv = nn.Sequential(
-            nn.utils.weight_norm(nn.Conv1d(cond_channels, kpnet_hidden_channels, 5, padding=2, bias=True)),
+            nn.utils.parametrizations.weight_norm(
+                nn.Conv1d(cond_channels, kpnet_hidden_channels, 5, padding=2, bias=True)
+            ),
             getattr(nn, kpnet_nonlinear_activation)(**kpnet_nonlinear_activation_params),
         )
 
@@ -54,7 +56,7 @@ class KernelPredictor(torch.nn.Module):
             self.residual_convs.append(
                 nn.Sequential(
                     nn.Dropout(kpnet_dropout),
-                    nn.utils.weight_norm(
+                    nn.utils.parametrizations.weight_norm(
                         nn.Conv1d(
                             kpnet_hidden_channels,
                             kpnet_hidden_channels,
@@ -64,7 +66,7 @@ class KernelPredictor(torch.nn.Module):
                         )
                     ),
                     getattr(nn, kpnet_nonlinear_activation)(**kpnet_nonlinear_activation_params),
-                    nn.utils.weight_norm(
+                    nn.utils.parametrizations.weight_norm(
                         nn.Conv1d(
                             kpnet_hidden_channels,
                             kpnet_hidden_channels,
@@ -76,7 +78,7 @@ class KernelPredictor(torch.nn.Module):
                     getattr(nn, kpnet_nonlinear_activation)(**kpnet_nonlinear_activation_params),
                 )
             )
-        self.kernel_conv = nn.utils.weight_norm(
+        self.kernel_conv = nn.utils.parametrizations.weight_norm(
             nn.Conv1d(
                 kpnet_hidden_channels,
                 kpnet_kernel_channels,
@@ -85,7 +87,7 @@ class KernelPredictor(torch.nn.Module):
                 bias=True,
             )
         )
-        self.bias_conv = nn.utils.weight_norm(
+        self.bias_conv = nn.utils.parametrizations.weight_norm(
             nn.Conv1d(
                 kpnet_hidden_channels,
                 kpnet_bias_channels,
@@ -125,12 +127,12 @@ class KernelPredictor(torch.nn.Module):
         return kernels, bias
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.input_conv[0])
-        nn.utils.remove_weight_norm(self.kernel_conv)
-        nn.utils.remove_weight_norm(self.bias_conv)
+        parametrize.remove_parametrizations(self.input_conv[0], "weight")
+        parametrize.remove_parametrizations(self.kernel_conv, "weight")
+        parametrize.remove_parametrizations(self.bias_conv)
         for block in self.residual_convs:
-            nn.utils.remove_weight_norm(block[1])
-            nn.utils.remove_weight_norm(block[3])
+            parametrize.remove_parametrizations(block[1], "weight")
+            parametrize.remove_parametrizations(block[3], "weight")
 
 
 class LVCBlock(torch.nn.Module):
@@ -169,7 +171,7 @@ class LVCBlock(torch.nn.Module):
 
         self.convt_pre = nn.Sequential(
             nn.LeakyReLU(lReLU_slope),
-            nn.utils.weight_norm(
+            nn.utils.parametrizations.weight_norm(
                 nn.ConvTranspose1d(
                     in_channels,
                     in_channels,
@@ -186,7 +188,7 @@ class LVCBlock(torch.nn.Module):
             self.conv_blocks.append(
                 nn.Sequential(
                     nn.LeakyReLU(lReLU_slope),
-                    nn.utils.weight_norm(
+                    nn.utils.parametrizations.weight_norm(
                         nn.Conv1d(
                             in_channels,
                             in_channels,
@@ -267,9 +269,9 @@ class LVCBlock(torch.nn.Module):
 
     def remove_weight_norm(self):
         self.kernel_predictor.remove_weight_norm()
-        nn.utils.remove_weight_norm(self.convt_pre[1])
+        parametrize.remove_parametrizations(self.convt_pre[1], "weight")
         for block in self.conv_blocks:
-            nn.utils.remove_weight_norm(block[1])
+            parametrize.remove_parametrizations(block[1], "weight")
 
 
 class UnivNetGenerator(nn.Module):
@@ -314,11 +316,13 @@ class UnivNetGenerator(nn.Module):
                 )
             )
 
-        self.conv_pre = nn.utils.weight_norm(nn.Conv1d(noise_dim, channel_size, 7, padding=3, padding_mode="reflect"))
+        self.conv_pre = nn.utils.parametrizations.weight_norm(
+            nn.Conv1d(noise_dim, channel_size, 7, padding=3, padding_mode="reflect")
+        )
 
         self.conv_post = nn.Sequential(
             nn.LeakyReLU(lReLU_slope),
-            nn.utils.weight_norm(nn.Conv1d(channel_size, 1, 7, padding=3, padding_mode="reflect")),
+            nn.utils.parametrizations.weight_norm(nn.Conv1d(channel_size, 1, 7, padding=3, padding_mode="reflect")),
             nn.Tanh(),
         )
 
@@ -346,11 +350,11 @@ class UnivNetGenerator(nn.Module):
             self.remove_weight_norm()
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.conv_pre)
+        parametrize.remove_parametrizations(self.conv_pre, "weight")
 
         for layer in self.conv_post:
             if len(layer.state_dict()) != 0:
-                nn.utils.remove_weight_norm(layer)
+                parametrize.remove_parametrizations(layer, "weight")
 
         for res_block in self.res_stack:
             res_block.remove_weight_norm()

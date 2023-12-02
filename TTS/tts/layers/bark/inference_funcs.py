@@ -162,7 +162,7 @@ def generate_text_semantic(
     allow_early_stop=True,
     base=None,
     use_kv_caching=True,
-    **kwargs, # pylint: disable=unused-argument
+    **kwargs,  # pylint: disable=unused-argument
 ):
     """Generate semantic tokens from text.
 
@@ -184,7 +184,6 @@ def generate_text_semantic(
     Returns:
         np.ndarray: The generated semantic tokens.
     """
-    print(f"history_prompt in gen: {history_prompt}")
     assert isinstance(text, str)
     text = _normalize_whitespace(text)
     assert len(text.strip()) > 0

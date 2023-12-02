@@ -11,6 +11,11 @@ class PunctuationTest(unittest.TestCase):
             ("This, is my text ... to be striped !! from text", "This is my text to be striped from text"),
             ("This, is my text ... to be striped  from text?", "This is my text to be striped  from text"),
             ("This, is my text to be striped from text", "This is my text to be striped from text"),
+            (".", ""),
+            (" . ", ""),
+            ("!!! Attention !!!", "Attention"),
+            ("!!! Attention !!! This is just a ... test.", "Attention This is just a test"),
+            ("!!! Attention! This is just a ... test.", "Attention This is just a test"),
         ]
 
     def test_get_set_puncs(self):
