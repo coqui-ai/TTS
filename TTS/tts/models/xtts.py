@@ -11,7 +11,7 @@ from TTS.tts.layers.xtts.gpt import GPT
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
 from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer, split_sentence
-from TTS.tts.layers.xtts.xtts_manager import SpeakerManager, LanguageManager
+from TTS.tts.layers.xtts.xtts_manager import LanguageManager, SpeakerManager
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.utils.io import load_fsspec
 
@@ -410,12 +410,14 @@ class Xtts(BaseTTS):
         if speaker_id is not None:
             gpt_cond_latent, speaker_embedding = self.speaker_manager.speakers[speaker_id].values()
             return self.inference(text, language, gpt_cond_latent, speaker_embedding, **settings)
-        settings.update({
-            "gpt_cond_len": config.gpt_cond_len,
-            "gpt_cond_chunk_len": config.gpt_cond_chunk_len,
-            "max_ref_len": config.max_ref_len,
-            "sound_norm_refs": config.sound_norm_refs,
-        })
+        settings.update(
+            {
+                "gpt_cond_len": config.gpt_cond_len,
+                "gpt_cond_chunk_len": config.gpt_cond_chunk_len,
+                "max_ref_len": config.max_ref_len,
+                "sound_norm_refs": config.sound_norm_refs,
+            }
+        )
         return self.full_inference(text, speaker_wav, language, **settings)
 
     @torch.inference_mode()

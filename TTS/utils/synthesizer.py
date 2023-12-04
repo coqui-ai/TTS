@@ -335,7 +335,7 @@ class Synthesizer(nn.Module):
         # handle multi-lingual
         language_id = None
         if self.tts_languages_file or (
-            hasattr(self.tts_model, "language_manager") 
+            hasattr(self.tts_model, "language_manager")
             and self.tts_model.language_manager is not None
             and not self.tts_config.model == "xtts"
         ):

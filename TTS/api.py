@@ -168,9 +168,7 @@ class TTS(nn.Module):
         self.synthesizer = None
         self.model_name = model_name
 
-        model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(
-            model_name
-        )
+        model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(model_name)
 
         # init synthesizer
         # None values are fetch from the model

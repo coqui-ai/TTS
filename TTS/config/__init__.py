@@ -17,8 +17,11 @@ def read_json_with_comments(json_path):
     with fsspec.open(json_path, "r", encoding="utf-8") as f:
         input_str = f.read()
     # handle comments but not urls with //
-    input_str = re.sub(r"(\"(?:[^\"\\]|\\.)*\")|(/\*(?:.|[\\n\\r])*?\*/)|(//.*)", lambda m: m.group(1) or m.group(2) or "", input_str)
+    input_str = re.sub(
+        r"(\"(?:[^\"\\]|\\.)*\")|(/\*(?:.|[\\n\\r])*?\*/)|(//.*)", lambda m: m.group(1) or m.group(2) or "", input_str
+    )
     return json.loads(input_str)
+
 
 def register_config(model_name: str) -> Coqpit:
     """Find the right config for the given model name.

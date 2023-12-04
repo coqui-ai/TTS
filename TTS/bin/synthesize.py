@@ -224,7 +224,7 @@ def main():
         const=True,
         default=False,
     )
-    
+
     # args for multi-speaker synthesis
     parser.add_argument("--speakers_file_path", type=str, help="JSON file for multi-speaker model.", default=None)
     parser.add_argument("--language_ids_file_path", type=str, help="JSON file for multi-lingual model.", default=None)
