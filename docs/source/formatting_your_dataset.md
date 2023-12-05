@@ -7,7 +7,7 @@ If you have a single audio file and you need to split it into clips, there are d
 
 It is also important to use a lossless audio file format to prevent compression artifacts. We recommend using `wav` file format.
 
-Let's assume you created the audio clips and their transcription. You can collect all your clips under a folder. Let's call this folder `wavs`.
+Let's assume you created the audio clips and their transcription. You can collect all your clips in a folder. Let's call this folder `wavs`.
 
 ```
 /wavs
@@ -17,7 +17,7 @@ Let's assume you created the audio clips and their transcription. You can collec
   ...
 ```
 
-You can either create separate transcription files for each clip or create a text file that maps each audio clip to its transcription. In this file, each column must be delimitered by a special character separating the audio file name, the transcription and the normalized transcription. And make sure that the delimiter is not used in the transcription text.
+You can either create separate transcription files for each clip or create a text file that maps each audio clip to its transcription. In this file, each column must be delimited by a special character separating the audio file name, the transcription and the normalized transcription. And make sure that the delimiter is not used in the transcription text.
 
 We recommend the following format delimited by `|`. In the following example, `audio1`, `audio2` refer to files `audio1.wav`, `audio2.wav` etc.
 
@@ -55,7 +55,7 @@ For more info about dataset qualities and properties check our [post](https://gi
 
 After you collect and format your dataset, you need to check two things. Whether you need a `formatter` and a `text_cleaner`. The `formatter` loads the text file (created above) as a list and the `text_cleaner` performs a sequence of text normalization operations that converts the raw text into the spoken representation (e.g. converting numbers to text, acronyms, and symbols to the spoken format).
 
-If you use a different dataset format then the LJSpeech or the other public datasets that 🐸TTS supports, then you need to write your own `formatter`.
+If you use a different dataset format than the LJSpeech or the other public datasets that 🐸TTS supports, then you need to write your own `formatter`.
 
 If your dataset is in a new language or it needs special normalization steps, then you need a new `text_cleaner`.
 
