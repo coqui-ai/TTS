@@ -2,13 +2,13 @@
 
 ## What is Mary-TTS?
 
-[Mary (Modular Architecture for Research in sYynthesis) Text-to-Speech](http://mary.dfki.de/) is an open-source (GNU LGPL license), multilingual Text-to-Speech Synthesis platform written in Java. It was originally developed as a collaborative project of [DFKI’s](http://www.dfki.de/web) Language Technology Lab and the [Institute of Phonetics](http://www.coli.uni-saarland.de/groups/WB/Phonetics/) at Saarland University, Germany. It is now maintained by the Multimodal Speech Processing Group in the [Cluster of Excellence MMCI](https://www.mmci.uni-saarland.de/) and DFKI.
+[Mary (Modular Architecture for Research in sYnthesis) Text-to-Speech](http://mary.dfki.de/) is an open-source (GNU LGPL license), multilingual Text-to-Speech Synthesis platform written in Java. It was originally developed as a collaborative project of [DFKI’s](http://www.dfki.de/web) Language Technology Lab and the [Institute of Phonetics](http://www.coli.uni-saarland.de/groups/WB/Phonetics/) at Saarland University, Germany. It is now maintained by the Multimodal Speech Processing Group in the [Cluster of Excellence MMCI](https://www.mmci.uni-saarland.de/) and DFKI.
 MaryTTS has been around for a very! long time. Version 3.0 even dates back to 2006, long before Deep Learning was a broadly known term and the last official release was version 5.2 in 2016.
 You can check out this OpenVoice-Tech page to learn more: https://openvoice-tech.net/index.php/MaryTTS
 
 ## Why Mary-TTS compatibility is relevant
 
-Due to it's open-source nature, relatively high quality voices and fast synthetization speed Mary-TTS was a popular choice in the past and many tools implemented API support over the years like screen-readers (NVDA + SpeechHub), smart-home HUBs (openHAB, Home Assistant) or voice assistants (Rhasspy, Mycroft, SEPIA). A compatibility layer for Coqui-TTS will ensure that these tools can use Coqui as a drop-in replacement and get even better voices right away.
+Due to its open-source nature, relatively high quality voices and fast synthetization speed Mary-TTS was a popular choice in the past and many tools implemented API support over the years like screen-readers (NVDA + SpeechHub), smart-home HUBs (openHAB, Home Assistant) or voice assistants (Rhasspy, Mycroft, SEPIA). A compatibility layer for Coqui-TTS will ensure that these tools can use Coqui as a drop-in replacement and get even better voices right away.
 
 ## API and code examples
 
