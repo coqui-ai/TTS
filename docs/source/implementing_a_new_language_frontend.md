@@ -2,7 +2,7 @@
 
 - Language frontends are located under `TTS.tts.utils.text`
 - Each special language has a separate folder.
-- Each folder containst all the utilities for processing the text input.
+- Each folder contains all the utilities for processing the text input.
 - `TTS.tts.utils.text.phonemizers` contains the main phonemizer for a language. This is the class that uses the utilities
 from the previous step and used to convert the text to phonemes or graphemes for the model.
 - After you implement your phonemizer, you need to add it to the `TTS/tts/utils/text/phonemizers/__init__.py` to be able to
