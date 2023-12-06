@@ -145,7 +145,7 @@ class MyModel(BaseTTS):
         Args:
             ap (AudioProcessor): audio processor used at training.
             batch (Dict): Model inputs used at the previous training step.
-            outputs (Dict): Model outputs generated at the previoud training step.
+            outputs (Dict): Model outputs generated at the previous training step.
 
         Returns:
             Tuple[Dict, np.ndarray]: training plots and output waveform.
@@ -183,7 +183,7 @@ class MyModel(BaseTTS):
         ...
 
     def get_optimizer(self) -> Union["Optimizer", List["Optimizer"]]:
-        """Setup an return optimizer or optimizers."""
+        """Setup a return optimizer or optimizers."""
         pass
 
     def get_lr(self) -> Union[float, List[float]]:
