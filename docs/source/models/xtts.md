@@ -81,42 +81,6 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
                 language="en")
 ```
 
-##### Streaming inference
-
-XTTS supports streaming inference. This is useful for real-time applications.
-
-```python
-import os
-import time
-import torch
-import torchaudio
-
-print("Loading model...")
-tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
-model = tts.synthesizer.tts_model
-
-print("Computing speaker latents...")
-gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
-
-print("Inference...")
-t0 = time.time()
-stream_generator = model.inference_stream(
-    "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
-    "en",
-    gpt_cond_latent,
-    speaker_embedding
-)
-
-wav_chuncks = []
-for i, chunk in enumerate(stream_generator):
-    if i == 0:
-        print(f"Time to first chunck: {time.time() - t0}")
-    print(f"Received chunk {i} of audio length {chunk.shape[-1]}")
-    wav_chuncks.append(chunk)
-wav = torch.cat(wav_chuncks, dim=0)
-torchaudio.save("xtts_streaming.wav", wav.squeeze().unsqueeze(0).cpu(), 24000)
-```
-
 #### 🐸TTS Command line
 
 ##### Single reference
@@ -150,13 +114,31 @@ or for all wav files in a directory you can use:
 
 To use the model API, you need to download the model files and pass config and model file paths manually.
 
-##### Calling manually
+#### Manual Inference
 
-If you want to be able to run with `use_deepspeed=True` and **enjoy the speedup**, you need to install deepspeed first.
+If you want to be able to `load_checkpoint` with `use_deepspeed=True` and **enjoy the speedup**, you need to install deepspeed first.
 
 ```console
 pip install deepspeed==0.10.3
 ```
+
+##### inference parameters
+
+- `text`: The text to be synthesized.
+- `language`: The language of the text to be synthesized.
+- `gpt_cond_latent`: The latent vector you get with get_conditioning_latents. (You can cache for faster inference with same speaker)
+- `speaker_embedding`: The speaker embedding you get with get_conditioning_latents. (You can cache for faster inference with same speaker)
+- `temperature`: The softmax temperature of the autoregressive model. Defaults to 0.65.
+- `length_penalty`: A length penalty applied to the autoregressive decoder. Higher settings causes the model to produce more terse outputs. Defaults to 1.0.
+- `repetition_penalty`: A penalty that prevents the autoregressive decoder from repeating itself during decoding. Can be used to reduce the incidence of long silences or "uhhhhhhs", etc. Defaults to 2.0.
+- `top_k`: Lower values mean the decoder produces more "likely" (aka boring) outputs. Defaults to 50.
+- `top_p`: Lower values mean the decoder produces more "likely" (aka boring) outputs. Defaults to 0.8.
+- `speed`: The speed rate of the generated audio. Defaults to 1.0. (can produce artifacts if far from 1.0)
+- `enable_text_splitting`: Whether to split the text into sentences and generate audio for each sentence. It allows you to have infinite input length but might loose important context between sentences. Defaults to True.
+
+
+##### Inference
+
 
 ```python
 import os
