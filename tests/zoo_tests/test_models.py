@@ -13,7 +13,7 @@ from TTS.utils.manage import ModelManager
 
 MODELS_WITH_SEP_TESTS = [
     "tts_models/multilingual/multi-dataset/bark",
-    "tts_models/en/multi-dataset/tortoise-v2",
+    # "tts_models/en/multi-dataset/tortoise-v2",
     "tts_models/multilingual/multi-dataset/xtts_v1.1",
     "tts_models/multilingual/multi-dataset/xtts_v2",
 ]

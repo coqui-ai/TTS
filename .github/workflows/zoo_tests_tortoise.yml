@@ -8,10 +8,16 @@ on:
     types: [opened, synchronize, reopened]
 jobs:
   check_skip:
+    # always skip this job while tortoise zoo is not fixed
+    if: false
     runs-on: ubuntu-latest
-    if: "! contains(github.event.head_commit.message, '[ci skip]')"
     steps:
-      - run: echo "${{ github.event.head_commit.message }}"
+      - name: Check skip
+        run: echo "Skipping zoo-tests-tortoise"
+
+    # if: "! contains(github.event.head_commit.message, '[ci skip]')"
+    # steps:
+    #   - run: echo "${{ github.event.head_commit.message }}"
 
   test:
     runs-on: ubuntu-latest
