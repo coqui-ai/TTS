@@ -352,7 +352,9 @@ class ModelManager(object):
                 remote_url = url
                 break
 
-        config_remote = requests.get(remote_url, timeout=2).json()
+        resp = requests.get(remote_url, timeout=2)
+        resp.raise_for_status()
+        config_remote = resp.json()
 
         if not config_local == config_remote:
             print(f" > {model_name} is already downloaded however it has been changed. Redownloading it...")
