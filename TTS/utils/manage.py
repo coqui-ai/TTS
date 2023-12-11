@@ -68,28 +68,6 @@ class ModelManager(object):
         with open(file_path, "r", encoding="utf-8") as json_file:
             self.models_dict = json.load(json_file)
 
-    def add_cs_api_models(self, model_list: List[str]):
-        """Add list of Coqui Studio model names that are returned from the api
-
-        Each has the following format `<coqui_studio_model>/en/<speaker_name>/<coqui_studio_model>`
-        """
-
-        def _add_model(model_name: str):
-            if not "coqui_studio" in model_name:
-                return
-            model_type, lang, dataset, model = model_name.split("/")
-            if model_type not in self.models_dict:
-                self.models_dict[model_type] = {}
-            if lang not in self.models_dict[model_type]:
-                self.models_dict[model_type][lang] = {}
-            if dataset not in self.models_dict[model_type][lang]:
-                self.models_dict[model_type][lang][dataset] = {}
-            if model not in self.models_dict[model_type][lang][dataset]:
-                self.models_dict[model_type][lang][dataset][model] = {}
-
-        for model_name in model_list:
-            _add_model(model_name)
-
     def _list_models(self, model_type, model_count=0):
         if self.verbose:
             print("\n Name format: type/language/dataset/model")
