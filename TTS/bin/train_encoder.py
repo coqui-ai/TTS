@@ -248,7 +248,7 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
             )
             # save the best checkpoint
             best_loss = save_best_model(
-                {"train_loss": None, "eval_loss": eval_loss},
+                eval_loss,
                 best_loss,
                 c,
                 model,
