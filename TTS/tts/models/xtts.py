@@ -379,7 +379,7 @@ class Xtts(BaseTTS):
 
         return gpt_cond_latents, speaker_embedding
 
-    def synthesize(self, text, config, speaker_wav, language, speaker_id, **kwargs):
+    def synthesize(self, text, config, speaker_wav, language, speaker_id=None, **kwargs):
         """Synthesize speech with the given input text.
 
         Args:
@@ -520,6 +520,8 @@ class Xtts(BaseTTS):
     ):
         language = language.split("-")[0]  # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
+        gpt_cond_latent = gpt_cond_latent.to(self.device)
+        speaker_embedding = speaker_embedding.to(self.device)
         if enable_text_splitting:
             text = split_sentence(text, language, self.tokenizer.char_limits[language])
         else:
@@ -628,6 +630,8 @@ class Xtts(BaseTTS):
     ):
         language = language.split("-")[0]  # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
+        gpt_cond_latent = gpt_cond_latent.to(self.device)
+        speaker_embedding = speaker_embedding.to(self.device)
         if enable_text_splitting:
             text = split_sentence(text, language, self.tokenizer.char_limits[language])
         else:
