@@ -11,7 +11,7 @@ import fsspec
 import requests
 from tqdm import tqdm
 
-from TTS.config import load_config
+from TTS.config import load_config, read_json_with_comments
 from TTS.utils.generic_utils import get_user_data_dir
 
 LICENSE_URLS = {
@@ -65,8 +65,7 @@ class ModelManager(object):
         Args:
             file_path (str): path to .models.json.
         """
-        with open(file_path, "r", encoding="utf-8") as json_file:
-            self.models_dict = json.load(json_file)
+        self.models_dict = read_json_with_comments(file_path)
 
     def _list_models(self, model_type, model_count=0):
         if self.verbose:
