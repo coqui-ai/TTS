@@ -65,7 +65,7 @@ CN_PUNCS_NONSTOP = "＂＃＄％＆＇（）＊＋，－／：；＜＝＞＠［
 CN_PUNCS = CN_PUNCS_STOP + CN_PUNCS_NONSTOP
 
 PUNCS = CN_PUNCS + string.punctuation
-PUNCS_TRANSFORM = str.maketrans(PUNCS, " " * len(PUNCS), "")  # replace puncs with space
+PUNCS_TRANSFORM = str.maketrans(PUNCS, "," * len(PUNCS), "")  # replace puncs with English comma
 
 
 # https://zh.wikipedia.org/wiki/全行和半行
