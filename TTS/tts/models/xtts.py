@@ -11,6 +11,7 @@ from TTS.tts.layers.xtts.gpt import GPT
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
 from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer, split_sentence
+from TTS.tts.layers.xtts.speaker_manager import SpeakerManager
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.utils.io import load_fsspec
 
@@ -733,6 +734,7 @@ class Xtts(BaseTTS):
         eval=True,
         strict=True,
         use_deepspeed=False,
+        speaker_file_path=None,
     ):
         """
         Loads a checkpoint from disk and initializes the model's state and tokenizer.
@@ -751,6 +753,11 @@ class Xtts(BaseTTS):
 
         model_path = checkpoint_path or os.path.join(checkpoint_dir, "model.pth")
         vocab_path = vocab_path or os.path.join(checkpoint_dir, "vocab.json")
+        speaker_file_path = speaker_file_path or os.path.join(checkpoint_dir, "speakers.json")
+
+        self.speaker_manager = None
+        if os.path.exists(speaker_file_path):
+            self.speaker_manager = SpeakerManager(speaker_file_path)
 
         if os.path.exists(vocab_path):
             self.tokenizer = VoiceBpeTokenizer(vocab_file=vocab_path)

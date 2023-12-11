@@ -3,7 +3,7 @@
         "multilingual": {
             "multi-dataset": {
                 "xtts_v2": {
-                    "description": "XTTS-v2.0.2 by Coqui with 16 languages.",
+                    "description": "XTTS-v2.0.3 by Coqui with 17 languages.",
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/config.json",
