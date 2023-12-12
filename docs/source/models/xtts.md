@@ -21,7 +21,7 @@ a few tricks to make it faster and support streaming inference.
 - Across the board quality improvements.
 
 ### Code
-Current implementation only supports inference.
+Current implementation only supports inference and GPT encoder training.
 
 ### Languages
 As of now, XTTS-v2 supports 16 languages: English (en), Spanish (es), French (fr), German (de), Italian (it), Portuguese (pt), Polish (pl), Turkish (tr), Russian (ru), Dutch (nl), Czech (cs), Arabic (ar), Chinese (zh-cn), Japanese (ja), Hungarian (hu) and Korean (ko).
@@ -36,9 +36,71 @@ Come and join in our 🐸Community. We're active on [Discord](https://discord.gg
 You can also mail us at info@coqui.ai.
 
 ### Inference
+
+#### 🐸TTS Command line
+
+You can check all supported languages with the following command: 
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+    --list_language_idx
+```
+
+You can check all Coqui available speakers with the following command: 
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+    --list_speaker_idx
+```
+
+##### Coqui speakers
+You can do inference using one of the available speakers using the following command:
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent." \
+     --speaker_idx "Ana Florence" \
+     --language_idx en \
+     --use_cuda true
+```
+
+##### Clone a voice
+You can clone a speaker voice using a single or multiple references:
+
+###### Single reference
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/speaker.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+
+###### Multiple references
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/speaker.wav /path/to/target/speaker_2.wav /path/to/target/speaker_3.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+or for all wav files in a directory you can use:
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/*.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+
 #### 🐸TTS API
 
-##### Single reference
+##### Clone a voice
+You can clone a speaker voice using a single or multiple references:
+
+###### Single reference
 
 Splits the text into sentences and generates audio for each sentence. The audio files are then concatenated to produce the final audio.
 You can optionally disable sentence splitting for better coherence but more VRAM and possibly hitting models context length limit.
@@ -56,7 +118,7 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
                 )
 ```
 
-##### Multiple references
+###### Multiple references
 
 You can pass multiple audio files to the `speaker_wav` argument for better voice cloning.
 
@@ -81,34 +143,23 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
                 language="en")
 ```
 
-#### 🐸TTS Command line
+##### Coqui speakers
 
-##### Single reference
-```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
-     --text "Bugün okula gitmek istemiyorum." \
-     --speaker_wav /path/to/target/speaker.wav \
-     --language_idx tr \
-     --use_cuda true
+You can do inference using one of the available speakers using the following code:
+
+```python
+from TTS.api import TTS
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
+
+# generate speech by cloning a voice using default settings
+tts.tts_to_file(text="It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                file_path="output.wav",
+                speaker="Ana Florence",
+                language="en",
+                split_sentences=True
+                )
 ```
 
-##### Multiple references
-```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
-     --text "Bugün okula gitmek istemiyorum." \
-     --speaker_wav /path/to/target/speaker.wav /path/to/target/speaker_2.wav /path/to/target/speaker_3.wav \
-     --language_idx tr \
-     --use_cuda true
-```
-or for all wav files in a directory you can use:
-
-```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
-     --text "Bugün okula gitmek istemiyorum." \
-     --speaker_wav /path/to/target/*.wav \
-     --language_idx tr \
-     --use_cuda true
-```
 
 #### 🐸TTS Model API
 

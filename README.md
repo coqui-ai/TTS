@@ -7,8 +7,6 @@
 - 📣 [🐶Bark](https://github.com/suno-ai/bark) is now available for inference with unconstrained voice cloning. [Docs](https://tts.readthedocs.io/en/dev/models/bark.html)
 - 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
 - 📣 🐸TTS now supports 🐢Tortoise with faster inference. [Docs](https://tts.readthedocs.io/en/dev/models/tortoise.html)
-- 📣 **Coqui Studio API** is landed on 🐸TTS. - [Example](https://github.com/coqui-ai/TTS/blob/dev/README.md#-python-api)
-- 📣 [**Coqui Studio API**](https://docs.coqui.ai/docs) is live.
 - 📣 Voice generation with prompts - **Prompt to Voice** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin)!! - [Blog Post](https://coqui.ai/blog/tts/prompt-to-voice)
 - 📣 Voice generation with fusion - **Voice fusion** - is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
 - 📣 Voice cloning is live on [**Coqui Studio**](https://app.coqui.ai/auth/signin).
@@ -253,29 +251,6 @@ tts.tts_with_vc_to_file(
 )
 ```
 
-#### Example using [🐸Coqui Studio](https://coqui.ai) voices.
-You access all of your cloned voices and built-in speakers in [🐸Coqui Studio](https://coqui.ai).
-To do this, you'll need an API token, which you can obtain from the [account page](https://coqui.ai/account).
-After obtaining the API token, you'll need to configure the COQUI_STUDIO_TOKEN environment variable.
-
-Once you have a valid API token in place, the studio speakers will be displayed as distinct models within the list.
-These models will follow the naming convention `coqui_studio/en/<studio_speaker_name>/coqui_studio`
-
-```python
-# XTTS model
-models = TTS(cs_api_model="XTTS").list_models()
-# Init TTS with the target studio speaker
-tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False)
-# Run TTS
-tts.tts_to_file(text="This is a test.", language="en", file_path=OUTPUT_PATH)
-
-# V1 model
-models = TTS(cs_api_model="V1").list_models()
-# Run TTS with emotion and speed control
-# Emotion control only works with V1 model
-tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
-```
-
 #### Example text to speech using **Fairseq models in ~1100 languages** 🤯.
 For Fairseq models, use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
 You can find the language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html)
@@ -349,12 +324,6 @@ If you don't specify any models, then it uses LJSpeech based English model.
 
   ```
   $ tts --text "Text for TTS" --pipe_out --out_path output/path/speech.wav | aplay
-  ```
-
-- Run TTS and define speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0:
-
-  ```
-  $ tts --text "Text for TTS" --model_name "coqui_studio/<language>/<dataset>/<model_name>" --speed 1.2 --out_path output/path/speech.wav
   ```
 
 - Run a TTS model with its default vocoder model:
