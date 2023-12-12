@@ -56,4 +56,4 @@ ModelConfig()
 
 In the example above, ```ModelConfig()``` is the final configuration that the model receives and it has all the fields necessary for the model.
 
-We host pre-defined model configurations under ```TTS/<model_class>/configs/```.Although we recommend a unified config class, you can decompose it as you like as for your custom models as long as all the fields for the trainer, model, and inference APIs are provided.
+We host pre-defined model configurations under ```TTS/<model_class>/configs/```. Although we recommend a unified config class, you can decompose it as you like as for your custom models as long as all the fields for the trainer, model, and inference APIs are provided.

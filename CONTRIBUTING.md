@@ -48,7 +48,7 @@ The following steps are tested on an Ubuntu system.
 
 1. Fork 🐸TTS[https://github.com/coqui-ai/TTS] by clicking the fork button at the top right corner of the project page.
 
-2. Clone 🐸TTS and add the main repo as a new remote named ```upsteam```.
+2. Clone 🐸TTS and add the main repo as a new remote named ```upstream```.
 
     ```bash
     $ git clone git@github.com:<your Github name>/TTS.git

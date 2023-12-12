@@ -11,7 +11,7 @@ import fsspec
 import requests
 from tqdm import tqdm
 
-from TTS.config import load_config
+from TTS.config import load_config, read_json_with_comments
 from TTS.utils.generic_utils import get_user_data_dir
 
 LICENSE_URLS = {
@@ -65,30 +65,7 @@ class ModelManager(object):
         Args:
             file_path (str): path to .models.json.
         """
-        with open(file_path, "r", encoding="utf-8") as json_file:
-            self.models_dict = json.load(json_file)
-
-    def add_cs_api_models(self, model_list: List[str]):
-        """Add list of Coqui Studio model names that are returned from the api
-
-        Each has the following format `<coqui_studio_model>/en/<speaker_name>/<coqui_studio_model>`
-        """
-
-        def _add_model(model_name: str):
-            if not "coqui_studio" in model_name:
-                return
-            model_type, lang, dataset, model = model_name.split("/")
-            if model_type not in self.models_dict:
-                self.models_dict[model_type] = {}
-            if lang not in self.models_dict[model_type]:
-                self.models_dict[model_type][lang] = {}
-            if dataset not in self.models_dict[model_type][lang]:
-                self.models_dict[model_type][lang][dataset] = {}
-            if model not in self.models_dict[model_type][lang][dataset]:
-                self.models_dict[model_type][lang][dataset][model] = {}
-
-        for model_name in model_list:
-            _add_model(model_name)
+        self.models_dict = read_json_with_comments(file_path)
 
     def _list_models(self, model_type, model_count=0):
         if self.verbose:
@@ -315,6 +292,7 @@ class ModelManager(object):
                     f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/config.json",
                     f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/vocab.json",
                     f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/hash.md5",
+                    f"https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/{model_version}/speakers_xtts.pth",
                 ],
             }
         else:
@@ -332,9 +310,9 @@ class ModelManager(object):
     def ask_tos(model_full_path):
         """Ask the user to agree to the terms of service"""
         tos_path = os.path.join(model_full_path, "tos_agreed.txt")
-        print(" > You must agree to the terms of service to use this model.")
-        print(" | > Please see the terms of service at https://coqui.ai/cpml.txt")
-        print(' | > "I have read, understood and agreed to the Terms and Conditions." - [y/n]')
+        print(" > You must confirm the following:")
+        print(' | > "I have purchased a commercial license from Coqui: licensing@coqui.ai"')
+        print(' | > "Otherwise, I agree to the terms of the non-commercial CPML: https://coqui.ai/cpml" - [y/n]')
         answer = input(" | | > ")
         if answer.lower() == "y":
             with open(tos_path, "w", encoding="utf-8") as f:

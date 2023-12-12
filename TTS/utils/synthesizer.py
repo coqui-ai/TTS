@@ -305,7 +305,7 @@ class Synthesizer(nn.Module):
         speaker_embedding = None
         speaker_id = None
         if self.tts_speakers_file or hasattr(self.tts_model.speaker_manager, "name_to_id"):
-            if speaker_name and isinstance(speaker_name, str):
+            if speaker_name and isinstance(speaker_name, str) and not self.tts_config.model == "xtts":
                 if self.tts_config.use_d_vector_file:
                     # get the average speaker embedding from the saved d_vectors.
                     speaker_embedding = self.tts_model.speaker_manager.get_mean_embedding(
@@ -335,7 +335,9 @@ class Synthesizer(nn.Module):
         # handle multi-lingual
         language_id = None
         if self.tts_languages_file or (
-            hasattr(self.tts_model, "language_manager") and self.tts_model.language_manager is not None
+            hasattr(self.tts_model, "language_manager") 
+            and self.tts_model.language_manager is not None
+            and not self.tts_config.model == "xtts"
         ):
             if len(self.tts_model.language_manager.name_to_id) == 1:
                 language_id = list(self.tts_model.language_manager.name_to_id.values())[0]
@@ -366,6 +368,7 @@ class Synthesizer(nn.Module):
         if (
             speaker_wav is not None
             and self.tts_model.speaker_manager is not None
+            and hasattr(self.tts_model.speaker_manager, "encoder_ap")
             and self.tts_model.speaker_manager.encoder_ap is not None
         ):
             speaker_embedding = self.tts_model.speaker_manager.compute_embedding_from_clip(speaker_wav)

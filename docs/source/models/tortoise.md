@@ -1,6 +1,6 @@
 # 🐢 Tortoise
 Tortoise is a very expressive TTS system with impressive voice cloning capabilities. It is based on an GPT like autogressive acoustic model that converts input
-text to discritized acouistic tokens, a diffusion model that converts these tokens to melspeectrogram frames and a Univnet vocoder to convert the spectrograms to
+text to discritized acoustic tokens, a diffusion model that converts these tokens to melspectrogram frames and a Univnet vocoder to convert the spectrograms to
 the final audio signal. The important downside is that Tortoise is very slow compared to the parallel TTS models like VITS.
 
 Big thanks to 👑[@manmay-nakhashi](https://github.com/manmay-nakhashi) who helped us implement Tortoise in 🐸TTS.

@@ -21,7 +21,7 @@ a few tricks to make it faster and support streaming inference.
 - Across the board quality improvements.
 
 ### Code
-Current implementation only supports inference.
+Current implementation only supports inference and GPT encoder training.
 
 ### Languages
 As of now, XTTS-v2 supports 16 languages: English (en), Spanish (es), French (fr), German (de), Italian (it), Portuguese (pt), Polish (pl), Turkish (tr), Russian (ru), Dutch (nl), Czech (cs), Arabic (ar), Chinese (zh-cn), Japanese (ja), Hungarian (hu) and Korean (ko).
@@ -36,9 +36,71 @@ Come and join in our 🐸Community. We're active on [Discord](https://discord.gg
 You can also mail us at info@coqui.ai.
 
 ### Inference
+
+#### 🐸TTS Command line
+
+You can check all supported languages with the following command: 
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+    --list_language_idx
+```
+
+You can check all Coqui available speakers with the following command: 
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+    --list_speaker_idx
+```
+
+##### Coqui speakers
+You can do inference using one of the available speakers using the following command:
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent." \
+     --speaker_idx "Ana Florence" \
+     --language_idx en \
+     --use_cuda true
+```
+
+##### Clone a voice
+You can clone a speaker voice using a single or multiple references:
+
+###### Single reference
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/speaker.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+
+###### Multiple references
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/speaker.wav /path/to/target/speaker_2.wav /path/to/target/speaker_3.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+or for all wav files in a directory you can use:
+
+```console
+ tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
+     --text "Bugün okula gitmek istemiyorum." \
+     --speaker_wav /path/to/target/*.wav \
+     --language_idx tr \
+     --use_cuda true
+```
+
 #### 🐸TTS API
 
-##### Single reference
+##### Clone a voice
+You can clone a speaker voice using a single or multiple references:
+
+###### Single reference
 
 Splits the text into sentences and generates audio for each sentence. The audio files are then concatenated to produce the final audio.
 You can optionally disable sentence splitting for better coherence but more VRAM and possibly hitting models context length limit.
@@ -56,7 +118,7 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
                 )
 ```
 
-##### Multiple references
+###### Multiple references
 
 You can pass multiple audio files to the `speaker_wav` argument for better voice cloning.
 
@@ -81,82 +143,53 @@ tts.tts_to_file(text="It took me quite a long time to develop a voice, and now t
                 language="en")
 ```
 
-##### Streaming inference
+##### Coqui speakers
 
-XTTS supports streaming inference. This is useful for real-time applications.
+You can do inference using one of the available speakers using the following code:
 
 ```python
-import os
-import time
-import torch
-import torchaudio
-
-print("Loading model...")
+from TTS.api import TTS
 tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=True)
-model = tts.synthesizer.tts_model
 
-print("Computing speaker latents...")
-gpt_cond_latent, speaker_embedding = model.get_conditioning_latents(audio_path=["reference.wav"])
-
-print("Inference...")
-t0 = time.time()
-stream_generator = model.inference_stream(
-    "It took me quite a long time to develop a voice and now that I have it I am not going to be silent.",
-    "en",
-    gpt_cond_latent,
-    speaker_embedding
-)
-
-wav_chuncks = []
-for i, chunk in enumerate(stream_generator):
-    if i == 0:
-        print(f"Time to first chunck: {time.time() - t0}")
-    print(f"Received chunk {i} of audio length {chunk.shape[-1]}")
-    wav_chuncks.append(chunk)
-wav = torch.cat(wav_chuncks, dim=0)
-torchaudio.save("xtts_streaming.wav", wav.squeeze().unsqueeze(0).cpu(), 24000)
+# generate speech by cloning a voice using default settings
+tts.tts_to_file(text="It took me quite a long time to develop a voice, and now that I have it I'm not going to be silent.",
+                file_path="output.wav",
+                speaker="Ana Florence",
+                language="en",
+                split_sentences=True
+                )
 ```
 
-#### 🐸TTS Command line
-
-##### Single reference
-```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
-     --text "Bugün okula gitmek istemiyorum." \
-     --speaker_wav /path/to/target/speaker.wav \
-     --language_idx tr \
-     --use_cuda true
-```
-
-##### Multiple references
-```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
-     --text "Bugün okula gitmek istemiyorum." \
-     --speaker_wav /path/to/target/speaker.wav /path/to/target/speaker_2.wav /path/to/target/speaker_3.wav \
-     --language_idx tr \
-     --use_cuda true
-```
-or for all wav files in a directory you can use:
-
-```console
- tts --model_name tts_models/multilingual/multi-dataset/xtts_v2 \
-     --text "Bugün okula gitmek istemiyorum." \
-     --speaker_wav /path/to/target/*.wav \
-     --language_idx tr \
-     --use_cuda true
-```
 
 #### 🐸TTS Model API
 
 To use the model API, you need to download the model files and pass config and model file paths manually.
 
-##### Calling manually
+#### Manual Inference
 
-If you want to be able to run with `use_deepspeed=True` and **enjoy the speedup**, you need to install deepspeed first.
+If you want to be able to `load_checkpoint` with `use_deepspeed=True` and **enjoy the speedup**, you need to install deepspeed first.
 
 ```console
 pip install deepspeed==0.10.3
 ```
+
+##### inference parameters
+
+- `text`: The text to be synthesized.
+- `language`: The language of the text to be synthesized.
+- `gpt_cond_latent`: The latent vector you get with get_conditioning_latents. (You can cache for faster inference with same speaker)
+- `speaker_embedding`: The speaker embedding you get with get_conditioning_latents. (You can cache for faster inference with same speaker)
+- `temperature`: The softmax temperature of the autoregressive model. Defaults to 0.65.
+- `length_penalty`: A length penalty applied to the autoregressive decoder. Higher settings causes the model to produce more terse outputs. Defaults to 1.0.
+- `repetition_penalty`: A penalty that prevents the autoregressive decoder from repeating itself during decoding. Can be used to reduce the incidence of long silences or "uhhhhhhs", etc. Defaults to 2.0.
+- `top_k`: Lower values mean the decoder produces more "likely" (aka boring) outputs. Defaults to 50.
+- `top_p`: Lower values mean the decoder produces more "likely" (aka boring) outputs. Defaults to 0.8.
+- `speed`: The speed rate of the generated audio. Defaults to 1.0. (can produce artifacts if far from 1.0)
+- `enable_text_splitting`: Whether to split the text into sentences and generate audio for each sentence. It allows you to have infinite input length but might loose important context between sentences. Defaults to True.
+
+
+##### Inference
+
 
 ```python
 import os

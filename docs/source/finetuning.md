@@ -21,7 +21,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
     Fine-tuning comes to the rescue in this case. You can take one of our pre-trained models and fine-tune it on your own
     speech dataset and achieve reasonable results with only a couple of hours of data.
 
-    However, note that, fine-tuning does not ensure great results. The model performance is still depends on the
+    However, note that, fine-tuning does not ensure great results. The model performance still depends on the
     {ref}`dataset quality <what_makes_a_good_dataset>` and the hyper-parameters you choose for fine-tuning. Therefore,
     it still takes a bit of tinkering.
 
@@ -41,7 +41,7 @@ them and fine-tune it for your own dataset. This will help you in two main ways:
     tts --list_models
     ```
 
-    The command above lists the the models in a naming format as ```<model_type>/<language>/<dataset>/<model_name>```.
+    The command above lists the models in a naming format as ```<model_type>/<language>/<dataset>/<model_name>```.
 
     Or you can manually check the `.model.json` file in the project directory.
 

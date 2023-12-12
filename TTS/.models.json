@@ -3,12 +3,13 @@
         "multilingual": {
             "multi-dataset": {
                 "xtts_v2": {
-                    "description": "XTTS-v2.0.2 by Coqui with 16 languages.",
+                    "description": "XTTS-v2.0.3 by Coqui with 17 languages.",
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/config.json",
                         "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json",
-                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5"
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/speakers_xtts.pth"
                     ],
                     "model_hash": "10f92b55c512af7a8d39d650547a15a7",
                     "default_vocoder": null,
@@ -45,7 +46,7 @@
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf/bark/coarse_2.pt",
                         "https://coqui.gateway.scarf.sh/hf/bark/fine_2.pt",
-                        "https://app.coqui.ai/tts_model/text_2.pt",
+                        "https://coqui.gateway.scarf.sh/hf/text_2.pt",
                         "https://coqui.gateway.scarf.sh/hf/bark/config.json",
                         "https://coqui.gateway.scarf.sh/hf/bark/hubert.pt",
                         "https://coqui.gateway.scarf.sh/hf/bark/tokenizer.pth"
@@ -270,7 +271,7 @@
                 "tortoise-v2": {
                     "description": "Tortoise tts model https://github.com/neonbjb/tortoise-tts",
                     "github_rls_url": [
-                        "https://app.coqui.ai/tts_model/autoregressive.pth",
+                        "https://coqui.gateway.scarf.sh/v0.14.1_models/autoregressive.pth",
                         "https://coqui.gateway.scarf.sh/v0.14.1_models/clvp2.pth",
                         "https://coqui.gateway.scarf.sh/v0.14.1_models/cvvp.pth",
                         "https://coqui.gateway.scarf.sh/v0.14.1_models/diffusion_decoder.pth",
