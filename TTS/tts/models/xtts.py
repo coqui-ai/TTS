@@ -11,6 +11,7 @@ from TTS.tts.layers.xtts.gpt import GPT
 from TTS.tts.layers.xtts.hifigan_decoder import HifiDecoder
 from TTS.tts.layers.xtts.stream_generator import init_stream_support
 from TTS.tts.layers.xtts.tokenizer import VoiceBpeTokenizer, split_sentence
+from TTS.tts.layers.xtts.xtts_manager import SpeakerManager, LanguageManager
 from TTS.tts.models.base_tts import BaseTTS
 from TTS.utils.io import load_fsspec
 
@@ -378,7 +379,7 @@ class Xtts(BaseTTS):
 
         return gpt_cond_latents, speaker_embedding
 
-    def synthesize(self, text, config, speaker_wav, language, **kwargs):
+    def synthesize(self, text, config, speaker_wav, language, speaker_id=None, **kwargs):
         """Synthesize speech with the given input text.
 
         Args:
@@ -394,12 +395,6 @@ class Xtts(BaseTTS):
             as latents used at inference.
 
         """
-        return self.inference_with_config(text, config, ref_audio_path=speaker_wav, language=language, **kwargs)
-
-    def inference_with_config(self, text, config, ref_audio_path, language, **kwargs):
-        """
-        inference with config
-        """
         assert (
             "zh-cn" if language == "zh" else language in self.config.languages
         ), f" ❗ Language {language} is not supported. Supported languages are {self.config.languages}"
@@ -410,13 +405,18 @@ class Xtts(BaseTTS):
             "repetition_penalty": config.repetition_penalty,
             "top_k": config.top_k,
             "top_p": config.top_p,
+        }
+        settings.update(kwargs)  # allow overriding of preset settings with kwargs
+        if speaker_id is not None:
+            gpt_cond_latent, speaker_embedding = self.speaker_manager.speakers[speaker_id].values()
+            return self.inference(text, language, gpt_cond_latent, speaker_embedding, **settings)
+        settings.update({
             "gpt_cond_len": config.gpt_cond_len,
             "gpt_cond_chunk_len": config.gpt_cond_chunk_len,
             "max_ref_len": config.max_ref_len,
             "sound_norm_refs": config.sound_norm_refs,
-        }
-        settings.update(kwargs)  # allow overriding of preset settings with kwargs
-        return self.full_inference(text, ref_audio_path, language, **settings)
+        })
+        return self.full_inference(text, speaker_wav, language, **settings)
 
     @torch.inference_mode()
     def full_inference(
@@ -520,6 +520,8 @@ class Xtts(BaseTTS):
     ):
         language = language.split("-")[0]  # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
+        gpt_cond_latent = gpt_cond_latent.to(self.device)
+        speaker_embedding = speaker_embedding.to(self.device)
         if enable_text_splitting:
             text = split_sentence(text, language, self.tokenizer.char_limits[language])
         else:
@@ -628,6 +630,8 @@ class Xtts(BaseTTS):
     ):
         language = language.split("-")[0]  # remove the country code
         length_scale = 1.0 / max(speed, 0.05)
+        gpt_cond_latent = gpt_cond_latent.to(self.device)
+        speaker_embedding = speaker_embedding.to(self.device)
         if enable_text_splitting:
             text = split_sentence(text, language, self.tokenizer.char_limits[language])
         else:
@@ -733,6 +737,7 @@ class Xtts(BaseTTS):
         eval=True,
         strict=True,
         use_deepspeed=False,
+        speaker_file_path=None,
     ):
         """
         Loads a checkpoint from disk and initializes the model's state and tokenizer.
@@ -751,6 +756,12 @@ class Xtts(BaseTTS):
 
         model_path = checkpoint_path or os.path.join(checkpoint_dir, "model.pth")
         vocab_path = vocab_path or os.path.join(checkpoint_dir, "vocab.json")
+        speaker_file_path = speaker_file_path or os.path.join(checkpoint_dir, "speakers_xtts.pth")
+
+        self.language_manager = LanguageManager(config)
+        self.speaker_manager = None
+        if os.path.exists(speaker_file_path):
+            self.speaker_manager = SpeakerManager(speaker_file_path)
 
         if os.path.exists(vocab_path):
             self.tokenizer = VoiceBpeTokenizer(vocab_file=vocab_path)
