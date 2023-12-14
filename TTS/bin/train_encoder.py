@@ -125,7 +125,7 @@ def evaluation(model, criterion, data_loader, global_step):
 
 def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader, global_step):
     model.train()
-    best_loss = float("inf")
+    best_loss = {"train_loss": None, "eval_loss": float("inf")}
     avg_loader_time = 0
     end_time = time.time()
     for epoch in range(c.epochs):
@@ -248,7 +248,7 @@ def train(model, optimizer, scheduler, criterion, data_loader, eval_data_loader,
             )
             # save the best checkpoint
             best_loss = save_best_model(
-                eval_loss,
+                {"train_loss": None, "eval_loss": eval_loss},
                 best_loss,
                 c,
                 model,
