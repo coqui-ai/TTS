@@ -122,6 +122,7 @@ class TTS(nn.Module):
     def get_models_file_path():
         return Path(__file__).parent / ".models.json"
 
+    @staticmethod
     def list_models(self):
         return ModelManager(models_file=TTS.get_models_file_path(), progress_bar=False, verbose=False).list_models()
 
