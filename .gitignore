@@ -170,3 +170,5 @@ depot/*
 coqui_recipes/*
 local_scripts/*
 coqui_demos/*
+/get-pip.py
+/xttsenv

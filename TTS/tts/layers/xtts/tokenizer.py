@@ -64,7 +64,8 @@ def split_sentence(text, lang, text_split_length=250):
                 del text_splits[0]
     else:
         text_splits = [text.lstrip()]
-
+        
+    print('here are the text splits', text_splits)
     return text_splits
 
 
@@ -227,6 +228,31 @@ _abbreviations = {
         (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
         for x in [
             # Korean doesn't typically use abbreviations in the same way as Latin-based scripts.
+        ]
+    ],
+
+    "hi": [
+        # Hindi
+        (re.compile("\\b%s\\." % x[0], re.IGNORECASE), x[1])
+        for x in [
+            ("श्री", "श्रीमान"),
+            ("श्रीमती", "श्रीमती"),
+            ("डॉ", "डॉक्टर"),
+            ("संत", "संत"),
+            ("कं", "कंपनी"),
+            ("जूनियर", "जूनियर"),
+            ("मेजर", "मेजर"),
+            ("जनरल", "जनरल"),
+            ("डॉस", "डॉक्टर्स"),
+            ("रेव", "रेवरेंड"),
+            ("लेफ्टिनेंट", "लेफ्टिनेंट"),
+            ("माननीय", "माननीय"),
+            ("सार्जेंट", "सार्जेंट"),
+            ("कैप्टन", "कैप्टन"),
+            ("एस्क", "एस्क्वायर"),
+            ("लिमिटेड", "लिमिटेड"),
+            ("कर्नल", "कर्नल"),
+            ("फोर्ट", "फोर्ट"),
         ]
     ],
 }
@@ -425,6 +451,19 @@ _symbols_multilingual = {
             ("°", " 도 "),
         ]
     ],
+    "hi": [
+        # Hindi
+        (re.compile(r"%s" % re.escape(x[0]), re.IGNORECASE), x[1])
+        for x in [
+            ("&", " और "),
+            ("@", " एट "),
+            ("%", " प्रतिशत "),
+            ("#", " संख्या "),
+            ("$", " डॉलर "),
+            ("£", " पाउंड "),
+            ("°", " डिग्री "),
+        ]
+    ],
 }
 
 
@@ -450,6 +489,7 @@ _ordinal_re = {
     "tr": re.compile(r"([0-9]+)(\.|inci|nci|uncu|üncü|\.)"),
     "hu": re.compile(r"([0-9]+)(\.|adik|edik|odik|edik|ödik|ödike|ik)"),
     "ko": re.compile(r"([0-9]+)(번째|번|차|째)"),
+    "hi": re.compile(r"([0-9]+)(वां|रा|री|ठा|वीं)")
 }
 _number_re = re.compile(r"[0-9]+")
 _currency_re = {
@@ -501,6 +541,7 @@ def _expand_currency(m, lang="en", currency="USD"):
         "tr": ", ",
         "hu": ", ",
         "ko": ", ",
+        "hi": ", "
     }
 
     if amount.is_integer():
@@ -611,6 +652,7 @@ class VoiceBpeTokenizer:
             "ja": 71,
             "hu": 224,
             "ko": 95,
+            "hi":250
         }
 
     @cached_property
