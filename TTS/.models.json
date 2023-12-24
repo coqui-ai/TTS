@@ -2,6 +2,37 @@
     "tts_models": {
         "multilingual": {
             "multi-dataset": {
+                "xtts_v2": {
+                    "description": "XTTS-v2.0.3 by Coqui with 17 languages.",
+                    "hf_url": [
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/hash.md5",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/speakers_xtts.pth"
+                    ],
+                    "model_hash": "10f92b55c512af7a8d39d650547a15a7",
+                    "default_vocoder": null,
+                    "commit": "480a6cdf7",
+                    "license": "CPML",
+                    "contact": "info@coqui.ai",
+                    "tos_required": true
+                },
+                "xtts_v1.1": {
+                    "description": "XTTS-v1.1 by Coqui with 14 languages, cross-language voice cloning and reference leak fixed.",
+                    "hf_url": [
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.2/model.pth",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.2/config.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.2/vocab.json",
+                        "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v1/v1.1.2/hash.md5"
+                    ],
+                    "model_hash": "7c62beaf58d39b729de287330dc254e7b515677416839b649a50e7cf74c3df59",
+                    "default_vocoder": null,
+                    "commit": "82910a63",
+                    "license": "CPML",
+                    "contact": "info@coqui.ai",
+                    "tos_required": true
+                },
                 "your_tts": {
                     "description": "Your TTS model accompanying the paper https://arxiv.org/abs/2112.02418",
                     "github_rls_url": "https://coqui.gateway.scarf.sh/v0.10.1_models/tts_models--multilingual--multi-dataset--your_tts.zip",
@@ -15,8 +46,10 @@
                     "hf_url": [
                         "https://coqui.gateway.scarf.sh/hf/bark/coarse_2.pt",
                         "https://coqui.gateway.scarf.sh/hf/bark/fine_2.pt",
-                        "https://coqui.gateway.scarf.sh/hf/bark/text_2.pt",
-                        "https://coqui.gateway.scarf.sh/hf/bark/config.json"
+                        "https://coqui.gateway.scarf.sh/hf/text_2.pt",
+                        "https://coqui.gateway.scarf.sh/hf/bark/config.json",
+                        "https://coqui.gateway.scarf.sh/hf/bark/hubert.pt",
+                        "https://coqui.gateway.scarf.sh/hf/bark/tokenizer.pth"
                     ],
                     "default_vocoder": null,
                     "commit": "e9a1953e",
@@ -713,6 +746,18 @@
                     "license": "Apache 2.0"
                 }
             }
+        },
+        "be": {
+            "common-voice": {
+                "glow-tts":{
+                    "description": "Belarusian GlowTTS model created by @alex73 (Github).",
+                    "github_rls_url":"https://coqui.gateway.scarf.sh/v0.16.6/tts_models--be--common-voice--glow-tts.zip",
+                    "default_vocoder": "vocoder_models/be/common-voice/hifigan",
+                    "commit": "c0aabb85",
+                    "license": "CC-BY-SA 4.0",
+                    "contact": "alex73mail@gmail.com"
+                }
+            }
         }
     },
     "vocoder_models": {
@@ -862,6 +907,17 @@
                     "author": "Fatih Akademi",
                     "license": "MIT",
                     "commit": null
+                }
+            }
+        },
+        "be": {
+            "common-voice": {
+                "hifigan": {
+                    "github_rls_url": "https://coqui.gateway.scarf.sh/v0.16.6/vocoder_models--be--common-voice--hifigan.zip",
+                    "description": "Belarusian HiFiGAN model created by @alex73 (Github).",
+                    "author": "@alex73",
+                    "license": "CC-BY-SA 4.0",
+                    "commit": "c0aabb85"
                 }
             }
         }

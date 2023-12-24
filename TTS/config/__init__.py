@@ -16,12 +16,9 @@ def read_json_with_comments(json_path):
     # fallback to json
     with fsspec.open(json_path, "r", encoding="utf-8") as f:
         input_str = f.read()
-    # handle comments
-    input_str = re.sub(r"\\\n", "", input_str)
-    input_str = re.sub(r"//.*\n", "\n", input_str)
-    data = json.loads(input_str)
-    return data
-
+    # handle comments but not urls with //
+    input_str = re.sub(r"(\"(?:[^\"\\]|\\.)*\")|(/\*(?:.|[\\n\\r])*?\*/)|(//.*)", lambda m: m.group(1) or m.group(2) or "", input_str)
+    return json.loads(input_str)
 
 def register_config(model_name: str) -> Coqpit:
     """Find the right config for the given model name.
@@ -37,6 +34,12 @@ def register_config(model_name: str) -> Coqpit:
     """
     config_class = None
     config_name = model_name + "_config"
+
+    # TODO: fix this
+    if model_name == "xtts":
+        from TTS.tts.configs.xtts_config import XttsConfig
+
+        config_class = XttsConfig
     paths = ["TTS.tts.configs", "TTS.vocoder.configs", "TTS.encoder.configs", "TTS.vc.configs"]
     for path in paths:
         try:

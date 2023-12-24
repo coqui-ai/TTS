@@ -686,6 +686,7 @@ class F0Dataset:
         self,
         samples: Union[List[List], List[Dict]],
         ap: "AudioProcessor",
+        audio_config=None,  # pylint: disable=unused-argument
         verbose=False,
         cache_path: str = None,
         precompute_num_workers=0,

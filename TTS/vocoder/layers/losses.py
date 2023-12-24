@@ -195,10 +195,10 @@ def _apply_D_loss(scores_fake, scores_real, loss_func):
     if isinstance(scores_fake, list):
         # multi-scale loss
         for score_fake, score_real in zip(scores_fake, scores_real):
-            total_loss, real_loss, fake_loss = loss_func(score_fake=score_fake, score_real=score_real)
+            total_loss, real_loss_, fake_loss_ = loss_func(score_fake=score_fake, score_real=score_real)
             loss += total_loss
-            real_loss += real_loss
-            fake_loss += fake_loss
+            real_loss += real_loss_
+            fake_loss += fake_loss_
         # normalize loss values with number of scales (discriminators)
         loss /= len(scores_fake)
         real_loss /= len(scores_real)

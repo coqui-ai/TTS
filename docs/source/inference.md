@@ -114,25 +114,31 @@ tts-server --model_name "<type>/<language>/<dataset>/<model_name>" \
 You can run a multi-speaker and multi-lingual model in Python as
 
 ```python
+import torch
 from TTS.api import TTS
 
-# List available 🐸TTS models and choose the first one
-model_name = TTS.list_models()[0]
+# Get device
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# List available 🐸TTS models
+print(TTS().list_models())
+
 # Init TTS
-tts = TTS(model_name)
+tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+
 # Run TTS
-# ❗ Since this model is multi-speaker and multi-lingual, we must set the target speaker and the language
-# Text to speech with a numpy output
-wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
+# ❗ Since this model is multi-lingual voice cloning model, we must set the target speaker_wav and language
+# Text to speech list of amplitude values as output
+wav = tts.tts(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en")
 # Text to speech to a file
-tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path="output.wav")
+tts.tts_to_file(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 ```
 
 #### Here is an example for a single speaker model.
 
 ```python
 # Init TTS with the target model name
-tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
+tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False)
 # Run TTS
 tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path=OUTPUT_PATH)
 ```
@@ -140,7 +146,7 @@ tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path=OUTPUT_PATH)
 #### Example voice cloning with YourTTS in English, French and Portuguese:
 
 ```python
-tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False, gpu=True)
+tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False).to("cuda")
 tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
 tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr", file_path="output.wav")
 tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt", file_path="output.wav")
@@ -149,7 +155,7 @@ tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", 
 #### Example voice conversion converting speaker of the `source_wav` to the speaker of the `target_wav`
 
 ```python
-tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False, gpu=True)
+tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False).to("cuda")
 tts.voice_conversion_to_file(source_wav="my/source.wav", target_wav="my/target.wav", file_path="output.wav")
 ```
 
@@ -166,39 +172,6 @@ tts.tts_with_vc_to_file(
 )
 ```
 
-#### Example text to speech using [🐸Coqui Studio](https://coqui.ai) models.
-
-You can use all of your available speakers in the studio.
-[🐸Coqui Studio](https://coqui.ai) API token is required. You can get it from the [account page](https://coqui.ai/account).
-You should set the `COQUI_STUDIO_TOKEN` environment variable to use the API token.
-
-```python
-# If you have a valid API token set you will see the studio speakers as separate models in the list.
-# The name format is coqui_studio/en/<studio_speaker_name>/coqui_studio
-models = TTS().list_models()
-# Init TTS with the target studio speaker
-tts = TTS(model_name="coqui_studio/en/Torcull Diarmuid/coqui_studio", progress_bar=False, gpu=False)
-# Run TTS
-tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH)
-# Run TTS with emotion and speed control
-tts.tts_to_file(text="This is a test.", file_path=OUTPUT_PATH, emotion="Happy", speed=1.5)
-```
-
-If you just need 🐸 Coqui Studio speakers, you can use `CS_API`. It is a wrapper around the 🐸 Coqui Studio API.
-
-```python
-from TTS.api import CS_API
-
-# Init 🐸 Coqui Studio API
-# you can either set the API token as an environment variable `COQUI_STUDIO_TOKEN` or pass it as an argument.
-api = CS_API(api_token=<token>)
-api.speakers
-api.emotions
-api.list_speakers()
-api.list_voices()
-wav, sample_rate = api.tts(text="This is a test.", speaker=api.speakers[0].name, emotion="Happy", speed=1.5)
-```
-
 #### Example text to speech using **Fairseq models in ~1100 languages** 🤯.
 For these models use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
 
@@ -206,7 +179,7 @@ You can find the list of language ISO codes [here](https://dl.fbaipublicfiles.co
 
 ```python
 from TTS.api import TTS
-api = TTS(model_name="tts_models/eng/fairseq/vits", gpu=True)
+api = TTS(model_name="tts_models/eng/fairseq/vits").to("cuda")
 api.tts_to_file("This is a test.", file_path="output.wav")
 
 # TTS with on the fly voice conversion

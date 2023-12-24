@@ -5,7 +5,8 @@ import numpy as np
 import torch
 from coqpit import Coqpit
 from torch import nn
-from torch.nn.utils import weight_norm
+from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from trainer.trainer_utils import get_optimizer, get_scheduler
@@ -178,27 +179,27 @@ class Wavegrad(BaseVocoder):
         for _, layer in enumerate(self.dblocks):
             if len(layer.state_dict()) != 0:
                 try:
-                    nn.utils.remove_weight_norm(layer)
+                    remove_parametrizations(layer, "weight")
                 except ValueError:
                     layer.remove_weight_norm()
 
         for _, layer in enumerate(self.film):
             if len(layer.state_dict()) != 0:
                 try:
-                    nn.utils.remove_weight_norm(layer)
+                    remove_parametrizations(layer, "weight")
                 except ValueError:
                     layer.remove_weight_norm()
 
         for _, layer in enumerate(self.ublocks):
             if len(layer.state_dict()) != 0:
                 try:
-                    nn.utils.remove_weight_norm(layer)
+                    remove_parametrizations(layer, "weight")
                 except ValueError:
                     layer.remove_weight_norm()
 
-        nn.utils.remove_weight_norm(self.x_conv)
-        nn.utils.remove_weight_norm(self.out_conv)
-        nn.utils.remove_weight_norm(self.y_conv)
+        remove_parametrizations(self.x_conv, "weight")
+        remove_parametrizations(self.out_conv, "weight")
+        remove_parametrizations(self.y_conv, "weight")
 
     def apply_weight_norm(self):
         for _, layer in enumerate(self.dblocks):

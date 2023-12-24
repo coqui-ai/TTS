@@ -94,6 +94,7 @@ class ParallelWaveganConfig(BaseGANVocoderConfig):
     use_noise_augment: bool = False
     use_cache: bool = True
     steps_to_start_discriminator: int = 200000
+    target_loss: str = "loss_1"
 
     # LOSS PARAMETERS - overrides
     use_stft_loss: bool = True
