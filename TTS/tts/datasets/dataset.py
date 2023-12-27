@@ -13,6 +13,8 @@ from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.audio.numpy_transforms import compute_energy as calculate_energy
 
+import mutagen
+
 # to prevent too many open files error as suggested here
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -40,6 +42,15 @@ def string2filename(string):
     # generate a safe and reversible filename based on a string
     filename = base64.urlsafe_b64encode(string.encode("utf-8")).decode("utf-8", "ignore")
     return filename
+
+
+def get_audio_size(audiopath):
+    extension = audiopath.rpartition(".")[-1].lower()
+    if extension not in {"mp3", "wav", "flac"}:
+        raise RuntimeError(f"The audio format {extension} is not supported, please convert the audio files to mp3, flac, or wav format!")
+
+    audio_info = mutagen.File(audiopath).info
+    return int(audio_info.length * audio_info.sample_rate)
 
 
 class TTSDataset(Dataset):
@@ -176,7 +187,7 @@ class TTSDataset(Dataset):
         lens = []
         for item in self.samples:
             _, wav_file, *_ = _parse_sample(item)
-            audio_len = os.path.getsize(wav_file) / 16 * 8  # assuming 16bit audio
+            audio_len = get_audio_size(wav_file)
             lens.append(audio_len)
         return lens
 
@@ -295,7 +306,7 @@ class TTSDataset(Dataset):
     def _compute_lengths(samples):
         new_samples = []
         for item in samples:
-            audio_length = os.path.getsize(item["audio_file"]) / 16 * 8  # assuming 16bit audio
+            audio_length = get_audio_size(item["audio_file"])
             text_lenght = len(item["text"])
             item["audio_length"] = audio_length
             item["text_length"] = text_lenght
