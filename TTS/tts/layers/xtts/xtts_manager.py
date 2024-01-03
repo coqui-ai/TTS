@@ -14,7 +14,7 @@ class SpeakerManager():
     
     @property
     def speaker_names(self):
-        return list(self.name_to_id.keys())
+        return list(self.name_to_id)
     
 
 class LanguageManager():
