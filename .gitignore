@@ -170,3 +170,4 @@ depot/*
 coqui_recipes/*
 local_scripts/*
 coqui_demos/*
+fastapi-server/demo_outputs/*
