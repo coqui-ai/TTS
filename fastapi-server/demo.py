@@ -6,7 +6,7 @@ import json
 import os
 
 
-SERVER_URL = 'https://bazsyqz5jc4up9-8888.proxy.runpod.net:443'
+SERVER_URL = os.environ.get("TTS_API_ENDPOINT", 'http://localhost:8888')
 OUTPUT = "./demo_outputs"
 cloned_speakers = {}
 
@@ -40,7 +40,7 @@ def clone_speaker(upload_file, clone_speaker_name, cloned_speaker_names):
         json.dump(embeddings, fp)
     cloned_speakers[clone_speaker_name] = embeddings
     cloned_speaker_names.append(clone_speaker_name)
-    return upload_file, clone_speaker_name, cloned_speaker_names, gr.Dropdown.update(choices=cloned_speaker_names)
+    return upload_file, clone_speaker_name, cloned_speaker_names, gr.Dropdown(choices=cloned_speaker_names)
 
 def tts(text, speaker_type, speaker_name_studio, speaker_name_custom, lang):
     embeddings = STUDIO_SPEAKERS[speaker_name_studio] if speaker_type == 'Studio' else cloned_speakers[speaker_name_custom]

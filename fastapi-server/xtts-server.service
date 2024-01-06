@@ -1,0 +1,11 @@
+[Unit]
+Description=A xTTS speech synthesis server
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/xtts-streaming-server/server
+ExecStart=/home/ubuntu/TTS/.venv/bin/python /home/ubuntu/TTS/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 8888
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
