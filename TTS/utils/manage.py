@@ -270,6 +270,7 @@ class ModelManager(object):
                 "description": "this model is released by Meta under Fairseq repo. Visit https://github.com/facebookresearch/fairseq/tree/main/examples/mms for more info.",
             }
             model_item["model_name"] = model_name
+            model_type, lang, dataset, model = model_name.split("/")
         elif "xtts" in model_name and len(model_name.split("/")) != 4:
             # loading xtts models with only model name (e.g. xtts_v2.0.2)
             # check model name has the version number with regex
