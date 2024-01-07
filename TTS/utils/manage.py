@@ -260,10 +260,13 @@ class ModelManager(object):
     def _set_model_item(self, model_name):
         # fetch model info from the dict
         if "fairseq" in model_name:
-            model_type = "tts_models"
-            lang = model_name.split("/")[1]
+            split = model_name.split("/")
+            model_type = split[0]
+            lang = split[1]
+            dataset = split[2]
+            model = split[3]
             model_item = {
-                "model_type": "tts_models",
+                "model_type": model_type,
                 "license": "CC BY-NC 4.0",
                 "default_vocoder": None,
                 "author": "fairseq",
