@@ -191,10 +191,19 @@ lock = Lock()
 @app.route("/api/tts", methods=["GET", "POST"])
 def tts():
     with lock:
-        text = request.headers.get("text") or request.values.get("text", "")
-        speaker_idx = request.headers.get("speaker-id") or request.values.get("speaker_id", "")
-        language_idx = request.headers.get("language-id") or request.values.get("language_id", "")
-        style_wav = request.headers.get("style-wav") or request.values.get("style_wav", "")
+        try:
+            data = request.get_json()
+            text = data.get("text", "")
+            speaker_idx = data.get("speaker-id", "")
+            language_idx = data.get("language-id", "")
+            style_wav = data.get("style-wav", "")
+        except:
+            # Fallback to headers and form data if JSON data is not present
+            text = request.headers.get("text") or request.values.get("text", "")
+            speaker_idx = request.headers.get("speaker-id") or request.values.get("speaker_id", "")
+            language_idx = request.headers.get("language-id") or request.values.get("language_id", "")
+            style_wav = request.headers.get("style-wav") or request.values.get("style_wav", "")
+
         style_wav = style_wav_uri_to_dict(style_wav)
 
         print(f" > Model input: {text}")
