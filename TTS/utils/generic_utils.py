@@ -36,9 +36,7 @@ def get_git_branch():
         current.replace("* ", "")
     except subprocess.CalledProcessError:
         current = "inside_docker"
-    except FileNotFoundError:
-        current = "unknown"
-    except StopIteration:
+    except (FileNotFoundError, StopIteration) as e:
         current = "unknown"
     return current
 
