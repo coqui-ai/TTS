@@ -13,7 +13,7 @@ from TTS.config import load_config
 
 
 class TTS(nn.Module):
-    """TODO: Add voice conversion and Capacitron support."""
+    """🐸TTS python interface that allows loading and using released models."""
 
     def __init__(
         self,
@@ -25,39 +25,29 @@ class TTS(nn.Module):
         progress_bar: bool = True,
         gpu=False,
     ):
-        """🐸TTS python interface that allows to load and use the released models.
+        """Initialize the TTS module.
 
         Example with a multi-speaker model:
             >>> from TTS.api import TTS
-            >>> tts = TTS(TTS.list_models()[0])
-            >>> wav = tts.tts("This is a test! This is also a test!!", speaker=tts.speakers[0], language=tts.languages[0])
+            >>> tts = TTS(model_name=TTS().list_models().list_models()[0], gpu=gpu)
+            >>> wav = tts.tts("This is a test!", speaker=tts.speakers[0], language=tts.languages[0])
             >>> tts.tts_to_file(text="Hello world!", speaker=tts.speakers[0], language=tts.languages[0], file_path="output.wav")
 
         Example with a single-speaker model:
-            >>> tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=False)
+            >>> tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False, gpu=gpu)
             >>> tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path="output.wav")
 
         Example loading a model from a path:
-            >>> tts = TTS(model_path="/path/to/checkpoint_100000.pth", config_path="/path/to/config.json", progress_bar=False, gpu=False)
+            >>> tts = TTS(model_path="/path/to/checkpoint_100000.pth", config_path="/path/to/config.json", progress_bar=False, gpu=gpu)
             >>> tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path="output.wav")
 
-        Example voice cloning with YourTTS in English, French and Portuguese:
-            >>> tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False, gpu=True)
-            >>> tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="thisisit.wav")
-            >>> tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr", file_path="thisisit.wav")
-            >>> tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt", file_path="thisisit.wav")
-
-        Example Fairseq TTS models (uses ISO language codes in https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html):
-            >>> tts = TTS(model_name="tts_models/eng/fairseq/vits", progress_bar=False, gpu=True)
-            >>> tts.tts_to_file("This is a test.", file_path="output.wav")
-
         Args:
-            model_name (str, optional): Model name to load. You can list models by ```tts.models```. Defaults to None.
+            model_name (str, optional): Model name to load. You can list models by `tts.models`. Defaults to None.
             model_path (str, optional): Path to the model checkpoint. Defaults to None.
             config_path (str, optional): Path to the model config. Defaults to None.
             vocoder_path (str, optional): Path to the vocoder checkpoint. Defaults to None.
             vocoder_config_path (str, optional): Path to the vocoder config. Defaults to None.
-            progress_bar (bool, optional): Whether to pring a progress bar while downloading a model. Defaults to True.
+            progress_bar (bool, optional): Whether to print a progress bar while downloading a model. Defaults to True.
             gpu (bool, optional): Enable/disable GPU. Some models might be too slow on CPU. Defaults to False.
         """
         super().__init__()
