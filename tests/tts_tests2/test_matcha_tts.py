@@ -29,5 +29,7 @@ class TestMatchTTS(unittest.TestCase):
 
         model.train()
 
+        model.forward(input_dummy, input_lengths, mel_spec, mel_lengths)
+
     def test_forward(self):
         self._test_forward(1)
