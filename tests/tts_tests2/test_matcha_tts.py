@@ -33,3 +33,4 @@ class TestMatchTTS(unittest.TestCase):
 
     def test_forward(self):
         self._test_forward(1)
+        self._test_forward(3)
