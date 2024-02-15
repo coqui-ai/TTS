@@ -13,6 +13,7 @@ class Decoder(nn.Module):
             in_channels=80,
             model_channels=160,
             out_channels=80,
+            num_blocks=2
         )
 
     def forward(self, x_1, mean, mask):
