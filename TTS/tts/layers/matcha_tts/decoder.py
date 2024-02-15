@@ -11,7 +11,7 @@ class Decoder(nn.Module):
         self.sigma_min = 1e-5
         self.predictor = UNet(
             in_channels=80,
-            model_channels=160,
+            model_channels=256,
             out_channels=80,
             num_blocks=2
         )
