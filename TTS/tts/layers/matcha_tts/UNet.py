@@ -76,7 +76,7 @@ class UNet(nn.Module):
         )
 
         self.input_blocks = nn.ModuleList([])
-        block_in_channels = in_channels
+        block_in_channels = in_channels * 2
         for _ in range(num_blocks):
             block = nn.ModuleList([])
 
@@ -87,6 +87,8 @@ class UNet(nn.Module):
                     time_embed_channels=time_embed_channels
                 )
             )
+
+            self.input_blocks.append(block)
 
         self.middle_blocks = nn.ModuleList([])
         self.output_blocks = nn.ModuleList([])
