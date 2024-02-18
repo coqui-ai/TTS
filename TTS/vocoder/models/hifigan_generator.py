@@ -3,7 +3,7 @@ import torch
 from torch import nn
 from torch.nn import Conv1d, ConvTranspose1d
 from torch.nn import functional as F
-from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.weight_norm import weight_norm
 from torch.nn.utils.parametrize import remove_parametrizations
 
 from TTS.utils.io import load_fsspec
