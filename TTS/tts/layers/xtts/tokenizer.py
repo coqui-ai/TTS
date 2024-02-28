@@ -8,29 +8,21 @@ import torch
 from hangul_romanize import Transliter
 from hangul_romanize.rule import academic
 from num2words import num2words
-from spacy.lang.ar import Arabic
 from spacy.lang.en import English
-from spacy.lang.es import Spanish
-from spacy.lang.ja import Japanese
-from spacy.lang.zh import Chinese
+from spacy.util import get_lang_class
+
 from tokenizers import Tokenizer
 
 from TTS.tts.layers.xtts.zh_num2words import TextNorm as zh_num2words
 
 
 def get_spacy_lang(lang):
-    if lang == "zh":
-        return Chinese()
-    elif lang == "ja":
-        return Japanese()
-    elif lang == "ar":
-        return Arabic()
-    elif lang == "es":
-        return Spanish()
-    else:
-        # For most languages, Enlish does the job
-        return English()
-
+    try:
+        lang_model = get_lang_class(lang)()
+    except ImportError:
+        # Fallback to English if the language model is not available
+        lang_model = English()
+    return lang_model
 
 def split_sentence(text, lang, text_split_length=250):
     """Preprocess the input text"""
