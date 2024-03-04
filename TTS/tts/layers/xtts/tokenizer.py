@@ -32,7 +32,7 @@ def get_spacy_lang(lang):
         return English()
 
 
-def split_sentence(text, lang, text_split_length=250):
+def split_sentence(text, lang, text_split_length=400):
     """Preprocess the input text"""
     text_splits = []
     if text_split_length is not None and len(text) >= text_split_length:
@@ -595,7 +595,7 @@ class VoiceBpeTokenizer:
         if vocab_file is not None:
             self.tokenizer = Tokenizer.from_file(vocab_file)
         self.char_limits = {
-            "en": 250,
+            "en": 400,
             "de": 253,
             "fr": 273,
             "es": 239,
@@ -621,7 +621,7 @@ class VoiceBpeTokenizer:
 
     def check_input_length(self, txt, lang):
         lang = lang.split("-")[0]  # remove the region
-        limit = self.char_limits.get(lang, 250)
+        limit = self.char_limits.get(lang, 400)
         if len(txt) > limit:
             print(
                 f"[!] Warning: The text length exceeds the character limit of {limit} for language '{lang}', this might cause truncated audio."
