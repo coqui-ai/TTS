@@ -8,7 +8,7 @@ from TTS.tts.layers.xtts.trainer.gpt_trainer import GPTArgs, GPTTrainer, GPTTrai
 from TTS.utils.manage import ModelManager
 
 # Logging parameters
-RUN_NAME = "GPT_XTTS_v2.0_LJSpeech_FT"
+RUN_NAME = "GPT_XTTS_v2.0_AfroTTS_FT"
 PROJECT_NAME = "XTTS_trainer"
 DASHBOARD_LOGGER = "tensorboard"
 LOGGER_URI = None
@@ -18,17 +18,18 @@ OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run", "trai
 
 # Training Parameters
 OPTIMIZER_WD_ONLY_ON_WEIGHTS = True  # for multi-gpu training please make it False
-START_WITH_EVAL = True  # if True it will star with evaluation
-BATCH_SIZE = 3  # set here the batch size
-GRAD_ACUMM_STEPS = 84  # set here the grad accumulation steps
+START_WITH_EVAL = False  # if True it will star with evaluation
+BATCH_SIZE = 16  # set here the batch size
+GRAD_ACUMM_STEPS = 4  # set here the grad accumulation steps
 # Note: we recommend that BATCH_SIZE * GRAD_ACUMM_STEPS need to be at least 252 for more efficient training. You can increase/decrease BATCH_SIZE but then set GRAD_ACUMM_STEPS accordingly.
 
 # Define here the dataset that you want to use for the fine-tuning on.
 config_dataset = BaseDatasetConfig(
-    formatter="ljspeech",
-    dataset_name="ljspeech",
-    path="/raid/datasets/LJSpeech-1.1_24khz/",
-    meta_file_train="/raid/datasets/LJSpeech-1.1_24khz/metadata.csv",
+    formatter="afrotts",
+    dataset_name="afrotts",
+    path="/data4/data/AfriSpeech-TTS-D/",
+    meta_file_train="/data4/abraham/tts/AfriSpeech-TTS/data/afritts-train-clean.csv",
+    meta_file_val="/data4/abraham/tts/AfriSpeech-TTS/data/afritts-dev-clean.csv",
     language="en",
 )
 
@@ -72,7 +73,7 @@ if not os.path.isfile(TOKENIZER_FILE) or not os.path.isfile(XTTS_CHECKPOINT):
 
 # Training sentences generations
 SPEAKER_REFERENCE = [
-    "./tests/data/ljspeech/wavs/LJ001-0002.wav"  # speaker reference to be used in training test sentences
+    "/data4/data/AfriSpeech-TTS-D/train/1dddeb9f-18ec-4498-b74b-84ac59f2fcf1/e9af9831281555e8685e511f7becdf32_P2L385Vp.wav"  # speaker reference to be used in training test sentences
 ]
 LANGUAGE = config_dataset.language
 
@@ -83,8 +84,8 @@ def main():
         max_conditioning_length=132300,  # 6 secs
         min_conditioning_length=66150,  # 3 secs
         debug_loading_failures=False,
-        max_wav_length=255995,  # ~11.6 seconds
-        max_text_length=200,
+        max_wav_length=255995,  # ~11.6 seconds  661500, #~ 30 seconds #
+        max_text_length=300,
         mel_norm_file=MEL_NORM_FILE,
         dvae_checkpoint=DVAE_CHECKPOINT,
         xtts_checkpoint=XTTS_CHECKPOINT,  # checkpoint path of the model that you want to fine-tune
@@ -110,18 +111,18 @@ def main():
         logger_uri=LOGGER_URI,
         audio=audio_config,
         batch_size=BATCH_SIZE,
-        batch_group_size=48,
+        batch_group_size=64,
         eval_batch_size=BATCH_SIZE,
         num_loader_workers=8,
         eval_split_max_size=256,
         print_step=50,
         plot_step=100,
-        log_model_step=1000,
-        save_step=10000,
-        save_n_checkpoints=1,
+        log_model_step=100,
+        save_step=1000,
+        save_n_checkpoints=3,
         save_checkpoints=True,
         # target_loss="loss",
-        print_eval=False,
+        print_eval=True,
         # Optimizer values like tortoise, pytorch implementation with modifications to not apply WD to non-weight parameters.
         optimizer="AdamW",
         optimizer_wd_only_on_weights=OPTIMIZER_WD_ONLY_ON_WEIGHTS,
@@ -154,7 +155,6 @@ def main():
         eval_split_max_size=config.eval_split_max_size,
         eval_split_size=config.eval_split_size,
     )
-
     # init the trainer and 🚀
     trainer = Trainer(
         TrainerArgs(
@@ -174,3 +174,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+DATASETS_CONFIG_LIST
