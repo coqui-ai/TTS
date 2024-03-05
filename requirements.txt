@@ -55,3 +55,9 @@ encodec>=0.1.1
 unidecode>=1.3.2
 num2words
 spacy[ja]>=3
+
+# spacy thai
+pythainlp>=5.0.1
+
+#spacy vietnamese
+pyvi>=0.1.1
