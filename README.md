@@ -144,6 +144,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 You can also help us implement more models.
 
 ## Installation
+# Linux
 🐸TTS is tested on Ubuntu 18.04 with **python >= 3.9, < 3.12.**.
 
 If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
@@ -165,8 +166,44 @@ If you are on Ubuntu (Debian), you can also run following commands for installat
 $ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a different OS.
 $ make install
 ```
+# Windows
 
-If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
+🐸TTS is on python 3.11.x
+Download CUDA Toolkit 12.1 on https://developer.nvidia.com/cuda-12-1-0-download-archive.
+
+Download cuDNN 8.9.4 for cuda12.x https://developer.nvidia.com/rdp/cudnn-archive. And extract to C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\cuda
+
+Download the latest 64-bit version of eSpeak NG (no version constraints :-) ).
+
+Download the latest 64-bit version of Git for Windows (no version constraints :-) ).
+
+```powershell
+pip install virtualenv
+virtualenv venv
+./venv/Scripts/activate.bat
+pip install -r requirements.txt
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+Then, create a file that named 'test.py'
+
+```test.py
+import torch
+x = torch.rand(5, 3)
+print(x)
+print(torch.cuda.is_available())
+```
+Run the script via and confirm the output looks like this (the first part should have just random numbers, but the last line must read ; if it does not, CUDA is not installed properly)
+
+```terminal
+tensor([[0.2141, 0.7808, 0.9298],
+        [0.3107, 0.8569, 0.9562],
+        [0.2878, 0.7515, 0.5547],
+        [0.5007, 0.6904, 0.4136],
+        [0.2443, 0.4158, 0.4245]])
+True
+```
+
+If the last word is "True" that means you installed it successfully.
 
 
 ## Docker Image
