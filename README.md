@@ -183,8 +183,27 @@ virtualenv venv
 ./venv/Scripts/activate.bat
 pip install -r requirements.txt
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-
 ```
+Then, create a file that named 'test.py'
+
+```test.py
+import torch
+x = torch.rand(5, 3)
+print(x)
+print(torch.cuda.is_available())
+```
+Run the script via and confirm the output looks like this (the first part should have just random numbers, but the last line must read ; if it does not, CUDA is not installed properly)
+
+```terminal
+tensor([[0.2141, 0.7808, 0.9298],
+        [0.3107, 0.8569, 0.9562],
+        [0.2878, 0.7515, 0.5547],
+        [0.5007, 0.6904, 0.4136],
+        [0.2443, 0.4158, 0.4245]])
+True
+```
+
+If the last word is "True" that means you installed it successfully.
 
 
 ## Docker Image
