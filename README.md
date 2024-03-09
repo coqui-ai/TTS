@@ -144,6 +144,7 @@ Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not relea
 You can also help us implement more models.
 
 ## Installation
+# Linux
 🐸TTS is tested on Ubuntu 18.04 with **python >= 3.9, < 3.12.**.
 
 If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
@@ -165,8 +166,16 @@ If you are on Ubuntu (Debian), you can also run following commands for installat
 $ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a different OS.
 $ make install
 ```
+# Windows
 
-If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
+🐸TTS is on python 3.11.x
+Download CUDA Toolkit 12.1 on https://developer.nvidia.com/cuda-12-1-0-download-archive
+Download cuDNN 8.9.4 for cuda12.x https://developer.nvidia.com/rdp/cudnn-archive
+Download the latest 64-bit version of eSpeak NG (no version constraints :-) ).
+Download the latest 64-bit version of Git for Windows (no version constraints :-) ).
+```powershell
+
+```
 
 
 ## Docker Image
