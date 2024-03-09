@@ -169,11 +169,20 @@ $ make install
 # Windows
 
 🐸TTS is on python 3.11.x
-Download CUDA Toolkit 12.1 on https://developer.nvidia.com/cuda-12-1-0-download-archive
-Download cuDNN 8.9.4 for cuda12.x https://developer.nvidia.com/rdp/cudnn-archive
+Download CUDA Toolkit 12.1 on https://developer.nvidia.com/cuda-12-1-0-download-archive.
+
+Download cuDNN 8.9.4 for cuda12.x https://developer.nvidia.com/rdp/cudnn-archive. And extract to C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1\cuda
+
 Download the latest 64-bit version of eSpeak NG (no version constraints :-) ).
+
 Download the latest 64-bit version of Git for Windows (no version constraints :-) ).
+
 ```powershell
+pip install virtualenv
+virtualenv venv
+./venv/Scripts/activate.bat
+pip install -r requirements.txt
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 
 ```
 
