@@ -21,17 +21,19 @@ OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "run", "trai
 # Training Parameters
 OPTIMIZER_WD_ONLY_ON_WEIGHTS = True  # for multi-gpu training please make it False
 START_WITH_EVAL = False  # if True it will star with evaluation
-BATCH_SIZE = 16  # set here the batch size
-GRAD_ACUMM_STEPS = 4  # set here the grad accumulation steps
+BATCH_SIZE = 2  # set here the batch size
+GRAD_ACUMM_STEPS = 126  # set here the grad accumulation steps
 # Note: we recommend that BATCH_SIZE * GRAD_ACUMM_STEPS need to be at least 252 for more efficient training. You can increase/decrease BATCH_SIZE but then set GRAD_ACUMM_STEPS accordingly.
+
+afrotts_dir = "AfriSpeech-TTS-D" # add path to afrotts data here
 
 # Define here the dataset that you want to use for the fine-tuning on.
 config_dataset = BaseDatasetConfig(
     formatter="afrotts",
     dataset_name="afrotts",
-    path="/data4/data/AfriSpeech-TTS-D/",
-    meta_file_train="/data4/abraham/tts/AfriSpeech-TTS/data/afritts-train-clean.csv",
-    meta_file_val="/data4/abraham/tts/AfriSpeech-TTS/data/afritts-dev-clean.csv",
+    path=afrotts_dir,
+    meta_file_train=os.path.join(afrotts_dir, "data/afritts-train-clean-upsamp.csv") #afritts-train-clean-upsamp.csv
+    meta_file_val=os.path.join(afrotts_dir,"data/afritts-dev-clean.csv"),
     language="en",
 )
 
@@ -42,14 +44,9 @@ DATASETS_CONFIG_LIST = [config_dataset]
 CHECKPOINTS_OUT_PATH = os.path.join(OUT_PATH, "XTTS_v2.0_original_model_files/")
 os.makedirs(CHECKPOINTS_OUT_PATH, exist_ok=True)
 
-
-# DVAE files
-DVAE_CHECKPOINT_LINK = "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/dvae.pth"
-MEL_NORM_LINK = "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/mel_stats.pth"
-
 # Set the path to the downloaded files
-DVAE_CHECKPOINT = os.path.join(CHECKPOINTS_OUT_PATH, os.path.basename(DVAE_CHECKPOINT_LINK))
-MEL_NORM_FILE = os.path.join(CHECKPOINTS_OUT_PATH, os.path.basename(MEL_NORM_LINK))
+DVAE_CHECKPOINT = "coqui-ai-TTS/recipes/ljspeech/xtts_v2/run/training/XTTS_v2.0_original_model_files/dvae.pth"
+MEL_NORM_FILE = "coqui-ai-TTS/recipes/ljspeech/xtts_v2/run/training/XTTS_v2.0_original_model_files/mel_stats.pth"
 
 # download DVAE files if needed
 if not os.path.isfile(DVAE_CHECKPOINT) or not os.path.isfile(MEL_NORM_FILE):
@@ -57,13 +54,10 @@ if not os.path.isfile(DVAE_CHECKPOINT) or not os.path.isfile(MEL_NORM_FILE):
     ModelManager._download_model_files([MEL_NORM_LINK, DVAE_CHECKPOINT_LINK], CHECKPOINTS_OUT_PATH, progress_bar=True)
 
 
-# Download XTTS v2.0 checkpoint if needed
-TOKENIZER_FILE_LINK = "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/vocab.json"
-XTTS_CHECKPOINT_LINK = "https://coqui.gateway.scarf.sh/hf-coqui/XTTS-v2/main/model.pth"
-
 # XTTS transfer learning parameters: You we need to provide the paths of XTTS model checkpoint that you want to do the fine tuning.
-TOKENIZER_FILE = os.path.join(CHECKPOINTS_OUT_PATH, os.path.basename(TOKENIZER_FILE_LINK))  # vocab.json file
-XTTS_CHECKPOINT = os.path.join(CHECKPOINTS_OUT_PATH, os.path.basename(XTTS_CHECKPOINT_LINK))  # model.pth file
+TOKENIZER_FILE = "coqui-ai-TTS/recipes/ljspeech/xtts_v2/run/training/XTTS_v2.0_original_model_files/vocab.json"
+XTTS_CHECKPOINT = "coqui-ai-TTS/recipes/ljspeech/xtts_v2/run/training/GPT_XTTS_v2.0_AfroTTS_FT-March-06-2024_06+36AM-581cf506/checkpoint_135000.pth"
+
 
 # download XTTS v2.0 files if needed
 if not os.path.isfile(TOKENIZER_FILE) or not os.path.isfile(XTTS_CHECKPOINT):
@@ -75,10 +69,9 @@ if not os.path.isfile(TOKENIZER_FILE) or not os.path.isfile(XTTS_CHECKPOINT):
 
 # Training sentences generations
 SPEAKER_REFERENCE = [
-    "/data4/data/AfriSpeech-TTS-D/train/1dddeb9f-18ec-4498-b74b-84ac59f2fcf1/e9af9831281555e8685e511f7becdf32_P2L385Vp.wav"  # speaker reference to be used in training test sentences
+    "/AfriSpeech-TTS/train/defc5e03-926c-4e0b-a639-c821e5e7db89/14f64f13c57f9a64a2a1521253934a0b_KYA8MaKS.wav"  # speaker reference to be used in training test sentences
 ]
 LANGUAGE = config_dataset.language
-
 
 def main():
     # init args and config
@@ -117,9 +110,9 @@ def main():
         eval_batch_size=BATCH_SIZE,
         num_loader_workers=8,
         eval_split_max_size=256,
-        print_step=50,
-        plot_step=100,
-        log_model_step=100,
+        print_step=1000,
+        plot_step=1000,
+        log_model_step=1000,
         save_step=1000,
         save_n_checkpoints=3,
         save_checkpoints=True,
@@ -176,4 +169,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-DATASETS_CONFIG_LIST

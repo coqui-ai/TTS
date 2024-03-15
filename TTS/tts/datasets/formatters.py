@@ -653,3 +653,18 @@ def bel_tts_formatter(root_path, meta_file, **kwargs):  # pylint: disable=unused
             text = cols[1]
             items.append({"text": text, "audio_file": wav_file, "speaker_name": speaker_name, "root_path": root_path})
     return items
+
+def afrotts(root_path, meta_file, **kwargs):
+    csv_path = os.path.join(root_path, meta_file)
+    csv_file = pd.read_csv(csv_path)
+    csv_file["char_count"] = csv_file.transcript.apply(lambda x: len(list(x)))
+    csv_file = csv_file[csv_file.char_count < 400].copy()
+    csv_file["audio_paths"] = csv_file["audio_paths"].apply(
+        lambda x: x.replace("/AfriSpeech-TTS-D/", root_path)
+    )
+    csv_file = csv_file.rename(columns={"transcript":"text", "audio_paths":"audio_file", "user_ids":"speaker_name"})
+    csv_file = csv_file[["audio_file", "text", "speaker_name"]]
+    csv_file['root_path'] = root_path
+    items = csv_file.to_dict('records')
+    return items
+

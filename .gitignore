@@ -170,3 +170,4 @@ depot/*
 coqui_recipes/*
 local_scripts/*
 coqui_demos/*
+recipes/ljspeech/xtts_v2/run/*
