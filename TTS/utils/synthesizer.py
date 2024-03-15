@@ -294,7 +294,7 @@ class Synthesizer(nn.Module):
         if text:
             sens = [text]
             if split_sentences:
-                print(" > Text splitted to sentences.")
+                print(" > Text split into sentences.")
                 sens = self.split_into_sentences(text)
             print(sens)
 
