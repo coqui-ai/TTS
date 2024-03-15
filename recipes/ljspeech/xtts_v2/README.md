@@ -16,15 +16,21 @@ This repository contains the code for training a text-to-speech (TTS) model usin
    ```bash
    cd coqui-ai-TTS
    ```
+3. **Create a virtual environment with python version 3.10**
 
-3. **Install system dependencies and the code:**
+   ```bash
+   conda create -n xtts python==3.10
+   conda activate xtts
+   ```
+
+4. **Install system dependencies and the code:**
 
    ```bash
    make system-deps  # Intended to be used on Ubuntu (Debian). Let us know if you have a different OS.
    make install
    ```
 
-4. **Open the following file and redefine the specified variables:**
+5. **Open the following file and redefine the specified variables:**
 
    File: `recipes/ljspeech/xtts_v2/train_gpt_xtts.py`
 
@@ -51,3 +57,11 @@ python3 recipes/ljspeech/xtts_v2/train_gpt_xtts.py
 ```
 
 You are now ready to train your TTS model using Coqui AI's framework. Enjoy!
+
+## Optional: Resuming from a checkpoint
+
+File: `recipes/ljspeech/xtts_v2/train_gpt_xtts_resume.py`
+
+Update the parameters in the file for the models
+
+
