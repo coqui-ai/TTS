@@ -1,0 +1,32 @@
+POST https://zcov2.luckyshort.net/generate
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4ifQ.WGqWpB4X4UDuVosrM1BcgwmPuq7gcyVo2oqW8vbmvwM
+
+{
+  "spk_audio_prompt": "https://static.luckyshort.com/audio-extracts/voice-clone-14624065-ed6c-4551-95e9-a77a286eef32-segment-029_1_672.wav",
+  "text": "Zoey, wait for me.",
+  "hook_url": "https://api.vibevibe.vip",
+  "params": {
+    "language": "EN"
+  }
+}
+
+###
+
+POST http://127.0.0.1:8000/generate
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4ifQ.WGqWpB4X4UDuVosrM1BcgwmPuq7gcyVo2oqW8vbmvwM
+
+{
+  "spk_audio_prompt": "https://static.luckyshort.com/audio-extracts/voice-clone-14624065-ed6c-4551-95e9-a77a286eef32-segment-029_1_672.wav",
+  "text": "Zoey, wait for me.",
+  "hook_url": "https://api.vibevibe.vip",
+  "params": {
+    "language": "en"
+  }
+}
+
+###
+
+DELETE http://127.0.0.1:8000/tasks/ff0e87b9-6865-4355-9ed2-2958e8cadbc2/cancel
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiYWRtaW4ifQ.WGqWpB4X4UDuVosrM1BcgwmPuq7gcyVo2oqW8vbmvwM

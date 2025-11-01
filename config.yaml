@@ -1,0 +1,51 @@
+# Flask API 配置
+app:
+  host: '0.0.0.0'
+  port: 8000
+  debug: false
+
+# Redis 配置
+redis:
+  host: 'localhost'
+  port: 6379
+  db: 0
+  password: null
+  queue_key: 'open-voice:voice-clone'
+  upload_queue_key: 'open-voice:voice-clone-result'
+  max_connections: 5
+
+# Cloudflare R2 配置
+r2:
+  access_key_id: '2c4cef629ca75ffe03376206c0a3e365'
+  secret_access_key: '42cb6c0dedd621bbe2a38eb52c5d4b4738d69038705020c8cd14018dcc30ee53'
+  bucket_name: 'ls-tts'
+  endpoint_url: 'https://3322fcf6693dc79f8e04aa2f4918bc44.r2.cloudflarestorage.com'
+  public_url: 'https://tts.luckyshort.net'
+
+# 语音克隆配置（使用 video_tts API）
+voice_clone:
+  # 输出目录
+  output_dir: 'outputs_v2'
+  # 临时文件目录
+  temp_dir: 'temp'
+  # 设备类型：null 表示自动检测，可指定 'cuda' 或 'cpu'
+  device: null
+  # 支持的语言列表（直接使用语言代码，如 'en', 'zh', 'ja' 等）
+  supported_languages:
+    - en
+    - es
+    - fr
+    - zh
+    - ja
+    - ko
+    - de
+
+task:
+  max_retries: 3
+  timeout: 600  # 秒
+  cleanup_after_upload: true
+
+jwt:
+  secret_key: bHN0dHM6QzhyS
+  algorithm: HS256
+  expiration_seconds: 3600

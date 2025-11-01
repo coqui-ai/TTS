@@ -1,4 +1,3 @@
-from TTS.tts.utils.text.phonemizers.bangla_phonemizer import BN_Phonemizer
 from TTS.tts.utils.text.phonemizers.base import BasePhonemizer
 from TTS.tts.utils.text.phonemizers.belarusian_phonemizer import BEL_Phonemizer
 from TTS.tts.utils.text.phonemizers.espeak_wrapper import ESpeak
@@ -12,7 +11,17 @@ except ImportError:
     JA_JP_Phonemizer = None
     pass
 
-PHONEMIZERS = {b.name(): b for b in (ESpeak, Gruut, KO_KR_Phonemizer, BN_Phonemizer)}
+try:
+    from TTS.tts.utils.text.phonemizers.bangla_phonemizer import BN_Phonemizer
+except (ImportError, TypeError):
+    # ImportError: bangla package not installed
+    # TypeError: bangla package uses Python 3.10+ syntax (bool | None) incompatible with Python 3.9
+    BN_Phonemizer = None
+    pass
+
+PHONEMIZERS = {b.name(): b for b in (ESpeak, Gruut, KO_KR_Phonemizer)}
+if BN_Phonemizer is not None:
+    PHONEMIZERS[BN_Phonemizer.name()] = BN_Phonemizer
 
 
 ESPEAK_LANGS = list(ESpeak.supported_languages().keys())
@@ -35,7 +44,8 @@ DEF_LANG_TO_PHONEMIZER.update(_new_dict)
 DEF_LANG_TO_PHONEMIZER["en"] = DEF_LANG_TO_PHONEMIZER["en-us"]
 DEF_LANG_TO_PHONEMIZER["zh-cn"] = ZH_CN_Phonemizer.name()
 DEF_LANG_TO_PHONEMIZER["ko-kr"] = KO_KR_Phonemizer.name()
-DEF_LANG_TO_PHONEMIZER["bn"] = BN_Phonemizer.name()
+if BN_Phonemizer is not None:
+    DEF_LANG_TO_PHONEMIZER["bn"] = BN_Phonemizer.name()
 DEF_LANG_TO_PHONEMIZER["be"] = BEL_Phonemizer.name()
 
 
@@ -69,6 +79,8 @@ def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
     if name == "ko_kr_phonemizer":
         return KO_KR_Phonemizer(**kwargs)
     if name == "bn_phonemizer":
+        if BN_Phonemizer is None:
+            raise ValueError(" ❗ You need to install BN phonemizer dependencies. Try `pip install TTS[bn]` or `uv sync --extra bn`.")
         return BN_Phonemizer(**kwargs)
     if name == "be_phonemizer":
         return BEL_Phonemizer(**kwargs)
