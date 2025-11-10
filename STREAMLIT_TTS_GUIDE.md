@@ -87,6 +87,19 @@ git pull
 pip install "torch>=2.1,<2.6" torchaudio
 ```
 
+**Error: "'GPT2InferenceModel' object has no attribute 'generate'" (Transformers 4.50+)**
+
+Transformers v4.50+ changed how model generation works. This has been fixed by updating GPT2InferenceModel classes to inherit from GenerationMixin.
+
+If you encounter this error:
+```bash
+# Pull the latest fixes
+git pull
+
+# Or downgrade transformers temporarily
+pip install "transformers>=4.33.0,<4.50"
+```
+
 **See `TROUBLESHOOTING.md` for detailed solutions to common issues.**
 
 ## Running the Application

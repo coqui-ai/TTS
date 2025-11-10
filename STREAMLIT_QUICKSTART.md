@@ -49,6 +49,10 @@ pip install "numpy>=1.24.3,<2.0"
 - This has been fixed in the code! Pull the latest version.
 - Alternatively, downgrade: `pip install "torch>=2.1,<2.6"`
 
+**Error: "'GPT2InferenceModel' object has no attribute 'generate'" (Transformers 4.50+)**
+- This has been fixed in the code! Pull the latest version.
+- Alternatively, downgrade: `pip install "transformers>=4.33.0,<4.50"`
+
 **See `TROUBLESHOOTING.md` for more solutions.**
 
 ## 5-Minute Tutorial

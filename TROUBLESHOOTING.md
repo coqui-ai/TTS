@@ -83,6 +83,46 @@ pip install "torch>=2.1,<2.6" torchaudio
 
 ---
 
+### ❌ Error: "GPT2InferenceModel' object has no attribute 'generate'" (Transformers 4.50+)
+
+**Problem:**
+```
+Error during synthesis: 'GPT2InferenceModel' object has no attribute 'generate'
+```
+
+Or warning message:
+```
+GPT2InferenceModel has generative capabilities, as `prepare_inputs_for_generation` is explicitly defined.
+However, it doesn't directly inherit from `GenerationMixin`. From v4.50 onwards, `PreTrainedModel` will
+NOT inherit from `GenerationMixin`, and this model will lose the ability to call `generate`...
+```
+
+**Cause:**
+Transformers v4.50+ changed how generation works. Models must now explicitly inherit from `GenerationMixin` to use `.generate()` method.
+
+**Solution:**
+
+This has been fixed in the repository! The GPT2InferenceModel classes have been updated to inherit from GenerationMixin.
+
+**If you're using an older version of this repo**, you have two options:
+
+**Option 1: Pull the latest fixes (Recommended)**
+```bash
+git pull origin claude/tts-web-interface-011CUyZBV5s9c4SGcru1U1Kc
+```
+
+**Option 2: Downgrade transformers (temporary workaround)**
+```bash
+# Use transformers < 4.50
+pip install "transformers>=4.33.0,<4.50"
+```
+
+**Files that were patched:**
+- `TTS/tts/layers/xtts/gpt_inference.py` - XTTS GPT2 model
+- `TTS/tts/layers/tortoise/autoregressive.py` - Tortoise GPT2 model
+
+---
+
 ### ❌ Error: "No module named 'coqpit'" or "No module named 'TTS'"
 
 **Problem:**
