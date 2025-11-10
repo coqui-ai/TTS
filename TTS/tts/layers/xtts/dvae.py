@@ -43,7 +43,8 @@ def dvae_wav_to_mel(
     mel = mel_stft(wav)
     mel = torch.log(torch.clamp(mel, min=1e-5))
     if mel_norms is None:
-        mel_norms = torch.load(mel_norms_file, map_location=device)
+        # Set weights_only=False for PyTorch 2.6+ compatibility
+        mel_norms = torch.load(mel_norms_file, map_location=device, weights_only=False)
     mel = mel / mel_norms.unsqueeze(0).unsqueeze(-1)
     return mel
 

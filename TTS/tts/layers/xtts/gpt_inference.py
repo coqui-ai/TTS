@@ -3,10 +3,11 @@ import math
 import torch
 from torch import nn
 from transformers import GPT2PreTrainedModel
+from transformers.generation import GenerationMixin
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions
 
 
-class GPT2InferenceModel(GPT2PreTrainedModel):
+class GPT2InferenceModel(GPT2PreTrainedModel, GenerationMixin):
     """Override GPT2LMHeadModel to allow for prefix conditioning."""
 
     def __init__(self, config, gpt, pos_emb, embeddings, norm, linear, kv_cache):
