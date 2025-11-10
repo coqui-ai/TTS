@@ -1,0 +1,13 @@
+# Requirements for Streamlit TTS Web Interface
+
+# Core Streamlit
+streamlit>=1.28.0
+
+# Already included in main requirements.txt but listed here for clarity:
+# torch>=2.1
+# torchaudio
+# soundfile>=0.12.0
+# numpy
+
+# Optional but recommended for waveform visualization
+matplotlib>=3.7.0
