@@ -298,13 +298,19 @@ def main():
         st.header("🎤 Voice Cloning")
 
         if model_config["supports_cloning"]:
+            st.info("""
+            ⚠️ **XTTS v2 requires reference audio for voice cloning.**
+
+            This model doesn't have default voices - you must upload reference audio to generate speech.
+            """)
+
             st.markdown("""
             Upload one or more audio recordings (3+ seconds each) to clone a voice.
             The model will learn the voice characteristics and apply them to the generated speech.
             """)
 
             uploaded_audio_files = st.file_uploader(
-                "Upload Reference Audio File(s)",
+                "Upload Reference Audio File(s) *Required*",
                 type=["wav", "mp3", "flac", "ogg"],
                 accept_multiple_files=True,
                 help="Upload audio files to clone the voice. Multiple files will be combined."
@@ -320,8 +326,15 @@ def main():
                 - ✅ Use **single speaker** recordings only
                 - ✅ Prefer **WAV or high-quality MP3** format
                 - ✅ Audio should have natural speech (not monotone or robotic)
+                - ✅ Record in a quiet environment
                 - ❌ Avoid music, echo, or multiple speakers
                 - ❌ Don't use heavily compressed or low-quality audio
+                - ❌ Avoid phone call quality or Zoom recordings
+
+                **Not sure what to use? Try:**
+                - Record yourself reading clearly for 8-10 seconds
+                - Use an audiobook sample from LibriVox (clean narration)
+                - Extract clear dialogue from a video interview
                 """)
 
             if uploaded_audio_files:
@@ -332,6 +345,8 @@ def main():
                     for idx, audio_file in enumerate(uploaded_audio_files, 1):
                         st.write(f"**File {idx}:** {audio_file.name}")
                         st.audio(audio_file, format=f'audio/{Path(audio_file.name).suffix[1:]}')
+            else:
+                st.warning("⚠️ Please upload reference audio to enable speech generation.")
         else:
             st.info("""
             ℹ️ **Voice cloning is not available for Indonesian.**
@@ -348,13 +363,24 @@ def main():
 
     col_gen1, col_gen2, col_gen3 = st.columns([2, 1, 1])
 
+    # Check if generation is possible
+    can_generate = bool(input_text)
+    if model_config["supports_cloning"] and not uploaded_audio_files:
+        can_generate = False
+
     with col_gen1:
         generate_button = st.button(
             "🎯 Generate Speech",
             type="primary",
             use_container_width=True,
-            disabled=not input_text
+            disabled=not can_generate
         )
+
+        # Show why button is disabled
+        if not input_text:
+            st.caption("⚠️ Enter text to enable generation")
+        elif model_config["supports_cloning"] and not uploaded_audio_files:
+            st.caption("⚠️ Upload reference audio to enable generation")
 
     with col_gen2:
         if input_text:
