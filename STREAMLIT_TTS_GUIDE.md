@@ -46,6 +46,20 @@ Or install manually:
 pip install streamlit>=1.28.0 matplotlib>=3.7.0
 ```
 
+### ⚠️ Important: NumPy Version Compatibility
+
+**If you encounter "Numba needs NumPy 2.2 or less" error:**
+
+Numba (required by librosa) doesn't support NumPy 2.3+. Fix this by:
+
+```bash
+pip install "numpy>=1.24.3,<2.0"
+```
+
+This is included in `requirements.streamlit.txt`, but if you're upgrading an existing environment, you may need to run this manually.
+
+**See `TROUBLESHOOTING.md` for detailed solutions to common issues.**
+
 ## Running the Application
 
 ### Start the Web Interface
@@ -210,6 +224,10 @@ Access advanced settings in the sidebar under "Advanced Settings":
 5. The system will automatically process the text in chunks
 
 ## Troubleshooting
+
+**📋 For comprehensive troubleshooting, see `TROUBLESHOOTING.md`**
+
+This section covers the most common issues. For detailed solutions and additional problems, refer to the full troubleshooting guide.
 
 ### Model Download Issues
 

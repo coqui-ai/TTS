@@ -5,14 +5,23 @@ A simple web interface for voice cloning and text-to-speech in English and Indon
 ## Quick Installation
 
 ```bash
-# 1. Install Streamlit
-pip install streamlit
+# 1. Install dependencies (includes NumPy version fix)
+pip install -r requirements.streamlit.txt
 
 # 2. Run the app
 streamlit run streamlit_tts_app.py
 ```
 
 The app will open automatically in your browser at `http://localhost:8501`
+
+### ⚠️ Common Installation Issue
+
+If you see **"Numba needs NumPy 2.2 or less"** error:
+```bash
+pip install "numpy>=1.24.3,<2.0"
+```
+
+See `TROUBLESHOOTING.md` for more solutions.
 
 ## 5-Minute Tutorial
 
