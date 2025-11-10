@@ -74,6 +74,19 @@ pip install "numpy>=1.24.3,<2.0"
 
 This is included in `requirements.streamlit.txt`, but if you're upgrading an existing environment, you may need to run this manually.
 
+**Error: "Weights only load failed" (PyTorch 2.6+)**
+
+PyTorch 2.6 changed security defaults that break TTS model loading. This has been fixed in the codebase by patching all `torch.load` calls.
+
+If you encounter this error:
+```bash
+# Pull the latest fixes
+git pull
+
+# Or downgrade PyTorch temporarily
+pip install "torch>=2.1,<2.6" torchaudio
+```
+
 **See `TROUBLESHOOTING.md` for detailed solutions to common issues.**
 
 ## Running the Application

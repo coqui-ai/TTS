@@ -2,7 +2,8 @@ import torch
 
 class SpeakerManager():
     def __init__(self, speaker_file_path=None):
-        self.speakers = torch.load(speaker_file_path)
+        # Set weights_only=False for PyTorch 2.6+ compatibility
+        self.speakers = torch.load(speaker_file_path, weights_only=False)
 
     @property
     def name_to_id(self):

@@ -45,6 +45,10 @@ pip install -e .[all]
 pip install "numpy>=1.24.3,<2.0"
 ```
 
+**Error: "Weights only load failed" (PyTorch 2.6)**
+- This has been fixed in the code! Pull the latest version.
+- Alternatively, downgrade: `pip install "torch>=2.1,<2.6"`
+
 **See `TROUBLESHOOTING.md` for more solutions.**
 
 ## 5-Minute Tutorial

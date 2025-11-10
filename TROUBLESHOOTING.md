@@ -45,6 +45,44 @@ python3 -c "import numpy; print(f'NumPy version: {numpy.__version__}')"
 
 ---
 
+### ❌ Error: "Weights only load failed" (PyTorch 2.6+)
+
+**Problem:**
+```
+❌ Error loading model: Weights only load failed...
+WeightsUnpickler error: Unsupported global: GLOBAL TTS.tts.configs.xtts_config.XttsConfig
+```
+
+**Cause:**
+PyTorch 2.6 changed the default value of `weights_only` in `torch.load` from `False` to `True` for security. Coqui TTS model checkpoints contain custom classes that need `weights_only=False`.
+
+**Solution:**
+
+This has been fixed in the repository! The torch.load calls have been patched to use `weights_only=False`.
+
+**If you're using an older version of this repo**, you have two options:
+
+**Option 1: Pull the latest fixes (Recommended)**
+```bash
+git pull origin claude/tts-web-interface-011CUyZBV5s9c4SGcru1U1Kc
+```
+
+**Option 2: Downgrade PyTorch (temporary workaround)**
+```bash
+# Use PyTorch < 2.6
+pip install "torch>=2.1,<2.6" torchaudio
+```
+
+**Files that were patched:**
+- `TTS/utils/io.py` - Main model loading function
+- `TTS/tts/utils/managers.py` - ID manager loading
+- `TTS/tts/layers/xtts/xtts_manager.py` - Speaker manager
+- `TTS/tts/layers/xtts/hifigan_decoder.py` - HiFiGAN checkpoint loading
+- `TTS/tts/layers/xtts/dvae.py` - DVAE mel norms loading
+- `TTS/tts/layers/xtts/trainer/gpt_trainer.py` - GPT and DVAE checkpoints
+
+---
+
 ### ❌ Error: "No module named 'coqpit'" or "No module named 'TTS'"
 
 **Problem:**
