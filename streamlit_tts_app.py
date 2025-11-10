@@ -310,6 +310,20 @@ def main():
                 help="Upload audio files to clone the voice. Multiple files will be combined."
             )
 
+            # Tips for better voice cloning
+            with st.expander("💡 Tips for Best Voice Cloning Quality"):
+                st.markdown("""
+                **For high-quality voice cloning:**
+                - ✅ Use **6-10 seconds** of audio (minimum 3 seconds)
+                - ✅ Upload **2-3 different samples** of the same voice for better results
+                - ✅ Ensure **clean, clear audio** with minimal background noise
+                - ✅ Use **single speaker** recordings only
+                - ✅ Prefer **WAV or high-quality MP3** format
+                - ✅ Audio should have natural speech (not monotone or robotic)
+                - ❌ Avoid music, echo, or multiple speakers
+                - ❌ Don't use heavily compressed or low-quality audio
+                """)
+
             if uploaded_audio_files:
                 st.success(f"✓ {len(uploaded_audio_files)} audio file(s) uploaded")
 
@@ -405,21 +419,24 @@ def main():
             # Results section
             st.header("🎧 Generated Audio")
 
+            # Read audio file as bytes for player and download
+            with open(output_path, "rb") as audio_file:
+                audio_bytes = audio_file.read()
+
             col_result1, col_result2 = st.columns([2, 1])
 
             with col_result1:
-                # Audio player
-                st.audio(output_path, format="audio/wav")
+                # Audio player - use bytes instead of file path
+                st.audio(audio_bytes, format="audio/wav")
 
                 # Download button
-                with open(output_path, "rb") as audio_file:
-                    st.download_button(
-                        label="📥 Download Audio (WAV)",
-                        data=audio_file,
-                        file_name="synthesized_speech.wav",
-                        mime="audio/wav",
-                        use_container_width=True
-                    )
+                st.download_button(
+                    label="📥 Download Audio (WAV)",
+                    data=audio_bytes,
+                    file_name="synthesized_speech.wav",
+                    mime="audio/wav",
+                    use_container_width=True
+                )
 
             with col_result2:
                 # Statistics
