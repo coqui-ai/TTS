@@ -45,6 +45,33 @@ python3 -c "import numpy; print(f'NumPy version: {numpy.__version__}')"
 
 ---
 
+### ❌ Error: "No module named 'coqpit'" or "No module named 'TTS'"
+
+**Problem:**
+```
+ModuleNotFoundError: No module named 'coqpit'
+# or
+ModuleNotFoundError: No module named 'TTS'
+# or similar import errors
+```
+
+**Cause:**
+You haven't installed the base Coqui TTS package. The Streamlit app depends on all core TTS modules.
+
+**Solution:**
+```bash
+# Install TTS with all dependencies FIRST
+cd /path/to/Coqui_TTS
+pip install -e .[all]
+
+# THEN install Streamlit
+pip install -r requirements.streamlit.txt
+```
+
+**Important:** Always install TTS before running the Streamlit app!
+
+---
+
 ### ❌ Error: "No module named 'streamlit'"
 
 **Problem:**

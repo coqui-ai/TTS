@@ -21,20 +21,29 @@ A user-friendly web interface for Coqui TTS that enables voice cloning and long-
 - Python 3.9, 3.10, or 3.11
 - (Optional but recommended) NVIDIA GPU with CUDA support for faster synthesis
 
-### Step 1: Install Coqui TTS
+### Step 1: Install Coqui TTS (REQUIRED - Do This First!)
 
-If you haven't already installed Coqui TTS:
+⚠️ **IMPORTANT**: You must install the full TTS package before running the Streamlit app. The app depends on all core TTS modules.
 
 ```bash
-# Clone the repository (if not already cloned)
-git clone https://github.com/coqui-ai/TTS
-cd TTS
+# Navigate to the Coqui TTS directory
+cd /path/to/Coqui_TTS
 
 # Install TTS with all dependencies
 pip install -e .[all]
 ```
 
+This installs:
+- Core TTS libraries (coqpit, torch, torchaudio, etc.)
+- Audio processing (librosa, soundfile, numba)
+- Model dependencies (transformers, einops, encodec)
+- All language support packages
+
+**Installation will take 3-5 minutes and download ~2-3GB of packages.**
+
 ### Step 2: Install Streamlit Requirements
+
+After TTS is installed, add the web interface dependencies:
 
 ```bash
 pip install -r requirements.streamlit.txt
@@ -46,9 +55,16 @@ Or install manually:
 pip install streamlit>=1.28.0 matplotlib>=3.7.0
 ```
 
-### ⚠️ Important: NumPy Version Compatibility
+### ⚠️ Important: Dependency Compatibility
 
-**If you encounter "Numba needs NumPy 2.2 or less" error:**
+**Error: "No module named 'coqpit'" or similar import errors**
+
+This means you skipped Step 1! Install TTS first:
+```bash
+pip install -e .[all]
+```
+
+**Error: "Numba needs NumPy 2.2 or less"**
 
 Numba (required by librosa) doesn't support NumPy 2.3+. Fix this by:
 

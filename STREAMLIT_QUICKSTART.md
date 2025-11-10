@@ -4,24 +4,48 @@ A simple web interface for voice cloning and text-to-speech in English and Indon
 
 ## Quick Installation
 
-```bash
-# 1. Install dependencies (includes NumPy version fix)
-pip install -r requirements.streamlit.txt
+### Step 1: Install Coqui TTS (Required First!)
 
-# 2. Run the app
+You **must** install the base TTS package before running the Streamlit app:
+
+```bash
+# Install TTS with all dependencies
+pip install -e .[all]
+```
+
+This installs all the core TTS dependencies including coqpit, torch, librosa, etc.
+
+### Step 2: Install Streamlit Requirements
+
+```bash
+# Install Streamlit and optional dependencies
+pip install -r requirements.streamlit.txt
+```
+
+### Step 3: Run the App
+
+```bash
 streamlit run streamlit_tts_app.py
 ```
 
 The app will open automatically in your browser at `http://localhost:8501`
 
-### ⚠️ Common Installation Issue
+---
 
-If you see **"Numba needs NumPy 2.2 or less"** error:
+### ⚠️ Common Installation Issues
+
+**Error: "No module named 'coqpit'" or similar import errors**
+```bash
+# You need to install TTS first!
+pip install -e .[all]
+```
+
+**Error: "Numba needs NumPy 2.2 or less"**
 ```bash
 pip install "numpy>=1.24.3,<2.0"
 ```
 
-See `TROUBLESHOOTING.md` for more solutions.
+**See `TROUBLESHOOTING.md` for more solutions.**
 
 ## 5-Minute Tutorial
 
