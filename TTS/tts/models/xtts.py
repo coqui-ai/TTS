@@ -1,7 +1,6 @@
 import os
 from dataclasses import dataclass
 
-import librosa
 import torch
 import torch.nn.functional as F
 import torchaudio
@@ -70,7 +69,20 @@ def load_audio(audiopath, sampling_rate):
     # better load setting following: https://github.com/faroit/python_audio_loading_benchmark
 
     # torchaudio should chose proper backend to load audio depending on platform
-    audio, lsr = torchaudio.load(audiopath)
+    # For PyTorch 2.9+, use soundfile directly to avoid torchcodec requirement
+    try:
+        import soundfile as sf
+        audio, lsr = sf.read(audiopath)
+        # Convert to torch tensor and ensure correct shape (channels, samples)
+        audio = torch.as_tensor(audio, dtype=torch.float32)
+        # soundfile returns (samples,) for mono or (samples, channels) for multi-channel
+        if audio.ndim == 1:
+            audio = audio.unsqueeze(0)  # (1, samples)
+        elif audio.ndim == 2:
+            audio = audio.transpose(0, 1)  # (channels, samples)
+    except ImportError:
+        # Fallback to torchaudio if soundfile not available
+        audio, lsr = torchaudio.load(audiopath)
 
     # stereo to mono if needed
     if audio.size(0) != 1:
@@ -254,6 +266,15 @@ class Xtts(BaseTTS):
     def device(self):
         return next(self.parameters()).device
 
+    def to(self, device):
+        """Override to() to ensure FP32 on MPS and keep device in sync."""
+        super().to(device)
+        # Ensure FP32 on MPS (MPS doesn't support FP16 well for all operations)
+        device_obj = torch.device(device) if isinstance(device, str) else device
+        if device_obj.type == "mps":
+            self.float()
+        return self
+
     @torch.inference_mode()
     def get_gpt_cond_latents(self, audio, sr, length: int = 30, chunk_length: int = 6):
         """Compute the conditioning latents for the GPT model from the given audio.
@@ -316,11 +337,29 @@ class Xtts(BaseTTS):
     @torch.inference_mode()
     def get_speaker_embedding(self, audio, sr):
         audio_16k = torchaudio.functional.resample(audio, sr, 16000)
-        return (
-            self.hifigan_decoder.speaker_encoder.forward(audio_16k.to(self.device), l2_norm=True)
-            .unsqueeze(-1)
-            .to(self.device)
-        )
+
+        # Run speaker encoder on CPU if model is on MPS to avoid conv/STFT issues
+        if self.device.type == "mps":
+            # Move speaker encoder to CPU temporarily
+            original_device = next(self.hifigan_decoder.speaker_encoder.parameters()).device
+            self.hifigan_decoder.speaker_encoder.to("cpu")
+
+            spk = self.hifigan_decoder.speaker_encoder.forward(
+                audio_16k.to("cpu"),
+                l2_norm=True
+            )
+
+            # Move speaker encoder back to original device
+            self.hifigan_decoder.speaker_encoder.to(original_device)
+
+            # Move result to model device
+            return spk.to(self.device).unsqueeze(-1)
+        else:
+            spk = self.hifigan_decoder.speaker_encoder.forward(
+                audio_16k.to(self.device),
+                l2_norm=True
+            )
+            return spk.to(self.device).unsqueeze(-1)
 
     @torch.inference_mode()
     def get_conditioning_latents(
@@ -359,7 +398,13 @@ class Xtts(BaseTTS):
             if sound_norm_refs:
                 audio = (audio / torch.abs(audio).max()) * 0.75
             if librosa_trim_db is not None:
-                audio = librosa.effects.trim(audio, top_db=librosa_trim_db)[0]
+                # Apply trimming via librosa lazily to avoid importing it
+                # (and its deprecated pkg_resources usage) unless needed.
+                import librosa
+
+                audio_np = audio.squeeze(0).detach().cpu().numpy()
+                audio_trimmed, _ = librosa.effects.trim(audio_np, top_db=librosa_trim_db)
+                audio = torch.from_numpy(audio_trimmed).unsqueeze(0).to(self.device)
 
             # compute latents for the decoder
             speaker_embedding = self.get_speaker_embedding(audio, load_sr)
@@ -649,6 +694,7 @@ class Xtts(BaseTTS):
                 gpt_cond_latent.to(self.device),
                 text_tokens,
             )
+
             gpt_generator = self.gpt.get_generator(
                 fake_inputs=fake_inputs,
                 top_k=top_k,

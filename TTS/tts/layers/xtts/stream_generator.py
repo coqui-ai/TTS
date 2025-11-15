@@ -130,18 +130,15 @@ class NewGenerationMixin(GenerationMixin):
 
         # priority: `generation_config` argument > `model.generation_config` (the default generation config)
         if generation_config is None:
-            # legacy: users may modify the model configuration to control generation -- update the generation config
-            # model attribute accordingly, if it was created from the model config
-            if self.generation_config._from_model_config:
+            # Use a dedicated StreamGenerationConfig derived from the model config,
+            # without emitting the legacy deprecation warning from upstream since
+            # this path is internal to XTTS streaming.
+            if getattr(self, "generation_config", None) is not None and self.generation_config._from_model_config:
                 new_generation_config = StreamGenerationConfig.from_model_config(self.config)
                 if new_generation_config != self.generation_config:
-                    warnings.warn(
-                        "You have modified the pretrained model configuration to control generation. This is a"
-                        " deprecated strategy to control generation and will be removed soon, in a future version."
-                        " Please use a generation configuration file (see"
-                        " https://huggingface.co/docs/transformers/main_classes/text_generation)"
-                    )
                     self.generation_config = new_generation_config
+                    # Mark as not coming directly from the original model config anymore.
+                    self.generation_config._from_model_config = False
             generation_config = self.generation_config
 
         generation_config = copy.deepcopy(generation_config)
@@ -169,10 +166,17 @@ class NewGenerationMixin(GenerationMixin):
         # model_input_name is defined if model-specific keyword input is passed
         # otherwise model_input_name is None
         # all model-specific keyword inputs are removed from `model_kwargs`
+        kwargs_has_attention_mask = model_kwargs.get("attention_mask", None) is not None
         inputs_tensor, model_input_name, model_kwargs = self._prepare_model_inputs(
             inputs, generation_config.bos_token_id, model_kwargs
         )
         batch_size = inputs_tensor.shape[0]
+
+        # Prepare special token tensors (bos/eos/pad, etc.) on the correct device.
+        # This mirrors the upstream GenerationMixin.generate behavior and is required
+        # for attributes like `generation_config._eos_token_tensor` to exist.
+        device = inputs_tensor.device
+        self._prepare_special_tokens(generation_config, kwargs_has_attention_mask, device=device)
 
         # 4. Define other model kwargs
         model_kwargs["output_attentions"] = generation_config.output_attentions
@@ -801,6 +805,12 @@ class NewGenerationMixin(GenerationMixin):
         # keep track of which sequences are already finished
         unfinished_sequences = input_ids.new(input_ids.shape[0]).fill_(1)
 
+        # Initialize `cache_position` for compatibility with newer `transformers`
+        # caching logic. This mirrors the behavior in the upstream generation
+        # utilities and prevents KeyError on `cache_position` when updating
+        # model kwargs during streaming generation.
+        model_kwargs = self._get_initial_cache_position(input_ids, model_kwargs)
+
         this_peer_finished = False  # used by synced_gpus only
         # auto-regressive generation
         while True:
@@ -880,6 +890,18 @@ class NewGenerationMixin(GenerationMixin):
 
 def init_stream_support():
     """Overload PreTrainedModel for streaming."""
+    # Add compatibility shim for newer `transformers` versions (>=4.46) where
+    # `_get_logits_warper` was removed and its behavior folded into
+    # `_get_logits_processor`. Our streaming generator still calls
+    # `self._get_logits_warper(...)`, so provide a no-op implementation that
+    # returns an empty `LogitsProcessorList`. Sampling-related warpers are
+    # already included in `_get_logits_processor` in these versions.
+    if not hasattr(PreTrainedModel, "_get_logits_warper"):
+        def _get_logits_warper(self, generation_config):
+            return LogitsProcessorList()
+
+        PreTrainedModel._get_logits_warper = _get_logits_warper
+
     PreTrainedModel.generate_stream = NewGenerationMixin.generate
     PreTrainedModel.sample_stream = NewGenerationMixin.sample_stream
 

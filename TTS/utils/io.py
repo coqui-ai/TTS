@@ -41,6 +41,10 @@ def load_fsspec(
     Returns:
         Object stored in path.
     """
+    # Set weights_only=False for PyTorch 2.6+ compatibility with TTS model checkpoints
+    if "weights_only" not in kwargs:
+        kwargs["weights_only"] = False
+
     is_local = os.path.isdir(path) or os.path.isfile(path)
     if cache and not is_local:
         with fsspec.open(

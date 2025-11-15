@@ -37,7 +37,8 @@ class Synthesizer(nn.Module):
         vc_config: str = "",
         model_dir: str = "",
         voice_dir: str = None,
-        use_cuda: bool = False,
+        use_cuda: bool = None,
+        device: str = None,
     ) -> None:
         """General 🐸 TTS interface for inference. It takes a tts and a vocoder
         model and synthesize speech from the provided text.
@@ -62,6 +63,28 @@ class Synthesizer(nn.Module):
             use_cuda (bool, optional): enable/disable cuda. Defaults to False.
         """
         super().__init__()
+
+        # Handle device parameter with backward compatibility for use_cuda
+        import warnings
+        if use_cuda is not None:
+            warnings.warn(
+                "use_cuda is deprecated; use `device` parameter instead.",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            device = "cuda" if use_cuda else "cpu"
+        elif device is None:
+            device = "cpu"
+
+        self.device = torch.device(device)
+        self.use_cuda = (self.device.type == "cuda")  # For backward compatibility
+
+        # Validate device availability
+        if self.device.type == "cuda":
+            assert torch.cuda.is_available(), "CUDA is not available on this machine."
+        elif self.device.type == "mps":
+            assert torch.backends.mps.is_available(), "MPS is not available on this machine."
+
         self.tts_checkpoint = tts_checkpoint
         self.tts_config_path = tts_config_path
         self.tts_speakers_file = tts_speakers_file
@@ -72,7 +95,6 @@ class Synthesizer(nn.Module):
         self.encoder_config = encoder_config
         self.vc_checkpoint = vc_checkpoint
         self.vc_config = vc_config
-        self.use_cuda = use_cuda
 
         self.tts_model = None
         self.vocoder_model = None
@@ -84,10 +106,7 @@ class Synthesizer(nn.Module):
         self.tts_languages = {}
         self.d_vector_dim = 0
         self.seg = self._get_segmenter("en")
-        self.use_cuda = use_cuda
         self.voice_dir = voice_dir
-        if self.use_cuda:
-            assert torch.cuda.is_available(), "CUDA is not availabe on this machine."
 
         if tts_checkpoint:
             self._load_tts(tts_checkpoint, tts_config_path, use_cuda)
@@ -138,8 +157,8 @@ class Synthesizer(nn.Module):
         self.vc_config = load_config(vc_config_path)
         self.vc_model = setup_vc_model(config=self.vc_config)
         self.vc_model.load_checkpoint(self.vc_config, vc_checkpoint)
-        if use_cuda:
-            self.vc_model.cuda()
+        # Move model to the configured device
+        self.vc_model.to(self.device)
 
     def _load_fairseq_from_dir(self, model_dir: str, use_cuda: bool) -> None:
         """Load the fairseq model from a directory.
@@ -150,8 +169,8 @@ class Synthesizer(nn.Module):
         self.tts_model = Vits.init_from_config(self.tts_config)
         self.tts_model.load_fairseq_checkpoint(self.tts_config, checkpoint_dir=model_dir, eval=True)
         self.tts_config = self.tts_model.config
-        if use_cuda:
-            self.tts_model.cuda()
+        # Move model to the configured device
+        self.tts_model.to(self.device)
 
     def _load_tts_from_dir(self, model_dir: str, use_cuda: bool) -> None:
         """Load the TTS model from a directory.
@@ -162,8 +181,8 @@ class Synthesizer(nn.Module):
         self.tts_config = config
         self.tts_model = setup_tts_model(config)
         self.tts_model.load_checkpoint(config, checkpoint_dir=model_dir, eval=True)
-        if use_cuda:
-            self.tts_model.cuda()
+        # Move model to the configured device
+        self.tts_model.to(self.device)
 
     def _load_tts(self, tts_checkpoint: str, tts_config_path: str, use_cuda: bool) -> None:
         """Load the TTS model.
@@ -190,11 +209,11 @@ class Synthesizer(nn.Module):
             self._set_speaker_encoder_paths_from_tts_config()
 
         self.tts_model.load_checkpoint(self.tts_config, tts_checkpoint, eval=True)
-        if use_cuda:
-            self.tts_model.cuda()
+        # Move model to the configured device
+        self.tts_model.to(self.device)
 
         if self.encoder_checkpoint and hasattr(self.tts_model, "speaker_manager"):
-            self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config, use_cuda)
+            self.tts_model.speaker_manager.init_encoder(self.encoder_checkpoint, self.encoder_config, self.use_cuda)
 
     def _set_speaker_encoder_paths_from_tts_config(self):
         """Set the encoder paths from the tts model config for models with speaker encoders."""
@@ -221,8 +240,8 @@ class Synthesizer(nn.Module):
         self.vocoder_ap = AudioProcessor(verbose=False, **self.vocoder_config.audio)
         self.vocoder_model = setup_vocoder_model(self.vocoder_config)
         self.vocoder_model.load_checkpoint(self.vocoder_config, model_file, eval=True)
-        if use_cuda:
-            self.vocoder_model.cuda()
+        # Move model to the configured device
+        self.vocoder_model.to(self.device)
 
     def split_into_sentences(self, text) -> List[str]:
         """Split give text into sentences.

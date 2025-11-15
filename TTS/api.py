@@ -24,6 +24,7 @@ class TTS(nn.Module):
         vocoder_config_path: str = None,
         progress_bar: bool = True,
         gpu=False,
+        device: str = None,
     ):
         """🐸TTS python interface that allows to load and use the released models.
 
@@ -66,8 +67,15 @@ class TTS(nn.Module):
         self.synthesizer = None
         self.voice_converter = None
         self.model_name = ""
-        if gpu:
-            warnings.warn("`gpu` will be deprecated. Please use `tts.to(device)` instead.")
+
+        # Handle device parameter with backward compatibility for gpu flag
+        if gpu and device is None:
+            warnings.warn("`gpu` will be deprecated. Please use `device='cuda'` or `tts.to(device)` instead.")
+            device = "cuda" if gpu else "cpu"
+        elif device is None:
+            device = "cpu"
+
+        self.device = device
 
         if model_name is not None and len(model_name) > 0:
             if "tts_models" in model_name:
@@ -117,6 +125,34 @@ class TTS(nn.Module):
         if not self.is_multi_lingual:
             return None
         return self.synthesizer.tts_model.language_manager.language_names
+
+    def to(self, device):
+        """Move the model to a different device.
+
+        Args:
+            device (str): Device to move the model to (e.g., "cuda", "cpu", "mps").
+
+        Returns:
+            self: Returns self for method chaining.
+        """
+        import torch
+        self.device = device if isinstance(device, str) else str(device)
+
+        # Move synthesizer models to device
+        if self.synthesizer is not None:
+            if self.synthesizer.tts_model is not None:
+                self.synthesizer.tts_model.to(device)
+                # Update synthesizer's device
+                self.synthesizer.device = torch.device(device)
+                self.synthesizer.use_cuda = (torch.device(device).type == "cuda")
+            if self.synthesizer.vocoder_model is not None:
+                self.synthesizer.vocoder_model.to(device)
+
+        # Move voice converter model to device
+        if self.voice_converter is not None:
+            self.voice_converter.to(device)
+
+        return self
 
     @staticmethod
     def get_models_file_path():
@@ -184,7 +220,7 @@ class TTS(nn.Module):
             encoder_checkpoint=None,
             encoder_config=None,
             model_dir=model_dir,
-            use_cuda=gpu,
+            device=self.device,
         )
 
     def load_tts_model_by_path(
@@ -209,7 +245,7 @@ class TTS(nn.Module):
             vocoder_config=vocoder_config,
             encoder_checkpoint=None,
             encoder_config=None,
-            use_cuda=gpu,
+            device=self.device,
         )
 
     def _check_arguments(

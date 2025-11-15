@@ -587,19 +587,44 @@ class GPT(nn.Module):
         **hf_generate_kwargs,
     ):
         gpt_inputs = self.compute_embeddings(cond_latents, text_inputs)
+
+        # Ensure attention_mask is provided to the HF generate call.
+        # If the caller did not specify one, create a full-ones mask
+        # matching the shape of the input ids (including prefix tokens).
+        hf_kwargs = dict(hf_generate_kwargs)
+        if "attention_mask" not in hf_kwargs:
+            hf_kwargs["attention_mask"] = torch.ones_like(
+                gpt_inputs,
+                dtype=torch.long,
+                device=gpt_inputs.device,
+            )
+
         gen = self.gpt_inference.generate(
             gpt_inputs,
             bos_token_id=self.start_audio_token,
             pad_token_id=self.stop_audio_token,
             eos_token_id=self.stop_audio_token,
             max_length=self.max_gen_mel_tokens + gpt_inputs.shape[-1],
-            **hf_generate_kwargs,
+            **hf_kwargs,
         )
-        if "return_dict_in_generate" in hf_generate_kwargs:
+        if "return_dict_in_generate" in hf_kwargs:
             return gen.sequences[:, gpt_inputs.shape[1] :], gen
         return gen[:, gpt_inputs.shape[1] :]
 
     def get_generator(self, fake_inputs, **hf_generate_kwargs):
+        # Ensure attention_mask is provided to the HF streaming generate call
+        # and that `return_dict_in_generate` is True when requesting hidden
+        # states, to avoid configuration warnings in newer transformers.
+        hf_kwargs = dict(hf_generate_kwargs)
+        if "attention_mask" not in hf_kwargs:
+            hf_kwargs["attention_mask"] = torch.ones_like(
+                fake_inputs,
+                dtype=torch.long,
+                device=fake_inputs.device,
+            )
+        if hf_kwargs.get("output_hidden_states"):
+            hf_kwargs.setdefault("return_dict_in_generate", True)
+
         return self.gpt_inference.generate_stream(
             fake_inputs,
             bos_token_id=self.start_audio_token,
@@ -607,5 +632,5 @@ class GPT(nn.Module):
             eos_token_id=self.stop_audio_token,
             max_length=self.max_gen_mel_tokens + fake_inputs.shape[-1],
             do_stream=True,
-            **hf_generate_kwargs,
+            **hf_kwargs,
         )
