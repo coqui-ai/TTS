@@ -413,7 +413,7 @@ class TTS(nn.Module):
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as fp:
             # Lazy code... save it to a temp file to resample it while reading it for VC
             self.tts_to_file(
-                text=text, speaker=speaker, language=language, file_path=fp.name, split_sentences=split_sentences
+                text=text, speaker=speaker, speaker_wav=speaker_wav, language=language, file_path=fp.name, split_sentences=split_sentences
             )
         if self.voice_converter is None:
             self.load_vc_model_by_name("voice_conversion_models/multilingual/vctk/freevc24")
