@@ -9,10 +9,12 @@ _DECIMAL_COMMA_RE = re.compile(r"(?<=\d),(?=\d)")
 # decimal dot (only when it doesn't look like thousands groups): 3.14 -> 3 virgola 14
 _DECIMAL_DOT_RE = re.compile(r"(?<=\d)\.(?=\d)")
 
+
 def normalize_numbers(text: str) -> str:
     # Remove thousands separators like 1.234.567
     def _rm_thousands(m: re.Match) -> str:
         return m.group(0).replace(".", "")
+
     text = _THOUSANDS_DOT_RE.sub(_rm_thousands, text)
 
     # Percent / currency / degree signs (simple, robust)
