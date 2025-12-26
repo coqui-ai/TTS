@@ -12,6 +12,11 @@ from .english.number_norm import normalize_numbers as en_normalize_numbers
 from .english.time_norm import expand_time_english
 from .french.abbreviations import abbreviations_fr
 
+from .italian.abbreviations import abbreviations_it
+from .italian.number_norm import normalize_numbers as it_normalize_numbers
+from .italian.time_norm import expand_time_italian
+
+
 # Regular expression matching whitespace:
 _whitespace_re = re.compile(r"\s+")
 
@@ -21,6 +26,8 @@ def expand_abbreviations(text, lang="en"):
         _abbreviations = abbreviations_en
     elif lang == "fr":
         _abbreviations = abbreviations_fr
+    elif lang == "it":
+        _abbreviations = abbreviations_it
     for regex, replacement in _abbreviations:
         text = re.sub(regex, replacement, text)
     return text
@@ -69,6 +76,8 @@ def replace_symbols(text, lang="en"):
     elif lang == "fr":
         text = text.replace("&", " et ")
     elif lang == "pt":
+        text = text.replace("&", " e ")
+    elif lang == "it":
         text = text.replace("&", " e ")
     elif lang == "ca":
         text = text.replace("&", " i ")
@@ -125,6 +134,21 @@ def phoneme_cleaners(text):
     text = en_normalize_numbers(text)
     text = expand_abbreviations(text)
     text = replace_symbols(text)
+    text = remove_aux_symbols(text)
+    text = collapse_whitespace(text)
+    return text
+
+
+def italian_cleaners(text):
+    """Pipeline for Italian text: time + light number + abbreviations + symbol cleanup."""
+    # optional: normalize common smart punctuation
+    text = text.replace("’", "'").replace("“", '"').replace("”", '"').replace("–", "-").replace("—", "-")
+
+    text = lowercase(text)
+    text = expand_time_italian(text)
+    text = it_normalize_numbers(text)
+    text = expand_abbreviations(text, lang="it")
+    text = replace_symbols(text, lang="it")
     text = remove_aux_symbols(text)
     text = collapse_whitespace(text)
     return text
