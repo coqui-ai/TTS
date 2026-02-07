@@ -11,7 +11,6 @@ import torch
 import torch.distributed as dist
 from torch import nn
 from transformers import (
-    BeamSearchScorer,
     ConstrainedBeamSearchScorer,
     DisjunctiveConstraint,
     GenerationConfig,
@@ -21,6 +20,12 @@ from transformers import (
     PreTrainedModel,
     StoppingCriteriaList,
 )
+# BeamSearchScorer was moved to transformers.generation in transformers >= 4.56
+try:
+    from transformers import BeamSearchScorer
+except ImportError:
+    from transformers.generation import BeamSearchScorer
+
 from transformers.generation.utils import GenerateOutput, SampleOutput, logger
 
 
@@ -36,9 +41,39 @@ def setup_seed(seed):
 
 
 class StreamGenerationConfig(GenerationConfig):
+    """
+    Extended GenerationConfig with streaming support.
+
+    Adds `do_stream` attribute for streaming generation mode.
+    Compatible with transformers 4.x and 5.x.
+    """
+
     def __init__(self, **kwargs):
+        # Extract do_stream before passing to parent to avoid conflicts
+        do_stream = kwargs.pop("do_stream", False)
         super().__init__(**kwargs)
-        self.do_stream = kwargs.pop("do_stream", False)
+        self.do_stream = do_stream
+
+    @classmethod
+    def from_model_config(cls, model_config, **kwargs):
+        """
+        Create a StreamGenerationConfig from a model config.
+
+        Overrides parent to ensure do_stream is properly initialized,
+        fixing compatibility with transformers >= 5.0.0 where the
+        parent class no longer has this attribute.
+        """
+        # Get do_stream from kwargs if provided, default to False
+        do_stream = kwargs.pop("do_stream", False)
+
+        # Call parent's from_model_config
+        config = super().from_model_config(model_config, **kwargs)
+
+        # Ensure do_stream is set (may not exist in parent config)
+        if not hasattr(config, "do_stream"):
+            config.do_stream = do_stream
+
+        return config
 
 
 class NewGenerationMixin(GenerationMixin):
