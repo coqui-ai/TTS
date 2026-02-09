@@ -57,7 +57,7 @@ class Gruut(BasePhonemizer):
     def phonemize_gruut(self, text: str, separator: str = "|", tie=False) -> str:  # pylint: disable=unused-argument
         """Convert input text to phonemes.
 
-        Gruut phonemizes the given `str` by seperating each phoneme character with `separator`, even for characters
+        Gruut phonemizes the given `str` by separating each phoneme character with `separator`, even for characters
         that constitude a single sound.
 
         It doesn't affect 🐸TTS since it individually converts each character to token IDs.
