@@ -292,13 +292,13 @@ class GeneratorLoss(nn.Module):
             adv_loss = adv_loss + self.mse_gan_loss_weight * mse_fake_loss
 
         # multiscale Hinge adversarial loss
-        if self.use_hinge_gan_loss and not scores_fake is not None:
+        if self.use_hinge_gan_loss and scores_fake is not None:
             hinge_fake_loss = _apply_G_adv_loss(scores_fake, self.hinge_loss)
             return_dict["G_hinge_fake_loss"] = hinge_fake_loss
             adv_loss = adv_loss + self.hinge_gan_loss_weight * hinge_fake_loss
 
         # Feature Matching Loss
-        if self.use_feat_match_loss and not feats_fake is None:
+        if self.use_feat_match_loss and feats_fake is not None:
             feat_match_loss = self.feat_match_loss(feats_fake, feats_real)
             return_dict["G_feat_match_loss"] = feat_match_loss
             adv_loss = adv_loss + self.feat_match_loss_weight * feat_match_loss
