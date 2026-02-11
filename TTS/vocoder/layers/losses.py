@@ -205,8 +205,10 @@ def _apply_D_loss(scores_fake, scores_real, loss_func):
         fake_loss /= len(scores_fake)
     else:
         # single scale loss
-        total_loss, real_loss, fake_loss = loss_func(scores_fake, scores_real)
+        total_loss, real_loss_, fake_loss_ = loss_func(scores_fake, scores_real)
         loss = total_loss
+        real_loss = real_loss_
+        fake_loss = fake_loss_
     return loss, real_loss, fake_loss
 
 
