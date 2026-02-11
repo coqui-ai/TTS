@@ -112,7 +112,7 @@ class GE2ELoss(nn.Module):
 
         centroids = torch.mean(x, 1)
         cos_sim_matrix = self.calc_cosine_sim(x, centroids)
-        torch.clamp(self.w, 1e-6)
+        self.w.data.clamp_(1e-6)
         cos_sim_matrix = self.w * cos_sim_matrix + self.b
         L = self.embed_loss(x, cos_sim_matrix)
         return L.mean()
@@ -156,7 +156,7 @@ class AngleProtoLoss(nn.Module):
             out_positive.unsqueeze(-1).expand(-1, -1, num_speakers),
             out_anchor.unsqueeze(-1).expand(-1, -1, num_speakers).transpose(0, 2),
         )
-        torch.clamp(self.w, 1e-6)
+        self.w.data.clamp_(1e-6)
         cos_sim_matrix = cos_sim_matrix * self.w + self.b
         label = torch.arange(num_speakers).to(cos_sim_matrix.device)
         L = self.criterion(cos_sim_matrix, label)
