@@ -540,6 +540,7 @@ class AcousticModel(torch.nn.Module):
             torch.tensor([encoder_outputs_ex.shape[2]], dtype=torch.int64, device=encoder_outputs_ex.device)
         )
 
+        encoding = pos_encoding
         if encoder_outputs_ex.shape[1] > pos_encoding.shape[1]:
             encoding = positional_encoding(self.emb_dim, encoder_outputs_ex.shape[2], device=tokens.device)
 
