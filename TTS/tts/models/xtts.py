@@ -775,7 +775,7 @@ class Xtts(BaseTTS):
         # deal with v1 and v1.1. V1 has the init_gpt_for_inference keys, v1.1 do not
         try:
             self.load_state_dict(checkpoint, strict=strict)
-        except:
+        except Exception:
             if eval:
                 self.gpt.init_gpt_for_inference(kv_cache=self.args.kv_cache)
             self.load_state_dict(checkpoint, strict=strict)

@@ -403,7 +403,7 @@ class ForwardTTSE2eDataset(TTSDataset):
 
         try:
             token_ids = self.get_token_ids(idx, item["text"])
-        except:
+        except Exception:
             print(idx, item)
             # pylint: disable=raise-missing-from
             raise OSError

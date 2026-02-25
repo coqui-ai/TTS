@@ -46,7 +46,7 @@ def get_commit_hash():
     # try:
     #     subprocess.check_output(['git', 'diff-index', '--quiet',
     #                              'HEAD'])  # Verify client is clean
-    # except:
+    # except Exception:
     #     raise RuntimeError(
     #         " !! Commit before training to get the commit hash.")
     try:

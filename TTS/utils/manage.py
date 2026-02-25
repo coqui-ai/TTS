@@ -112,7 +112,7 @@ class ModelManager(object):
             if model_query_idx <= 0:
                 print("> model_query_idx should be a positive integer!")
                 return
-        except:
+        except Exception:
             print("> model_query_idx should be an integer!")
             return
         model_count = 0
@@ -403,7 +403,7 @@ class ModelManager(object):
             if "xtts" in model_name:
                 try:
                     self.check_if_configs_are_equal(model_name, model_item, output_path)
-                except:
+                except Exception:
                     pass
             else:
                 print(f" > {model_name} is already downloaded.")

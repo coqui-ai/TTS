@@ -213,7 +213,7 @@ if __name__ == "__main__":
                 else:
                     try:
                         train_meta, eval_meta, audio_total_size = format_audio_list(audio_path, target_language=language, out_path=out_path, gradio_progress=progress)
-                    except:
+                    except Exception:
                         traceback.print_exc()
                         error = traceback.format_exc()
                         return f"The data processing was interrupted due an error !! Please check the console to verify the full error message! \n Error summary: {error}", "", ""
@@ -282,7 +282,7 @@ if __name__ == "__main__":
                     # convert seconds to waveform frames
                     max_audio_length = int(max_audio_length * 22050)
                     config_path, original_xtts_checkpoint, vocab_file, exp_path, speaker_wav = train_gpt(language, num_epochs, batch_size, grad_acumm, train_csv, eval_csv, output_path=output_path, max_audio_length=max_audio_length)
-                except:
+                except Exception:
                     traceback.print_exc()
                     error = traceback.format_exc()
                     return f"The training was interrupted due an error !! Please check the console to check the full error message! \n Error summary: {error}", "", "", "", ""

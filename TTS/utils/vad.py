@@ -54,7 +54,7 @@ def remove_silence(
     # read ground truth wav and resample the audio for the VAD
     try:
         wav, gt_sample_rate = read_audio(audio_path)
-    except:
+    except Exception:
         print(f"> ❗ Failed to read {audio_path}")
         return None, False
 

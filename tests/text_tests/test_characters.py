@@ -40,7 +40,7 @@ class BaseVocabularyTest(unittest.TestCase):
         try:
             self.empty_vocab.char_to_id("a")
             raise Exception("Should have raised KeyError")
-        except:
+        except Exception:
             pass
         for k in self.phonemes.vocab:
             self.assertEqual(self.base_vocab.char_to_id(k), self.phonemes.char_to_id(k))
@@ -49,7 +49,7 @@ class BaseVocabularyTest(unittest.TestCase):
         try:
             self.empty_vocab.id_to_char(0)
             raise Exception("Should have raised KeyError")
-        except:
+        except Exception:
             pass
         for k in self.phonemes.vocab:
             v = self.phonemes.char_to_id(k)

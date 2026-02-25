@@ -42,7 +42,7 @@ def segment_test():
     try:
         segments = segment(x, segment_ids, segment_size=10)
         raise Exception("Should have failed")
-    except:
+    except Exception:
         pass
 
     segments = segment(x, segment_ids, segment_size=10, pad_short=True)
@@ -59,7 +59,7 @@ def rand_segments_test():
     try:
         segments, _ = rand_segments(x, x_lens, segment_size=5)
         raise Exception("Should have failed")
-    except:
+    except Exception:
         pass
     x_lens_back = x_lens.clone()
     segments, seg_idxs = rand_segments(x, x_lens.clone(), segment_size=5, pad_short=True, let_short_samples=True)
