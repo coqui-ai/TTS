@@ -261,8 +261,8 @@ class TTS(nn.Module):
             emotion (str, optional):
                 Emotion to use for 🐸Coqui Studio models. If None, Studio models use "Neutral". Defaults to None.
             speed (float, optional):
-                Speed factor to use for 🐸Coqui Studio models, between 0 and 2.0. If None, Studio models use 1.0.
-                Defaults to None.
+                Speed factor to adjust the speech rate, between 0.0 and 2.0. Supported by XTTS and Coqui Studio
+                models. If None, defaults to 1.0. Defaults to None.
             split_sentences (bool, optional):
                 Split text into sentences, synthesize them separately and concatenate the file audio.
                 Setting it False uses more VRAM and possibly hit model specific text length or VRAM limits. Only
@@ -283,6 +283,7 @@ class TTS(nn.Module):
             style_text=None,
             reference_speaker_name=None,
             split_sentences=split_sentences,
+            speed=speed,
             **kwargs,
         )
         return wav
@@ -317,7 +318,8 @@ class TTS(nn.Module):
             emotion (str, optional):
                 Emotion to use for 🐸Coqui Studio models. Defaults to "Neutral".
             speed (float, optional):
-                Speed factor to use for 🐸Coqui Studio models, between 0.0 and 2.0. Defaults to None.
+                Speed factor to adjust the speech rate, between 0.0 and 2.0. Supported by XTTS and Coqui Studio
+                models. Defaults to 1.0.
             pipe_out (BytesIO, optional):
                 Flag to stdout the generated TTS wav file for shell pipe.
             file_path (str, optional):
@@ -336,6 +338,8 @@ class TTS(nn.Module):
             speaker=speaker,
             language=language,
             speaker_wav=speaker_wav,
+            emotion=emotion,
+            speed=speed,
             split_sentences=split_sentences,
             **kwargs,
         )
