@@ -6,10 +6,10 @@ from typing import Union
 import numpy as np
 from torch import nn
 
+from TTS.config import load_config
 from TTS.utils.audio.numpy_transforms import save_wav
 from TTS.utils.manage import ModelManager
 from TTS.utils.synthesizer import Synthesizer
-from TTS.config import load_config
 
 
 class TTS(nn.Module):
@@ -168,9 +168,7 @@ class TTS(nn.Module):
         self.synthesizer = None
         self.model_name = model_name
 
-        model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(
-            model_name
-        )
+        model_path, config_path, vocoder_path, vocoder_config_path, model_dir = self.download_model_by_name(model_name)
 
         # init synthesizer
         # None values are fetch from the model
