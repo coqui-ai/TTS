@@ -129,7 +129,7 @@ class MyModel(BaseTTS):
             criterion (nn.Module): Loss layer designed for the model.
 
         Returns:
-            Tuple[Dict, Dict]: Model ouputs and computed losses.
+            Tuple[Dict, Dict]: Model outputs and computed losses.
         """
         outputs_dict = {}
         loss_dict = {}  # this returns from the criterion
@@ -161,7 +161,7 @@ class MyModel(BaseTTS):
             criterion (nn.Module): Loss layer designed for the model.
 
         Returns:
-            Tuple[Dict, Dict]: Model ouputs and computed losses.
+            Tuple[Dict, Dict]: Model outputs and computed losses.
         """
         outputs_dict = {}
         loss_dict = {}  # this returns from the criterion

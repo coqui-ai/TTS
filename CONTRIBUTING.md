@@ -13,7 +13,7 @@ If you like to contribute code, squash a bug but if you don't know where to star
 
 - [Development Road Map](https://github.com/coqui-ai/TTS/issues/378)
 
-    You can pick something out of our road map. We keep the progess of the project in this simple issue thread. It has new model proposals or developmental updates etc.
+    You can pick something out of our road map. We keep the progress of the project in this simple issue thread. It has new model proposals or developmental updates etc.
 
 - [Github Issues Tracker](https://github.com/coqui-ai/TTS/issues)
 
@@ -134,7 +134,7 @@ If you prefer working within a Docker container as your development environment,
 
 1. Fork 🐸TTS[https://github.com/coqui-ai/TTS] by clicking the fork button at the top right corner of the project page.
 
-2. Clone 🐸TTS and add the main repo as a new remote named ```upsteam```.
+2. Clone 🐸TTS and add the main repo as a new remote named ```upstream```.
 
     ```bash
     $ git clone git@github.com:<your Github name>/TTS.git
