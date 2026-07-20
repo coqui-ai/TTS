@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 from coqpit import Coqpit
@@ -24,7 +24,7 @@ class BaseTrainerModel(TrainerModel):
         ...
 
     @abstractmethod
-    def inference(self, input: torch.Tensor, aux_input={}) -> Dict:
+    def inference(self, input: torch.Tensor, aux_input: Optional[Dict] = None) -> Dict:
         """Forward pass for inference.
 
         It must return a dictionary with the main model output and all the auxiliary outputs. The key ```model_outputs```
