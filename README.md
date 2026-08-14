@@ -20,7 +20,7 @@
 
 🛠️ Tools for training new models and fine-tuning existing models in any language.
 
-📚 Utilities for dataset analysis and curation.
+📚 Utilities for dataset analysis and curation...
 ______________________________________________________________________
 
 [![Discord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
