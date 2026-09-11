@@ -558,6 +558,8 @@ def multilingual_cleaners(text, lang):
     text = expand_numbers_multilingual(text, lang)
     text = expand_abbreviations_multilingual(text, lang)
     text = expand_symbols_multilingual(text, lang=lang)
+    if lang == "ru":
+        text = text.replace(".", " ")
     text = collapse_whitespace(text)
     return text
 
