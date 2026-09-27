@@ -26,8 +26,8 @@ def _expand_time_english(match: "re.Match") -> str:
     if hour > 12:
         hour -= 12
     elif hour == 0:
+        # 00:xx is midnight, so it stays a.m. 12:xx is already past noon.
         hour = 12
-        past_noon = True
     time.append(_expand_num(hour))
 
     minute = int(match.group(6))

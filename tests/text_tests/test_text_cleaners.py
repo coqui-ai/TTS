@@ -8,6 +8,9 @@ def test_time() -> None:
     assert english_cleaners("It's 9:01") == "it's nine oh one a m"
     assert english_cleaners("It's 16:00") == "it's four p m"
     assert english_cleaners("It's 00:00 am") == "it's twelve a m"
+    assert english_cleaners("It's 00:00") == "it's twelve a m"
+    assert english_cleaners("It's 00:30") == "it's twelve thirty a m"
+    assert english_cleaners("It's 12:00") == "it's twelve p m"
 
 
 def test_currency() -> None:
