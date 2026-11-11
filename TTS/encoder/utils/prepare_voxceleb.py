@@ -91,7 +91,7 @@ def download_and_extract(directory, subset, urls):
             zip_filepath = "_".join(zip_filepath.split("_")[:-1])
             subprocess.call("cat %s* > %s.zip" % (zip_filepath, zip_filepath), shell=True)
             zip_filepath += ".zip"
-        extract_path = zip_filepath.strip(".zip")
+        extract_path = zip_filepath.removesuffix(".zip")
 
         # check zip file md5sum
         with open(zip_filepath, "rb") as f_zip:
