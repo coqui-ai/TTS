@@ -86,3 +86,19 @@ def generate_path_test():
             assert all(path[b, t, :current_idx] == 0.0)
             assert all(path[b, t, current_idx + durations[b, t].item() :] == 0.0)
             current_idx += durations[b, t].item()
+
+
+def rand_segments_exact_length_test():
+    x = T.rand(2, 3, 8)
+    x_lens = T.tensor([8, 8])
+    segments, seg_idxs = rand_segments(x, x_lens, segment_size=8)
+    assert segments.shape == (2, 3, 8)
+    assert all(seg_idxs == 0), seg_idxs
+
+
+def rand_segments_none_lengths_test():
+    x = T.rand(2, 3, 8)
+    segments, seg_idxs = rand_segments(x, None, segment_size=4)
+    assert segments.shape == (2, 3, 4)
+    assert all(seg_idxs >= 0), seg_idxs
+    assert all(seg_idxs <= 4), seg_idxs
